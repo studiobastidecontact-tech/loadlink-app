@@ -1,0 +1,54 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+dist
+dist-ssr
+*.local
+
+# Rust build outputs (HUGE — never commit)
+src-tauri/target
+src-tauri/Cargo.lock
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+Thumbs.db
+desktop.ini
+
+# Tauri build artifacts
+src-tauri/gen
+src-tauri/WixTools
+
+# Binaries (yt-dlp.exe, ffmpeg.exe) — too heavy, downloaded by CI
+src-tauri/binaries/yt-dlp.exe
+src-tauri/binaries/ffmpeg.exe
+src-tauri/binaries/yt-dlp-aarch64-apple-darwin
+src-tauri/binaries/yt-dlp-x86_64-apple-darwin
+src-tauri/binaries/ffmpeg-aarch64-apple-darwin
+src-tauri/binaries/ffmpeg-x86_64-apple-darwin
+
+# Secrets
+.env
+.env.local
+*.pem
+*.key
+
+src-tauri/binaries/test.mp4
+src-tauri/binaries/*.mp4
