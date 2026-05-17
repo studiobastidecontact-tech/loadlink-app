@@ -1,34 +1,37 @@
 # LoadLink
 
-Application desktop de téléchargement de vidéos et audio depuis YouTube, Vimeo, TikTok, Instagram et 1800+ autres sites.
+Outil desktop local de capture, conversion et archivage multimédia.
+
+Conçu pour les **créateurs, journalistes, chercheurs et archivistes** ayant besoin de sauvegarder, convertir ou archiver localement des fichiers média dont ils détiennent les droits ou dont l'accès est légitime (contenus propres, sources libres de droits, exercice du droit à la portabilité — art. 20 RGPD).
 
 Site officiel : [loadlink.fr](https://loadlink.fr)
 
 ## Plateformes supportées
 
 - ✅ Windows 10 / 11 (x64)
-- ✅ macOS Apple Silicon (M1/M2/M3)
-- ✅ macOS Intel
+- ⏳ macOS (à venir)
 - ⏳ Linux (à venir)
 
-## Builds automatiques
+## Fonctionnalités
 
-Les builds Windows et macOS sont générés automatiquement par GitHub Actions à chaque tag de version.
+- Capture de flux média accessibles vers conteneurs standards (MP4, WEBM)
+- Extraction de pistes audio (WAV, FLAC, M4A, OGG, AAC)
+- Traitement par lot
+- Réencodage local en H.265 pour optimisation du stockage
+- Archivage ZIP de dossiers
+- **Traitement 100% local** — aucun serveur, aucune télémétrie, aucune collecte
 
-Pour déclencher un nouveau build :
+## Stack technique
 
-```bash
-git tag v1.0.2
-git push origin v1.0.2
-```
+- [Tauri 2.0](https://tauri.app) — runtime desktop (Rust + Webview)
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) — moteur de capture (Unlicense)
+- [FFmpeg](https://ffmpeg.org) — conversion et compression (LGPL v2.1+)
 
-Le workflow génère un installeur pour chaque plateforme. Récupère-les dans l'onglet "Actions" du repo.
+## Responsabilité de l'utilisateur
 
-## Technologies
+LoadLink est un **outil technique neutre**. L'utilisateur est seul responsable du respect des droits de propriété intellectuelle et des conditions d'utilisation des services tiers depuis lesquels il accède aux contenus qu'il traite.
 
-- [Tauri 2.0](https://tauri.app) (Rust + Webview)
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) pour le téléchargement
-- [ffmpeg](https://ffmpeg.org) pour la conversion et compression
+Pour le détail, voir les [mentions légales](https://loadlink.fr/legal.html) sur le site officiel.
 
 ## Licence
 

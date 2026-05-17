@@ -20,7 +20,7 @@
     <nav class="tabs">
       <button class="tab selected" data-tab="download" id="tab-download">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span>Télécharger</span>
+        <span>Capturer</span>
       </button>
       <button class="tab" data-tab="compress" id="tab-compress">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
@@ -32,9 +32,9 @@
     <div class="tab-content" id="content-download">
 
       <section class="card url-section">
-        <label class="label">Lien vidéo</label>
+        <label class="label">Source</label>
         <div class="input-wrapper">
-          <input type="text" id="url-input" placeholder="Colle un lien ou Ctrl+V" autocomplete="off" />
+          <input type="text" id="url-input" placeholder="Colle une URL source ou Ctrl+V" autocomplete="off" />
           <button class="paste-btn" id="paste-btn" title="Coller" aria-label="Coller">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
           </button>
@@ -61,14 +61,14 @@
         <div class="playlist-toggle">
           <div class="playlist-info">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            <span>Playlist détectée</span>
+            <span>Liste détectée</span>
           </div>
           <label class="switch">
             <input type="checkbox" id="playlist-toggle" />
             <span class="slider"></span>
           </label>
         </div>
-        <p class="playlist-hint" id="playlist-hint">Télécharger seulement cette vidéo</p>
+        <p class="playlist-hint" id="playlist-hint">Traiter seulement cet élément</p>
       </section>
 
       <section class="format-section">
@@ -80,8 +80,8 @@
           </button>
           <button class="format-btn" data-type="audio" id="format-audio">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-            <span class="format-label">Audio</span>
-            <span class="format-meta" id="audio-meta">MP3 320k</span>
+            <span class="format-label">Piste audio</span>
+            <span class="format-meta" id="audio-meta">WAV / FLAC</span>
           </button>
         </div>
       </section>
@@ -127,12 +127,12 @@
 
       <button class="download-btn" id="download-btn" disabled>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span id="btn-label">Télécharger</span>
+        <span id="btn-label">Lancer</span>
       </button>
 
-      <!-- FULL PREVIEW (sous le bouton télécharger) -->
+      <!-- FULL PREVIEW -->
       <section class="full-preview hidden" id="full-preview">
-        <p class="history-title">Aperçu du téléchargement</p>
+        <p class="history-title">Aperçu du traitement</p>
         <div class="full-preview-card">
           <div class="full-preview-media">
             <img id="full-preview-thumb" alt="" />
@@ -251,7 +251,7 @@
   <div class="modal hidden" id="rename-modal">
     <div class="modal-card">
       <h2>Nom du fichier</h2>
-      <input type="text" id="rename-input" placeholder="Laisse vide pour le titre YouTube" />
+      <input type="text" id="rename-input" placeholder="Laisse vide pour le titre par défaut" />
       <div class="modal-actions">
         <button class="btn-secondary" id="rename-cancel">Annuler</button>
         <button class="btn-primary" id="rename-ok">OK</button>
@@ -275,11 +275,12 @@
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       </div>
       <h2>Bienvenue sur LoadLink</h2>
-      <p class="welcome-intro">Voilà ce que tu peux faire :</p>
+      <p class="welcome-intro">Outil local de capture, conversion et archivage multimédia.</p>
+
       <div class="welcome-tip">
-        <p><strong>📥 Télécharger</strong><br/>
-        Colle un lien (YouTube, Vimeo, TikTok, Instagram, Twitter, SoundCloud, Twitch et 1800+ autres sites), choisis le format et la qualité.<br/>
-        Les playlists sont supportées (toggle auto).</p>
+        <p><strong>📥 Capturer</strong><br/>
+        Indique une URL source, choisis un format (vidéo MP4/WEBM ou piste audio WAV/FLAC/M4A/OGG/AAC) et la qualité.<br/>
+        Le traitement par lot est supporté pour les listes (toggle automatique).</p>
       </div>
       <div class="welcome-tip">
         <p><strong>📦 Compresser</strong><br/>
@@ -289,6 +290,11 @@
         <p><strong>📂 Dossiers par défaut</strong><br/>
         Vidéos → <code>Vidéos\LoadLink-Videos</code> · Audio → <code>Musique\LoadLink-Audio</code> · Compressions → <code>Vidéos\LoadLink-Videos</code></p>
       </div>
+      <div class="welcome-tip">
+        <p><strong>⚖️ Responsabilité</strong><br/>
+        LoadLink est un outil technique neutre. Tu es seul responsable du respect des droits applicables aux contenus que tu traites (contenus propres, sources libres, portabilité RGPD, etc.).</p>
+      </div>
+
       <button class="btn-primary welcome-ok" id="welcome-ok">Compris, c'est parti !</button>
     </div>
   </div>
