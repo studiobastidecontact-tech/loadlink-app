@@ -1,6 +1,8 @@
 // ============================================
-// LoadLink Phase 2 v3 — Frontend
-// Routing + logique métier + drag & drop natif
+// LoadLink Phase 2 v6 — Frontend
+// Drag & drop avec STREAMING CHUNKED pour gros fichiers (>100 Mo)
+// Fichiers < 100 Mo : base64 direct (rapide)
+// Fichiers >= 100 Mo : streaming par chunks de 8 Mo (illimité)
 // ============================================
 
 const { invoke } = window.__TAURI__.core;
@@ -76,6 +78,10 @@ const MODULE_INFO = {
   plugins:    { title: "Plugins", sub: "Extensions tierces pour étendre LoadLink.", ready: false }
 };
 
+// Streaming threshold: files >= this size will use chunked upload
+const STREAMING_THRESHOLD = 100 * 1024 * 1024; // 100 MB
+const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB per chunk
+
 // ============================================
 // STATE
 // ============================================
@@ -93,8 +99,9 @@ const state = {
   downloadFullPlaylist: false,
   history: JSON.parse(localStorage.getItem("dl-history") || "[]"),
   compressMode: "zip",
-  compressSource: null,            // string path (dossier) ou array de fichiers
-  compressSourceType: null,        // "directory" ou "files"
+  compressSource: null,
+  compressSourceType: null,
+  compressSourceLabel: null,
   compressOutputDir: null,
   zipLevel: "9",
   reencodeMode: "bitrate",
@@ -104,9 +111,6 @@ const state = {
   dark: localStorage.getItem("theme") === "dark"
 };
 
-// ============================================
-// DOM HELPERS
-// ============================================
 const $ = (id) => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -193,10 +197,8 @@ const isValidUrl = (s) => {
     return u.protocol === "http:" || u.protocol === "https:";
   } catch { return false; }
 };
-
 const isYoutube = (s) => /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(s);
 const isFakePlaylist = (listId) => listId && /^(RD|UL|OLAK|RDMM|RDCLAK|RDAMVM|RDAT|RDQ|RDEM)/.test(listId);
-
 const hasPlaylist = (s) => {
   if (!isYoutube(s)) return false;
   if (/\/playlist\?/.test(s)) return true;
@@ -204,7 +206,6 @@ const hasPlaylist = (s) => {
   if (!match) return false;
   return !isFakePlaylist(match[1]);
 };
-
 const cleanUrl = (s, keepPlaylist) => {
   if (!isYoutube(s)) return s;
   try {
@@ -224,7 +225,6 @@ const cleanUrl = (s, keepPlaylist) => {
     return s;
   } catch { return s; }
 };
-
 const formatDuration = (sec) => {
   if (!sec) return "";
   const h = Math.floor(sec / 3600);
@@ -234,14 +234,13 @@ const formatDuration = (sec) => {
     ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
     : `${m}:${String(s).padStart(2, "0")}`;
 };
-
 const qualityLabel = () => {
   const list = state.type === "video" ? VIDEO_QUALITIES : AUDIO_QUALITIES;
   return list.find((q) => q.key === state.quality)?.label || "Max";
 };
 
 // ============================================
-// CAPTURE MODULE
+// CAPTURE MODULE (inchangé)
 // ============================================
 const updateBtnState = () => {
   const btn = $("download-btn");
@@ -436,118 +435,306 @@ const updateCompressUI = () => {
   $("compress-btn-label").textContent = state.compressMode === "zip" ? "Compresser en ZIP" : "Réencoder les vidéos";
 };
 
-// Set the compress source from a path string (directory) or array of file paths
-const setCompressSource = (sourceData) => {
-  if (Array.isArray(sourceData)) {
-    state.compressSource = sourceData;
-    state.compressSourceType = "files";
-    const count = sourceData.length;
-    const label = count === 1
-      ? sourceData[0].split(/[\\/]/).pop() || sourceData[0]
-      : `${count} fichiers sélectionnés`;
-    showCompressSourceInfo(label);
-  } else if (typeof sourceData === "string") {
-    state.compressSource = sourceData;
-    state.compressSourceType = "directory";
-    const name = sourceData.split(/[\\/]/).pop() || sourceData;
-    $("source-label").textContent = name;
-    showCompressSourceInfo(`Dossier : ${name}`);
-  }
-  updateCompressBtnState();
-};
-
 const showCompressSourceInfo = (text) => {
-  const info = $("compress-source-info");
   $("compress-source-info-text").textContent = text;
   $("compress-source-info-text").title = text;
-  info.classList.remove("hidden");
+  $("compress-source-info").classList.remove("hidden");
 };
 
 const clearCompressSource = () => {
   state.compressSource = null;
   state.compressSourceType = null;
+  state.compressSourceLabel = null;
   $("source-label").textContent = "Choisir un dossier";
   $("compress-source-info").classList.add("hidden");
   updateCompressBtnState();
 };
 
-// ============================================
-// DRAG & DROP (Tauri natif)
-// ============================================
-// Tauri 2.x émet `tauri://drag-enter`, `tauri://drag-over`, `tauri://drag-leave`, `tauri://drag-drop`
-// Le payload contient { paths: string[], position: {x, y} }
-//
-// Strategy:
-// - On listen globalement
-// - Si le drop se fait sur la page Compresser (ou n'importe où dans cette page), on traite
-// - Sinon on ignore (les autres modules ne sont pas encore prêts)
-// - On déduit "dossier vs fichiers" en regardant si paths a 1 seul élément qui ressemble à un dossier
-//   En pratique on demande au backend ou on devine par l'absence d'extension
-
-const isLikelyDirectory = (path) => {
-  // Heuristique simple : si le dernier segment n'a pas de '.' c'est probablement un dossier
-  // Cas frontière (dossier avec point dans le nom) -> on traite comme fichier, le backend le redressera si besoin
-  const last = path.split(/[\\/]/).pop() || "";
-  return !last.includes(".");
+const setCompressSourceFromPath = (path) => {
+  state.compressSource = path;
+  state.compressSourceType = "directory";
+  const name = path.split(/[\\/]/).pop() || path;
+  state.compressSourceLabel = name;
+  $("source-label").textContent = name;
+  showCompressSourceInfo(`Dossier : ${name}`);
+  updateCompressBtnState();
 };
 
-const handleDrop = (paths) => {
-  if (!paths || paths.length === 0) return;
+const setCompressSourceFromFiles = (fileList, rootName) => {
+  state.compressSource = fileList;
+  state.compressSourceType = "files";
+  state.compressSourceLabel = rootName || null;
+  const count = fileList.length;
+  const totalSize = fileList.reduce((sum, item) => sum + item.file.size, 0);
+  const mb = (totalSize / 1_048_576).toFixed(1);
+  let label;
+  if (rootName) {
+    label = `Dossier « ${rootName} » : ${count} fichier${count > 1 ? "s" : ""} (${mb} Mo)`;
+  } else {
+    label = count === 1
+      ? `${fileList[0].file.name} (${mb} Mo)`
+      : `${count} fichiers (${mb} Mo)`;
+  }
+  showCompressSourceInfo(label);
+  updateCompressBtnState();
+};
 
-  // Seul Compresser sait gérer pour l'instant
+// ============================================
+// HTML5 DRAG & DROP
+// ============================================
+window.addEventListener("dragover", (e) => { e.preventDefault(); e.stopPropagation(); });
+window.addEventListener("drop", (e) => { e.preventDefault(); e.stopPropagation(); });
+
+const dropZone = () => $("compress-drop-zone");
+
+const onDragEnter = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (state.currentModule !== "compress") return;
+  dropZone()?.classList.add("drag-over");
+};
+
+const onDragOver = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (state.currentModule !== "compress") return;
+  e.dataTransfer.dropEffect = "copy";
+  dropZone()?.classList.add("drag-over");
+};
+
+const onDragLeave = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (e.target === dropZone()) {
+    dropZone()?.classList.remove("drag-over");
+  }
+};
+
+const readDirectoryRecursive = (dirEntry, pathPrefix = "") => {
+  return new Promise((resolve, reject) => {
+    const reader = dirEntry.createReader();
+    const allEntries = [];
+
+    const readBatch = () => {
+      reader.readEntries(
+        (entries) => {
+          if (entries.length === 0) {
+            const promises = allEntries.map((entry) => {
+              const newPath = pathPrefix ? `${pathPrefix}/${entry.name}` : entry.name;
+              if (entry.isFile) {
+                return new Promise((res, rej) => {
+                  entry.file(
+                    (f) => res([{ file: f, relativePath: newPath }]),
+                    (err) => rej(err)
+                  );
+                });
+              } else if (entry.isDirectory) {
+                return readDirectoryRecursive(entry, newPath);
+              }
+              return Promise.resolve([]);
+            });
+            Promise.all(promises)
+              .then((results) => resolve(results.flat()))
+              .catch(reject);
+          } else {
+            allEntries.push(...entries);
+            readBatch();
+          }
+        },
+        (err) => reject(err)
+      );
+    };
+
+    readBatch();
+  });
+};
+
+const processEntry = (entry, pathPrefix = "") => {
+  return new Promise((resolve, reject) => {
+    if (entry.isFile) {
+      entry.file(
+        (f) => resolve([{ file: f, relativePath: pathPrefix ? `${pathPrefix}/${f.name}` : f.name }]),
+        (err) => reject(err)
+      );
+    } else if (entry.isDirectory) {
+      readDirectoryRecursive(entry, pathPrefix || entry.name)
+        .then(resolve)
+        .catch(reject);
+    } else {
+      resolve([]);
+    }
+  });
+};
+
+const onDrop = async (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  dropZone()?.classList.remove("drag-over");
+
   if (state.currentModule !== "compress") {
-    showToast("Le drag & drop n'est dispo que sur Compresser pour l'instant");
+    showToast("Le drag & drop n'est dispo que sur Compresser pour l'instant", 2500);
     return;
   }
 
-  // 1 seul path qui ressemble à un dossier => mode directory
-  if (paths.length === 1 && isLikelyDirectory(paths[0])) {
-    setCompressSource(paths[0]);
-    showToast("Dossier ajouté", 1800);
-  } else {
-    // Plusieurs fichiers ou 1 seul fichier => mode files
-    setCompressSource(paths);
-    showToast(paths.length === 1 ? "Fichier ajouté" : `${paths.length} fichiers ajoutés`, 1800);
+  const dt = e.dataTransfer;
+  if (!dt) return;
+
+  const items = dt.items;
+  if (!items || items.length === 0) {
+    if (dt.files && dt.files.length > 0) {
+      const fileList = Array.from(dt.files).map((f) => ({ file: f, relativePath: f.name }));
+      setCompressSourceFromFiles(fileList, null);
+      showToast(`${fileList.length} fichier${fileList.length > 1 ? "s" : ""} ajouté${fileList.length > 1 ? "s" : ""}`, 1800);
+      return;
+    }
+    showToast("Aucun fichier détecté", 2500);
+    return;
   }
-};
 
-const setDropZoneState = (active) => {
-  const zone = $("compress-drop-zone");
-  if (!zone) return;
-  zone.classList.toggle("drag-over", active);
-};
+  const entries = [];
+  let rootName = null;
+  let hasDirectory = false;
 
-// Setup Tauri drag/drop listeners
-(async () => {
+  for (let i = 0; i < items.length; i++) {
+    const entry = items[i].webkitGetAsEntry?.();
+    if (entry) {
+      entries.push(entry);
+      if (entry.isDirectory) {
+        hasDirectory = true;
+        if (items.length === 1) rootName = entry.name;
+      }
+    }
+  }
+
+  if (entries.length === 0) {
+    showToast("Impossible de lire les éléments dropés", 3000);
+    return;
+  }
+
+  showToast(hasDirectory ? "Lecture du contenu…" : "Préparation des fichiers…", 1500);
+
   try {
-    await listen("tauri://drag-enter", () => {
-      if (state.currentModule === "compress") setDropZoneState(true);
-    });
-    await listen("tauri://drag-over", () => {
-      if (state.currentModule === "compress") setDropZoneState(true);
-    });
-    await listen("tauri://drag-leave", () => {
-      setDropZoneState(false);
-    });
-    await listen("tauri://drag-drop", (event) => {
-      setDropZoneState(false);
-      const paths = event.payload?.paths || [];
-      handleDrop(paths);
-    });
+    const allFilesArrays = await Promise.all(
+      entries.map((entry) => processEntry(entry, ""))
+    );
+    const allFiles = allFilesArrays.flat();
+
+    if (allFiles.length === 0) {
+      showToast("Aucun fichier trouvé dans les éléments dropés", 3000);
+      return;
+    }
+
+    let finalFiles = allFiles;
+    if (rootName && items.length === 1) {
+      finalFiles = allFiles.map((item) => ({
+        file: item.file,
+        relativePath: `${rootName}/${item.relativePath}`,
+      }));
+    }
+
+    setCompressSourceFromFiles(finalFiles, rootName);
+
+    const fileCount = finalFiles.length;
+    if (rootName) {
+      showToast(`Dossier « ${rootName} » : ${fileCount} fichier${fileCount > 1 ? "s" : ""}`, 2200);
+    } else {
+      showToast(fileCount === 1 ? "Fichier ajouté" : `${fileCount} fichiers ajoutés`, 1800);
+    }
   } catch (err) {
-    console.warn("Tauri drag-drop listeners non disponibles :", err);
+    console.error("Drop processing error:", err);
+    showToast("Erreur lors de la lecture : " + err, 4000);
   }
-})();
+};
+
+const attachDropListeners = () => {
+  const zone = dropZone();
+  if (!zone) return;
+  zone.addEventListener("dragenter", onDragEnter);
+  zone.addEventListener("dragover", onDragOver);
+  zone.addEventListener("dragleave", onDragLeave);
+  zone.addEventListener("drop", onDrop);
+};
+
+// ============================================
+// FILE → BASE64 (full file, for small files)
+// ============================================
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const result = reader.result;
+    const commaIdx = result.indexOf(",");
+    if (commaIdx < 0) {
+      reject(new Error("Impossible de lire le fichier"));
+      return;
+    }
+    resolve(result.substring(commaIdx + 1));
+  };
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(file);
+});
+
+// ============================================
+// FILE BLOB → BASE64 (one chunk at a time, for large files)
+// ============================================
+const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const result = reader.result;
+    const commaIdx = result.indexOf(",");
+    if (commaIdx < 0) {
+      reject(new Error("Impossible de lire le chunk"));
+      return;
+    }
+    resolve(result.substring(commaIdx + 1));
+  };
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(blob);
+});
+
+// ============================================
+// STREAMING CHUNKED UPLOAD for large files (>= 100 MB)
+// ============================================
+
+/**
+ * Stream a single large file to the Rust backend in chunks.
+ * Returns the upload_id once complete.
+ */
+const streamFileToBackend = async (file, relativePath, onProgress) => {
+  // Start a new upload session for this file
+  const uploadId = await invoke("chunked_upload_start", { relativePath });
+
+  const totalSize = file.size;
+  let bytesSent = 0;
+  let offset = 0;
+
+  while (offset < totalSize) {
+    const end = Math.min(offset + CHUNK_SIZE, totalSize);
+    const chunkBlob = file.slice(offset, end);
+    const chunkB64 = await blobToBase64(chunkBlob);
+
+    await invoke("chunked_upload_append", {
+      uploadId,
+      chunk: chunkB64,
+    });
+
+    bytesSent = end;
+    offset = end;
+
+    if (onProgress) {
+      onProgress(bytesSent, totalSize);
+    }
+  }
+
+  return uploadId;
+};
 
 // ============================================
 // EVENT BINDINGS
 // ============================================
 
-// Theme toggles
 $("themeBtnHome").addEventListener("click", toggleTheme);
 $("themeBtnSidebar").addEventListener("click", toggleTheme);
 
-// Module cards on home
 $$(".module-card").forEach((card) => {
   card.addEventListener("click", () => {
     const key = card.dataset.module;
@@ -558,26 +745,22 @@ $$(".module-card").forEach((card) => {
   });
 });
 
-// Sidebar nav items
 $$(".nav-item").forEach((item) => {
   item.addEventListener("click", () => openModule(item.dataset.module));
 });
 
-// Help
 const showWelcome = () => $("welcome-modal").classList.remove("hidden");
 $("help-link")?.addEventListener("click", showWelcome);
 $("help-link-sidebar")?.addEventListener("click", showWelcome);
 
-// ===== Capture: URL =====
+// ===== Capture =====
 $("url-input").addEventListener("input", onUrlChange);
-
 $("paste-btn").addEventListener("click", async () => {
   try {
     const text = await readText();
     if (text) { $("url-input").value = text; onUrlChange(); }
   } catch { showToast("Impossible de lire le presse-papier"); }
 });
-
 $("url-input").addEventListener("focus", async () => {
   if ($("url-input").value.trim()) return;
   try {
@@ -585,7 +768,6 @@ $("url-input").addEventListener("focus", async () => {
     if (text && isValidUrl(text)) { $("url-input").value = text; onUrlChange(); }
   } catch {}
 });
-
 $("playlist-toggle").addEventListener("change", (e) => {
   state.downloadFullPlaylist = e.target.checked;
   const raw = $("url-input").value.trim();
@@ -601,7 +783,6 @@ $("playlist-toggle").addEventListener("change", (e) => {
   }
 });
 
-// ===== Capture: format =====
 $("format-video").addEventListener("click", () => {
   state.type = "video";
   if (!VIDEO_FORMATS.includes(state.format)) state.format = "mp4";
@@ -614,7 +795,6 @@ $("format-audio").addEventListener("click", () => {
   state.quality = "0";
   updateFormatUI();
 });
-
 $("format-detail-row").addEventListener("click", () => {
   const formats = state.type === "video" ? VIDEO_FORMATS : AUDIO_FORMATS;
   const list = formats.map((k) => ({ key: k, ...FORMATS[k] }));
@@ -623,7 +803,6 @@ $("format-detail-row").addEventListener("click", () => {
     updateFormatUI();
   });
 });
-
 $("quality-row").addEventListener("click", () => {
   const list = state.type === "video" ? VIDEO_QUALITIES : AUDIO_QUALITIES;
   showOptionsModal("Choisis la qualité", list, state.quality, (key) => {
@@ -631,10 +810,8 @@ $("quality-row").addEventListener("click", () => {
     updateFormatUI();
   });
 });
-
 $("format-cancel").addEventListener("click", () => $("format-modal").classList.add("hidden"));
 
-// ===== Capture: folder + rename =====
 $("folder-row").addEventListener("click", async () => {
   const selected = await open({ directory: true, multiple: false });
   if (selected) {
@@ -643,7 +820,6 @@ $("folder-row").addEventListener("click", async () => {
     updateFullPreview();
   }
 });
-
 $("rename-row").addEventListener("click", () => {
   $("rename-input").value = state.customName || "";
   $("rename-modal").classList.remove("hidden");
@@ -662,7 +838,6 @@ $("rename-input").addEventListener("keydown", (e) => {
   if (e.key === "Escape") $("rename-cancel").click();
 });
 
-// ===== Capture: download =====
 $("download-btn").addEventListener("click", async () => {
   if (state.downloading || !state.url) return;
   state.downloading = true;
@@ -745,24 +920,19 @@ $("open-folder-btn").addEventListener("click", () => {
   invoke("open_default_folder", { isAudio });
 });
 
-// ===== Compress: source selection (button + drop zone click) =====
-const pickCompressSource = async () => {
-  // Si l'utilisateur clique sur la drop zone ou sur "Choisir un dossier"
-  // On ouvre un dialog "dossier OU fichiers"
-  // Tauri ne permet pas les deux en un seul dialog : on fait dossier par défaut.
+// ===== Compress =====
+const pickCompressSourceDir = async () => {
   const selected = await open({ directory: true, multiple: false });
-  if (selected) setCompressSource(selected);
+  if (selected) setCompressSourceFromPath(selected);
 };
 
-$("select-source-btn").addEventListener("click", pickCompressSource);
-$("compress-drop-zone").addEventListener("click", pickCompressSource);
-
+$("select-source-btn").addEventListener("click", pickCompressSourceDir);
+$("compress-drop-zone").addEventListener("click", pickCompressSourceDir);
 $("compress-source-clear").addEventListener("click", (e) => {
   e.stopPropagation();
   clearCompressSource();
 });
 
-// ===== Compress: mode =====
 $("mode-zip").addEventListener("click", () => { state.compressMode = "zip"; updateCompressUI(); });
 $("mode-reencode").addEventListener("click", () => { state.compressMode = "reencode"; updateCompressUI(); });
 
@@ -772,14 +942,12 @@ $("zip-level-row").addEventListener("click", () => {
     updateCompressUI();
   });
 });
-
 $("reencode-mode-row").addEventListener("click", () => {
   showOptionsModal("Mode de réencodage", REENCODE_MODES, state.reencodeMode, (key) => {
     state.reencodeMode = key;
     updateCompressUI();
   });
 });
-
 $("reencode-quality-row").addEventListener("click", () => {
   if (state.reencodeMode === "crf") {
     showOptionsModal("Qualité (CRF)", REENCODE_QUALITIES, state.reencodeQuality, (key) => {
@@ -802,7 +970,11 @@ $("compress-output-row").addEventListener("click", async () => {
   }
 });
 
-// ===== Compress: launch =====
+// ============================================
+// LAUNCH COMPRESS — with smart routing:
+// - Files < 100 MB total: use compress_files_from_data (base64 in memory)
+// - Files >= 100 MB or any single file >= 100 MB: use chunked streaming
+// ============================================
 $("compress-btn").addEventListener("click", async () => {
   if (state.compressing || !state.compressSource) return;
   state.compressing = true;
@@ -813,53 +985,149 @@ $("compress-btn").addEventListener("click", async () => {
   $("compress-progress-meta").textContent = "";
 
   try {
-    // Si la source est un array de fichiers, on prend le dossier parent du premier fichier
-    // (le backend Phase 1 attend un chemin de dossier). Future amélioration : ajouter une
-    // commande backend qui accepte un array de fichiers.
-    let sourceForBackend = state.compressSource;
-    if (state.compressSourceType === "files" && Array.isArray(state.compressSource)) {
-      const firstFile = state.compressSource[0];
-      sourceForBackend = firstFile.substring(0, firstFile.lastIndexOf(/[\\/]/.test(firstFile) ? firstFile.match(/[\\/]/)[0] : "\\"));
-      // Fallback simple : prendre le dossier parent
-      const parts = firstFile.split(/[\\/]/);
-      parts.pop();
-      sourceForBackend = parts.join(firstFile.includes("\\") ? "\\" : "/");
-      showToast("Note : seul le dossier parent sera compressé (limite Phase 2)", 3500);
-    }
+    if (state.compressSourceType === "files") {
+      if (state.compressMode === "reencode") {
+        showToast("Réencodage par drag & drop non encore supporté. Utilise « Choisir un dossier ».", 4000);
+        $("compress-progress-section").classList.add("hidden");
+        state.compressing = false;
+        updateCompressBtnState();
+        return;
+      }
 
-    const command = state.compressMode === "zip" ? "compress_zip" : "reencode_videos";
-    const args = state.compressMode === "zip"
-      ? {
-          source: sourceForBackend,
+      const items = state.compressSource;
+      const totalBytes = items.reduce((sum, it) => sum + it.file.size, 0);
+      const hasLargeFile = items.some((it) => it.file.size >= STREAMING_THRESHOLD);
+      const useStreaming = hasLargeFile || totalBytes >= STREAMING_THRESHOLD;
+
+      const archiveName = state.compressSourceLabel
+        || (items.length === 1
+          ? items[0].file.name.replace(/\.[^.]+$/, "") || "archive"
+          : `drop-${items.length}-fichiers`);
+
+      let result;
+
+      if (useStreaming) {
+        // ===== CHUNKED STREAMING PATH =====
+        const totalMB = (totalBytes / 1_048_576).toFixed(1);
+        $("compress-progress-stage").textContent = `Upload streaming (${totalMB} Mo)…`;
+
+        const uploadIds = [];
+        let globalBytesSent = 0;
+
+        try {
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const fileSizeMB = (item.file.size / 1_048_576).toFixed(1);
+            $("compress-progress-meta").textContent =
+              `Fichier ${i + 1}/${items.length} : ${item.relativePath} (${fileSizeMB} Mo)`;
+
+            const uploadId = await streamFileToBackend(
+              item.file,
+              item.relativePath,
+              (bytesInFile, fileTotal) => {
+                const filePct = bytesInFile / fileTotal;
+                const overallSent = globalBytesSent + bytesInFile;
+                const overallPct = (overallSent / totalBytes) * 100;
+                $("compress-progress-fill").style.width = Math.min(overallPct, 99) + "%";
+                $("compress-progress-stage").textContent =
+                  `Upload ${overallPct.toFixed(0)}% (fichier ${i + 1}/${items.length})`;
+              }
+            );
+
+            uploadIds.push(uploadId);
+            globalBytesSent += item.file.size;
+          }
+
+          // All files uploaded, launch compression
+          $("compress-progress-stage").textContent = "Compression en cours…";
+          $("compress-progress-meta").textContent = "";
+          $("compress-progress-fill").style.width = "0%";
+
+          result = await invoke("chunked_upload_compress", {
+            uploadIds,
+            outputDir: state.compressOutputDir,
+            level: parseInt(state.zipLevel),
+            archiveName,
+          });
+        } catch (uploadErr) {
+          // Cleanup on error
+          await invoke("chunked_upload_cancel").catch(() => {});
+          throw uploadErr;
+        }
+      } else {
+        // ===== BASE64 IN-MEMORY PATH (fast, small files) =====
+        $("compress-progress-stage").textContent = "Lecture des fichiers…";
+        const filesPayload = [];
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          $("compress-progress-meta").textContent = `${i + 1}/${items.length} : ${item.relativePath}`;
+          const data = await fileToBase64(item.file);
+          filesPayload.push({ filename: item.relativePath, data });
+        }
+
+        $("compress-progress-stage").textContent = "Envoi au moteur de compression…";
+        $("compress-progress-meta").textContent = "";
+
+        result = await invoke("compress_files_from_data", {
+          files: filesPayload,
           outputDir: state.compressOutputDir,
           level: parseInt(state.zipLevel),
-        }
-      : {
-          source: sourceForBackend,
-          outputDir: state.compressOutputDir,
-          mode: state.reencodeMode,
-          crf: parseInt(state.reencodeQuality),
-          bitrateRatio: parseFloat(state.reencodeBitrate),
-        };
+          archiveName,
+        });
+      }
 
-    const result = await invoke(command, args);
-
-    if (result.success) {
-      $("compress-progress-fill").style.width = "100%";
-      $("compress-progress-stage").textContent = "Terminé";
-      $("compress-progress-meta").textContent = result.output_info || "";
-      showToast("Compression terminée", 2500);
-      setTimeout(() => {
+      // Handle result (same for both paths)
+      if (result.success) {
+        $("compress-progress-fill").style.width = "100%";
+        $("compress-progress-stage").textContent = "Terminé";
+        $("compress-progress-meta").textContent = result.output_info || "";
+        showToast("Compression terminée", 2500);
+        setTimeout(() => {
+          $("compress-progress-section").classList.add("hidden");
+          clearCompressSource();
+        }, 2500);
+      } else {
+        showToast("Erreur : " + (result.error || "inconnue"), 4000);
+        console.error(result.error);
         $("compress-progress-section").classList.add("hidden");
-        clearCompressSource();
-      }, 2500);
+      }
     } else {
-      showToast("Erreur : " + (result.error || "inconnue"), 4000);
-      console.error(result.error);
-      $("compress-progress-section").classList.add("hidden");
+      // ===== EXISTING PATH: directory selected via dialog =====
+      const command = state.compressMode === "zip" ? "compress_zip" : "reencode_videos";
+      const args = state.compressMode === "zip"
+        ? {
+            source: state.compressSource,
+            outputDir: state.compressOutputDir,
+            level: parseInt(state.zipLevel),
+          }
+        : {
+            source: state.compressSource,
+            outputDir: state.compressOutputDir,
+            mode: state.reencodeMode,
+            crf: parseInt(state.reencodeQuality),
+            bitrateRatio: parseFloat(state.reencodeBitrate),
+          };
+
+      const result = await invoke(command, args);
+
+      if (result.success) {
+        $("compress-progress-fill").style.width = "100%";
+        $("compress-progress-stage").textContent = "Terminé";
+        $("compress-progress-meta").textContent = result.output_info || "";
+        showToast("Compression terminée", 2500);
+        setTimeout(() => {
+          $("compress-progress-section").classList.add("hidden");
+          clearCompressSource();
+        }, 2500);
+      } else {
+        showToast("Erreur : " + (result.error || "inconnue"), 4000);
+        console.error(result.error);
+        $("compress-progress-section").classList.add("hidden");
+      }
     }
   } catch (err) {
     showToast("Erreur : " + err, 4000);
+    console.error("Compress error:", err);
     $("compress-progress-section").classList.add("hidden");
   }
 
@@ -879,7 +1147,8 @@ listen("compress-progress", (event) => {
     $("compress-progress-stage").textContent = `${prefix}Réencodage ${percent.toFixed(0)}%`;
     $("compress-progress-meta").textContent = current_file || "";
   } else if (stage === "scanning") {
-    $("compress-progress-stage").textContent = "Analyse des fichiers…";
+    $("compress-progress-stage").textContent = "Analyse…";
+    if (current_file) $("compress-progress-meta").textContent = current_file;
   }
 });
 
@@ -896,7 +1165,6 @@ const checkYtdlpUpdate = async () => {
   }
 };
 
-// ===== Welcome modal =====
 $("welcome-ok").addEventListener("click", () => {
   $("welcome-modal").classList.add("hidden");
   localStorage.setItem("welcome-seen-v3", "true");
@@ -912,6 +1180,7 @@ $("welcome-ok").addEventListener("click", () => {
   renderHistory();
   updateBtnState();
   updateCompressBtnState();
+  attachDropListeners();
 
   if (!localStorage.getItem("welcome-seen-v3")) {
     $("welcome-modal").classList.remove("hidden");

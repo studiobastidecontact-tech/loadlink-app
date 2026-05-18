@@ -1,15 +1,10 @@
 //! # LoadLink — Main Tauri orchestrator
-//!
-//! This file is intentionally **small**. All business logic lives in the
-//! `crates/*` workspace members. This file only:
-//! 1. Registers Tauri plugins
-//! 2. Initializes shared state (JobManager)
-//! 3. Exposes Tauri commands that delegate to the modular crates
-//!
-//! If you find yourself writing more than 20 lines of logic here,
-//! it probably belongs in a crate instead.
 
-use loadlink_compressor::{compress_zip as compressor_zip, ZipOptions};
+use loadlink_compressor::{
+    compress_chunked_session, compress_dropped_files as compressor_dropped,
+    compress_zip as compressor_zip, ChunkedUploadState, DroppedFile, DroppedFilesOptions,
+    ZipOptions,
+};
 use loadlink_converter::{reencode_videos as converter_reencode, ReencodeOptions};
 use loadlink_core::{
     CompressResult, DownloadResult, ProgressUpdate, UpdateResult, VideoInfo,
@@ -28,9 +23,9 @@ use tokio::process::Command;
 // State
 // ============================================
 
-/// Shared application state, accessible from any Tauri command.
 struct AppState {
     job_manager: Arc<JobManager>,
+    chunked_upload: ChunkedUploadState,
 }
 
 // ============================================
@@ -64,7 +59,6 @@ async fn download_video(
         is_playlist: is_playlist.unwrap_or(false),
     };
 
-    // Create a Job entry for tracking/history
     let title = format!("Download — {}", url);
     let mut job = Job::new(JobKind::Download, title);
     job.input_path = Some(url.clone());
@@ -75,15 +69,12 @@ async fn download_video(
         tracing::warn!("Failed to insert job: {}", e);
     }
 
-    // Mark as Running
     let _ = state
         .job_manager
         .update_state(job_id, JobState::Running, 0.0, None, None);
 
-    // Execute
     let result = importer_download(&app, opts).await;
 
-    // Update final state
     match &result {
         Ok(file_path) => {
             let _ = state.job_manager.update_state(
@@ -176,6 +167,167 @@ async fn compress_zip(
         }
     }
 }
+
+// ============================================
+// Phase 2: drag & drop — small files (base64 in memory)
+// ============================================
+
+#[tauri::command]
+async fn compress_files_from_data(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    files: Vec<DroppedFile>,
+    output_dir: Option<String>,
+    level: i32,
+    archive_name: Option<String>,
+) -> Result<CompressResult, String> {
+    let title = format!("ZIP (drop) — {} fichiers", files.len());
+    let mut job = Job::new(JobKind::CompressZip, title);
+    job.input_path = Some(format!("<dropped:{}>", files.len()));
+    let job_id = job.id;
+    let _ = state.job_manager.insert(&job);
+    let _ = state
+        .job_manager
+        .update_state(job_id, JobState::Running, 0.0, None, None);
+
+    let opts = DroppedFilesOptions {
+        files,
+        output_dir,
+        level,
+        archive_name,
+    };
+
+    let result = compressor_dropped(&app, opts).await;
+
+    match result {
+        Ok(r) => {
+            if r.success {
+                let _ = state.job_manager.update_state(
+                    job_id,
+                    JobState::Completed,
+                    100.0,
+                    None,
+                    Some(r.output_path.clone()),
+                );
+            } else {
+                let _ = state.job_manager.update_state(
+                    job_id,
+                    JobState::Failed,
+                    0.0,
+                    r.error.clone(),
+                    None,
+                );
+            }
+            Ok(r)
+        }
+        Err(e) => {
+            let err = e.to_string();
+            let _ = state.job_manager.update_state(
+                job_id,
+                JobState::Failed,
+                0.0,
+                Some(err.clone()),
+                None,
+            );
+            Err(err)
+        }
+    }
+}
+
+// ============================================
+// Phase 2: drag & drop — large files (chunked streaming)
+// ============================================
+
+#[tauri::command]
+async fn chunked_upload_start(
+    state: State<'_, AppState>,
+    relative_path: String,
+) -> Result<String, String> {
+    state.chunked_upload.start(&relative_path)
+}
+
+#[tauri::command]
+async fn chunked_upload_append(
+    state: State<'_, AppState>,
+    upload_id: String,
+    chunk: String,
+) -> Result<u64, String> {
+    state.chunked_upload.append(&upload_id, &chunk)
+}
+
+#[tauri::command]
+async fn chunked_upload_compress(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    upload_ids: Vec<String>,
+    output_dir: Option<String>,
+    level: i32,
+    archive_name: Option<String>,
+) -> Result<CompressResult, String> {
+    let title = format!("ZIP (chunked) — {} fichiers", upload_ids.len());
+    let mut job = Job::new(JobKind::CompressZip, title);
+    job.input_path = Some(format!("<chunked:{}>", upload_ids.len()));
+    let job_id = job.id;
+    let _ = state.job_manager.insert(&job);
+    let _ = state
+        .job_manager
+        .update_state(job_id, JobState::Running, 0.0, None, None);
+
+    let chunked_state = state.chunked_upload.clone();
+    let result = compress_chunked_session(
+        &app,
+        &chunked_state,
+        upload_ids,
+        output_dir,
+        level,
+        archive_name,
+    )
+    .await;
+
+    match result {
+        Ok(r) => {
+            if r.success {
+                let _ = state.job_manager.update_state(
+                    job_id,
+                    JobState::Completed,
+                    100.0,
+                    None,
+                    Some(r.output_path.clone()),
+                );
+            } else {
+                let _ = state.job_manager.update_state(
+                    job_id,
+                    JobState::Failed,
+                    0.0,
+                    r.error.clone(),
+                    None,
+                );
+            }
+            Ok(r)
+        }
+        Err(e) => {
+            let err = e.to_string();
+            let _ = state.job_manager.update_state(
+                job_id,
+                JobState::Failed,
+                0.0,
+                Some(err.clone()),
+                None,
+            );
+            Err(err)
+        }
+    }
+}
+
+#[tauri::command]
+async fn chunked_upload_cancel(state: State<'_, AppState>) -> Result<(), String> {
+    state.chunked_upload.cleanup();
+    Ok(())
+}
+
+// ============================================
+// Existing commands
+// ============================================
 
 #[tauri::command]
 async fn reencode_videos(
@@ -290,10 +442,6 @@ async fn open_default_folder(is_audio: bool) -> Result<(), String> {
     open_folder(folder.to_string_lossy().to_string()).await
 }
 
-// ============================================
-// New commands enabled by JobManager (Phase 1 feature)
-// ============================================
-
 #[tauri::command]
 async fn list_recent_jobs(
     state: State<'_, AppState>,
@@ -319,7 +467,6 @@ async fn cleanup_old_jobs(state: State<'_, AppState>, days: i64) -> Result<usize
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Init structured logging (only writes to stderr — no log file in dev)
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -333,22 +480,20 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            // Initialize the JobManager (creates jobs.db in AppData if needed)
             let job_manager = Arc::new(
                 JobManager::new(&app.handle())
                     .expect("Failed to initialize JobManager"),
             );
-
-            // Clean up jobs older than 30 days on startup (best effort)
             let _ = job_manager.cleanup_old(30);
-
-            app.manage(AppState { job_manager });
-
+            app.manage(AppState {
+                job_manager,
+                chunked_upload: ChunkedUploadState::new(),
+            });
             tracing::info!("LoadLink started, JobManager initialized");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            // Existing commands (refactored)
+            // Existing commands
             fetch_video_info,
             download_video,
             compress_zip,
@@ -356,9 +501,15 @@ pub fn run() {
             update_ytdlp,
             open_folder,
             open_default_folder,
-            // New commands (Phase 1)
             list_recent_jobs,
             cleanup_old_jobs,
+            // Phase 2 drag & drop — small files
+            compress_files_from_data,
+            // Phase 2 drag & drop — chunked streaming (any size)
+            chunked_upload_start,
+            chunked_upload_append,
+            chunked_upload_compress,
+            chunked_upload_cancel,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

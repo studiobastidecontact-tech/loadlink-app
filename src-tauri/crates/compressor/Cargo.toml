@@ -13,3 +13,7 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 zip = { workspace = true }
 tauri = { version = "2.0", features = [] }
+
+# Phase 2: drag & drop support
+base64 = "0.22"
+uuid = { workspace = true }
