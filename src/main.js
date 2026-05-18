@@ -1,10 +1,16 @@
-// Tauri 2.0 APIs
+// ============================================
+// LoadLink Phase 2 v3 — Frontend
+// Routing + logique métier + drag & drop natif
+// ============================================
+
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 const { open } = window.__TAURI__.dialog;
 const { readText } = window.__TAURI__.clipboardManager;
 
-// ========== Config ==========
+// ============================================
+// CONFIG
+// ============================================
 const FORMATS = {
   mp4: { type: "video", label: "MP4", desc: "Standard, compatible partout" },
   webm: { type: "video", label: "WEBM", desc: "Plus léger, open source" },
@@ -58,9 +64,23 @@ const REENCODE_BITRATES = [
   { key: "0.3", label: "Fort (-70%)", desc: "Réduction maximale" },
 ];
 
-// ========== State ==========
+const MODULE_INFO = {
+  capture:    { title: "Capturer", sub: "Télécharge une vidéo ou un audio depuis une URL.", ready: true },
+  transcribe: { title: "Transcrire", sub: "Convertit un fichier audio ou vidéo en texte horodaté.", ready: false },
+  compress:   { title: "Compresser", sub: "Archive en ZIP ou réencode des vidéos en H.265.", ready: true },
+  convert:    { title: "Convertir", sub: "Change le format d'un fichier local sans perte de qualité.", ready: false },
+  audio:      { title: "Audio", sub: "Édition audio multitrack, normalisation, mastering.", ready: false },
+  video:      { title: "Vidéo", sub: "Découpage, recadrage, sous-titres et effets vidéo.", ready: false },
+  ai:         { title: "IA Studio", sub: "Traitements assistés par intelligence artificielle.", ready: false },
+  import:     { title: "Importer", sub: "Importe automatiquement depuis carte SD, drone, caméra.", ready: false },
+  plugins:    { title: "Plugins", sub: "Extensions tierces pour étendre LoadLink.", ready: false }
+};
+
+// ============================================
+// STATE
+// ============================================
 const state = {
-  tab: "download",
+  currentModule: "home",
   url: "",
   format: "mp4",
   type: "video",
@@ -72,49 +92,110 @@ const state = {
   isPlaylist: false,
   downloadFullPlaylist: false,
   history: JSON.parse(localStorage.getItem("dl-history") || "[]"),
-  // Compress
   compressMode: "zip",
-  compressSource: null,
+  compressSource: null,            // string path (dossier) ou array de fichiers
+  compressSourceType: null,        // "directory" ou "files"
   compressOutputDir: null,
   zipLevel: "9",
   reencodeMode: "bitrate",
   reencodeQuality: "26",
   reencodeBitrate: "0.5",
   compressing: false,
+  dark: localStorage.getItem("theme") === "dark"
 };
 
-// ========== DOM ==========
+// ============================================
+// DOM HELPERS
+// ============================================
 const $ = (id) => document.getElementById(id);
+const $$ = (sel) => document.querySelectorAll(sel);
 
-// ========== Tab switching ==========
-$("tab-download").addEventListener("click", () => switchTab("download"));
-$("tab-compress").addEventListener("click", () => switchTab("compress"));
+// ============================================
+// TOAST
+// ============================================
+let toastTimer = null;
+const showToast = (msg, duration = 2500) => {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.remove("hidden");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add("hidden"), duration);
+};
 
-function switchTab(tab) {
-  state.tab = tab;
-  $("tab-download").classList.toggle("selected", tab === "download");
-  $("tab-compress").classList.toggle("selected", tab === "compress");
-  $("content-download").classList.toggle("hidden", tab !== "download");
-  $("content-compress").classList.toggle("hidden", tab !== "compress");
-}
+// ============================================
+// THEME
+// ============================================
+const moonSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+const sunSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
 
-// ========== Helpers ==========
+const applyTheme = () => {
+  document.body.classList.toggle("dark", state.dark);
+  const svg = state.dark ? sunSVG : moonSVG;
+  if ($("themeBtnHome")) $("themeBtnHome").innerHTML = svg;
+  if ($("themeBtnSidebar")) $("themeBtnSidebar").innerHTML = svg;
+};
+
+const toggleTheme = () => {
+  state.dark = !state.dark;
+  localStorage.setItem("theme", state.dark ? "dark" : "light");
+  applyTheme();
+};
+
+// ============================================
+// ROUTING
+// ============================================
+const homePage = () => $("homePage");
+const appPage = () => $("appPage");
+
+const goHome = () => {
+  state.currentModule = "home";
+  appPage().classList.add("hidden");
+  homePage().classList.remove("hidden");
+  $$(".nav-item").forEach((el) => el.classList.remove("active"));
+};
+
+const hideAllModulePages = () => {
+  $$(".module-page").forEach((el) => el.classList.add("hidden"));
+};
+
+const showModulePage = (id) => {
+  const target = $(id);
+  if (target) target.classList.remove("hidden");
+};
+
+const openModule = (moduleKey) => {
+  if (moduleKey === "home") { goHome(); return; }
+  const info = MODULE_INFO[moduleKey];
+  if (!info) return;
+  state.currentModule = moduleKey;
+  homePage().classList.add("hidden");
+  appPage().classList.remove("hidden");
+  $$(".nav-item").forEach((el) => {
+    el.classList.toggle("active", el.dataset.module === moduleKey);
+  });
+  hideAllModulePages();
+  if (info.ready) {
+    showModulePage("page-" + moduleKey);
+  } else {
+    showModulePage("page-placeholder");
+    $("placeholderTitle").textContent = info.title + " — en développement";
+    $("placeholderText").innerHTML = info.sub + "<br><br>Ce module sera disponible dans une prochaine version.";
+  }
+};
+
+// ============================================
+// URL HELPERS
+// ============================================
 const isValidUrl = (s) => {
   if (!s) return false;
   try {
     const u = new URL(s.startsWith("http") ? s : "https://" + s);
     return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 };
 
 const isYoutube = (s) => /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(s);
-
-const isFakePlaylist = (listId) => {
-  if (!listId) return false;
-  return /^(RD|UL|OLAK|RDMM|RDCLAK|RDAMVM|RDAT|RDQ|RDEM)/.test(listId);
-};
+const isFakePlaylist = (listId) => listId && /^(RD|UL|OLAK|RDMM|RDCLAK|RDAMVM|RDAT|RDQ|RDEM)/.test(listId);
 
 const hasPlaylist = (s) => {
   if (!isYoutube(s)) return false;
@@ -154,28 +235,23 @@ const formatDuration = (sec) => {
     : `${m}:${String(s).padStart(2, "0")}`;
 };
 
-const showToast = (msg, duration = 2500) => {
-  const t = $("toast");
-  t.textContent = msg;
-  t.classList.remove("hidden");
-  clearTimeout(showToast._t);
-  showToast._t = setTimeout(() => t.classList.add("hidden"), duration);
+const qualityLabel = () => {
+  const list = state.type === "video" ? VIDEO_QUALITIES : AUDIO_QUALITIES;
+  return list.find((q) => q.key === state.quality)?.label || "Max";
 };
 
-// ========== Download tab logic ==========
-const urlInput = $("url-input");
-const previewCard = $("preview-card");
-const loadingCard = $("loading-card");
-const downloadBtn = $("download-btn");
-const playlistSection = $("playlist-section");
-const playlistToggle = $("playlist-toggle");
-
+// ============================================
+// CAPTURE MODULE
+// ============================================
 const updateBtnState = () => {
-  downloadBtn.disabled = !(state.url && isValidUrl(state.url) && !state.downloading);
+  const btn = $("download-btn");
+  if (!btn) return;
+  btn.disabled = !(state.url && isValidUrl(state.url) && !state.downloading);
 };
 
 const renderHistory = () => {
   const list = $("history-list");
+  if (!list) return;
   list.innerHTML = "";
   state.history.slice(0, 8).forEach((item) => {
     const el = document.createElement("div");
@@ -204,19 +280,16 @@ const saveHistory = () => {
 };
 
 const updatePlaylistUI = () => {
+  const section = $("playlist-section");
+  if (!section) return;
   if (state.isPlaylist) {
-    playlistSection.classList.remove("hidden");
+    section.classList.remove("hidden");
     $("playlist-hint").textContent = state.downloadFullPlaylist
       ? "Toutes les vidéos seront téléchargées"
       : "Seulement cette vidéo sera téléchargée";
   } else {
-    playlistSection.classList.add("hidden");
+    section.classList.add("hidden");
   }
-};
-
-const qualityLabel = () => {
-  const list = state.type === "video" ? VIDEO_QUALITIES : AUDIO_QUALITIES;
-  return list.find((q) => q.key === state.quality)?.label || "Max";
 };
 
 const updateFormatUI = () => {
@@ -238,68 +311,27 @@ const updateFormatUI = () => {
   updateFullPreview();
 };
 
-const getRealFileSize = () => {
-  if (!state.videoInfo) return null;
-
-  if (state.type === "video") {
-    const sizes = state.videoInfo.video_sizes || {};
-    if (sizes[state.quality]) return sizes[state.quality];
-    if (state.quality === "max" && sizes["max"]) return sizes["max"];
-    const fallbackOrder = ["2160", "1440", "1080", "720", "480", "360"];
-    for (const q of fallbackOrder) {
-      if (sizes[q]) return sizes[q];
-    }
-    return null;
-  } else {
-    const sizes = state.videoInfo.audio_sizes || {};
-    if (state.format === "wav") {
-      const dur = state.videoInfo.duration || 0;
-      return (dur * 1411 * 1000) / 8;
-    }
-    if (state.format === "flac") {
-      const dur = state.videoInfo.duration || 0;
-      return (dur * 900 * 1000) / 8;
-    }
-    if (sizes[state.quality]) return sizes[state.quality];
-    return sizes["raw"] || null;
-  }
-};
-
-const formatFileSize = (bytes) => {
-  if (!bytes) return "—";
-  if (bytes < 1024 * 1024) return `~${(bytes / 1024).toFixed(0)} Ko`;
-  if (bytes < 1024 * 1024 * 1024) return `~${(bytes / (1024 * 1024)).toFixed(0)} Mo`;
-  return `~${(bytes / (1024 * 1024 * 1024)).toFixed(1)} Go`;
-};
-
 const updateFullPreview = () => {
   const preview = $("full-preview");
+  if (!preview) return;
   if (!state.videoInfo || state.downloadFullPlaylist) {
     preview.classList.add("hidden");
     return;
   }
   preview.classList.remove("hidden");
   $("full-preview-thumb").src = state.videoInfo.thumbnail || "";
-
   const displayTitle = state.customName
     ? `${state.customName}.${state.format}`
     : state.videoInfo.title || "—";
   $("full-preview-title").textContent = displayTitle;
-
   $("full-preview-uploader").textContent = state.videoInfo.uploader || "";
   $("full-preview-duration").textContent = formatDuration(state.videoInfo.duration);
-
   $("full-preview-format").textContent = FORMATS[state.format].label;
   $("full-preview-quality").textContent = qualityLabel();
-
   let dest;
-  if (state.customDir) {
-    dest = state.customDir;
-  } else if (state.type === "video") {
-    dest = "Vidéos\\LoadLink-Videos";
-  } else {
-    dest = "Musique\\LoadLink-Audio";
-  }
+  if (state.customDir) dest = state.customDir;
+  else if (state.type === "video") dest = "Vidéos\\LoadLink-Videos";
+  else dest = "Musique\\LoadLink-Audio";
   $("full-preview-dest").textContent = dest;
   $("full-preview-dest").title = dest;
 };
@@ -308,18 +340,20 @@ let fetchTimer = null;
 let fetchAbort = null;
 
 const onUrlChange = () => {
+  const urlInput = $("url-input");
+  if (!urlInput) return;
   const raw = urlInput.value.trim();
   state.isPlaylist = hasPlaylist(raw);
   state.url = cleanUrl(raw, state.downloadFullPlaylist);
   state.videoInfo = null;
-  previewCard.classList.add("hidden");
-  loadingCard.classList.add("hidden");
+  $("preview-card").classList.add("hidden");
+  $("loading-card").classList.add("hidden");
   $("full-preview").classList.add("hidden");
   updatePlaylistUI();
   updateBtnState();
   clearTimeout(fetchTimer);
   if (isValidUrl(state.url) && !state.downloadFullPlaylist) {
-    loadingCard.classList.remove("hidden");
+    $("loading-card").classList.remove("hidden");
     fetchTimer = setTimeout(() => fetchVideoInfo(state.url), 500);
   }
 };
@@ -338,63 +372,17 @@ const fetchVideoInfo = async (url) => {
     $("video-title").textContent = info.title;
     $("video-uploader").textContent = info.uploader;
     $("duration-badge").textContent = formatDuration(info.duration);
-    loadingCard.classList.add("hidden");
-    previewCard.classList.remove("hidden");
+    $("loading-card").classList.add("hidden");
+    $("preview-card").classList.remove("hidden");
     updateFullPreview();
   } catch (err) {
     clearTimeout(timeoutId);
-    loadingCard.classList.add("hidden");
+    $("loading-card").classList.add("hidden");
     if (signal.aborted) showToast("Délai dépassé, vérifie le lien", 3500);
     else showToast("Vidéo non trouvée ou indisponible", 3000);
   }
 };
 
-urlInput.addEventListener("input", onUrlChange);
-
-$("paste-btn").addEventListener("click", async () => {
-  try {
-    const text = await readText();
-    if (text) { urlInput.value = text; onUrlChange(); }
-  } catch { showToast("Impossible de lire le presse-papier"); }
-});
-
-urlInput.addEventListener("focus", async () => {
-  if (urlInput.value.trim()) return;
-  try {
-    const text = await readText();
-    if (text && isValidUrl(text)) { urlInput.value = text; onUrlChange(); }
-  } catch {}
-});
-
-playlistToggle.addEventListener("change", (e) => {
-  state.downloadFullPlaylist = e.target.checked;
-  const raw = urlInput.value.trim();
-  state.url = cleanUrl(raw, state.downloadFullPlaylist);
-  updatePlaylistUI();
-  if (state.downloadFullPlaylist) {
-    previewCard.classList.add("hidden");
-    loadingCard.classList.add("hidden");
-  } else if (isValidUrl(state.url)) {
-    loadingCard.classList.remove("hidden");
-    clearTimeout(fetchTimer);
-    fetchTimer = setTimeout(() => fetchVideoInfo(state.url), 300);
-  }
-});
-
-$("format-video").addEventListener("click", () => {
-  state.type = "video";
-  if (!VIDEO_FORMATS.includes(state.format)) state.format = "mp4";
-  state.quality = "max";
-  updateFormatUI();
-});
-$("format-audio").addEventListener("click", () => {
-  state.type = "audio";
-  if (!AUDIO_FORMATS.includes(state.format)) state.format = "mp3";
-  state.quality = "0";
-  updateFormatUI();
-});
-
-// ========== Modal helper ==========
 const showOptionsModal = (title, list, currentKey, onPick) => {
   $("format-modal-title").textContent = title;
   const container = $("format-list");
@@ -415,6 +403,218 @@ const showOptionsModal = (title, list, currentKey, onPick) => {
   $("format-modal").classList.remove("hidden");
 };
 
+// ============================================
+// COMPRESS MODULE
+// ============================================
+const updateCompressBtnState = () => {
+  const btn = $("compress-btn");
+  if (!btn) return;
+  btn.disabled = !(state.compressSource && !state.compressing);
+};
+
+const updateCompressUI = () => {
+  $("mode-zip").classList.toggle("selected", state.compressMode === "zip");
+  $("mode-reencode").classList.toggle("selected", state.compressMode === "reencode");
+  $("zip-level-row").classList.toggle("hidden", state.compressMode !== "zip");
+  $("reencode-mode-row").classList.toggle("hidden", state.compressMode !== "reencode");
+  $("reencode-quality-row").classList.toggle("hidden", state.compressMode !== "reencode");
+
+  const zipLevel = ZIP_LEVELS.find((l) => l.key === state.zipLevel);
+  $("zip-level-label").textContent = `Compression : ${zipLevel.label}`;
+
+  const mode = REENCODE_MODES.find((m) => m.key === state.reencodeMode);
+  $("reencode-mode-label").textContent = `Mode : ${mode.label}`;
+
+  if (state.reencodeMode === "crf") {
+    const reQ = REENCODE_QUALITIES.find((q) => q.key === state.reencodeQuality);
+    $("reencode-quality-label").textContent = `Qualité : ${reQ.label}`;
+  } else {
+    const reB = REENCODE_BITRATES.find((b) => b.key === state.reencodeBitrate);
+    $("reencode-quality-label").textContent = `Réduction : ${reB.label}`;
+  }
+
+  $("compress-btn-label").textContent = state.compressMode === "zip" ? "Compresser en ZIP" : "Réencoder les vidéos";
+};
+
+// Set the compress source from a path string (directory) or array of file paths
+const setCompressSource = (sourceData) => {
+  if (Array.isArray(sourceData)) {
+    state.compressSource = sourceData;
+    state.compressSourceType = "files";
+    const count = sourceData.length;
+    const label = count === 1
+      ? sourceData[0].split(/[\\/]/).pop() || sourceData[0]
+      : `${count} fichiers sélectionnés`;
+    showCompressSourceInfo(label);
+  } else if (typeof sourceData === "string") {
+    state.compressSource = sourceData;
+    state.compressSourceType = "directory";
+    const name = sourceData.split(/[\\/]/).pop() || sourceData;
+    $("source-label").textContent = name;
+    showCompressSourceInfo(`Dossier : ${name}`);
+  }
+  updateCompressBtnState();
+};
+
+const showCompressSourceInfo = (text) => {
+  const info = $("compress-source-info");
+  $("compress-source-info-text").textContent = text;
+  $("compress-source-info-text").title = text;
+  info.classList.remove("hidden");
+};
+
+const clearCompressSource = () => {
+  state.compressSource = null;
+  state.compressSourceType = null;
+  $("source-label").textContent = "Choisir un dossier";
+  $("compress-source-info").classList.add("hidden");
+  updateCompressBtnState();
+};
+
+// ============================================
+// DRAG & DROP (Tauri natif)
+// ============================================
+// Tauri 2.x émet `tauri://drag-enter`, `tauri://drag-over`, `tauri://drag-leave`, `tauri://drag-drop`
+// Le payload contient { paths: string[], position: {x, y} }
+//
+// Strategy:
+// - On listen globalement
+// - Si le drop se fait sur la page Compresser (ou n'importe où dans cette page), on traite
+// - Sinon on ignore (les autres modules ne sont pas encore prêts)
+// - On déduit "dossier vs fichiers" en regardant si paths a 1 seul élément qui ressemble à un dossier
+//   En pratique on demande au backend ou on devine par l'absence d'extension
+
+const isLikelyDirectory = (path) => {
+  // Heuristique simple : si le dernier segment n'a pas de '.' c'est probablement un dossier
+  // Cas frontière (dossier avec point dans le nom) -> on traite comme fichier, le backend le redressera si besoin
+  const last = path.split(/[\\/]/).pop() || "";
+  return !last.includes(".");
+};
+
+const handleDrop = (paths) => {
+  if (!paths || paths.length === 0) return;
+
+  // Seul Compresser sait gérer pour l'instant
+  if (state.currentModule !== "compress") {
+    showToast("Le drag & drop n'est dispo que sur Compresser pour l'instant");
+    return;
+  }
+
+  // 1 seul path qui ressemble à un dossier => mode directory
+  if (paths.length === 1 && isLikelyDirectory(paths[0])) {
+    setCompressSource(paths[0]);
+    showToast("Dossier ajouté", 1800);
+  } else {
+    // Plusieurs fichiers ou 1 seul fichier => mode files
+    setCompressSource(paths);
+    showToast(paths.length === 1 ? "Fichier ajouté" : `${paths.length} fichiers ajoutés`, 1800);
+  }
+};
+
+const setDropZoneState = (active) => {
+  const zone = $("compress-drop-zone");
+  if (!zone) return;
+  zone.classList.toggle("drag-over", active);
+};
+
+// Setup Tauri drag/drop listeners
+(async () => {
+  try {
+    await listen("tauri://drag-enter", () => {
+      if (state.currentModule === "compress") setDropZoneState(true);
+    });
+    await listen("tauri://drag-over", () => {
+      if (state.currentModule === "compress") setDropZoneState(true);
+    });
+    await listen("tauri://drag-leave", () => {
+      setDropZoneState(false);
+    });
+    await listen("tauri://drag-drop", (event) => {
+      setDropZoneState(false);
+      const paths = event.payload?.paths || [];
+      handleDrop(paths);
+    });
+  } catch (err) {
+    console.warn("Tauri drag-drop listeners non disponibles :", err);
+  }
+})();
+
+// ============================================
+// EVENT BINDINGS
+// ============================================
+
+// Theme toggles
+$("themeBtnHome").addEventListener("click", toggleTheme);
+$("themeBtnSidebar").addEventListener("click", toggleTheme);
+
+// Module cards on home
+$$(".module-card").forEach((card) => {
+  card.addEventListener("click", () => {
+    const key = card.dataset.module;
+    if (card.classList.contains("soon")) {
+      showToast(`${MODULE_INFO[key].title} : module en développement`);
+    }
+    openModule(key);
+  });
+});
+
+// Sidebar nav items
+$$(".nav-item").forEach((item) => {
+  item.addEventListener("click", () => openModule(item.dataset.module));
+});
+
+// Help
+const showWelcome = () => $("welcome-modal").classList.remove("hidden");
+$("help-link")?.addEventListener("click", showWelcome);
+$("help-link-sidebar")?.addEventListener("click", showWelcome);
+
+// ===== Capture: URL =====
+$("url-input").addEventListener("input", onUrlChange);
+
+$("paste-btn").addEventListener("click", async () => {
+  try {
+    const text = await readText();
+    if (text) { $("url-input").value = text; onUrlChange(); }
+  } catch { showToast("Impossible de lire le presse-papier"); }
+});
+
+$("url-input").addEventListener("focus", async () => {
+  if ($("url-input").value.trim()) return;
+  try {
+    const text = await readText();
+    if (text && isValidUrl(text)) { $("url-input").value = text; onUrlChange(); }
+  } catch {}
+});
+
+$("playlist-toggle").addEventListener("change", (e) => {
+  state.downloadFullPlaylist = e.target.checked;
+  const raw = $("url-input").value.trim();
+  state.url = cleanUrl(raw, state.downloadFullPlaylist);
+  updatePlaylistUI();
+  if (state.downloadFullPlaylist) {
+    $("preview-card").classList.add("hidden");
+    $("loading-card").classList.add("hidden");
+  } else if (isValidUrl(state.url)) {
+    $("loading-card").classList.remove("hidden");
+    clearTimeout(fetchTimer);
+    fetchTimer = setTimeout(() => fetchVideoInfo(state.url), 300);
+  }
+});
+
+// ===== Capture: format =====
+$("format-video").addEventListener("click", () => {
+  state.type = "video";
+  if (!VIDEO_FORMATS.includes(state.format)) state.format = "mp4";
+  state.quality = "max";
+  updateFormatUI();
+});
+$("format-audio").addEventListener("click", () => {
+  state.type = "audio";
+  if (!AUDIO_FORMATS.includes(state.format)) state.format = "mp3";
+  state.quality = "0";
+  updateFormatUI();
+});
+
 $("format-detail-row").addEventListener("click", () => {
   const formats = state.type === "video" ? VIDEO_FORMATS : AUDIO_FORMATS;
   const list = formats.map((k) => ({ key: k, ...FORMATS[k] }));
@@ -434,7 +634,7 @@ $("quality-row").addEventListener("click", () => {
 
 $("format-cancel").addEventListener("click", () => $("format-modal").classList.add("hidden"));
 
-// ========== Folder & rename ==========
+// ===== Capture: folder + rename =====
 $("folder-row").addEventListener("click", async () => {
   const selected = await open({ directory: true, multiple: false });
   if (selected) {
@@ -462,8 +662,8 @@ $("rename-input").addEventListener("keydown", (e) => {
   if (e.key === "Escape") $("rename-cancel").click();
 });
 
-// ========== Download ==========
-downloadBtn.addEventListener("click", async () => {
+// ===== Capture: download =====
+$("download-btn").addEventListener("click", async () => {
   if (state.downloading || !state.url) return;
   state.downloading = true;
   updateBtnState();
@@ -488,27 +688,23 @@ downloadBtn.addEventListener("click", async () => {
       $("progress-stage").textContent = "Terminé";
       $("progress-meta").textContent = "";
       showToast(state.downloadFullPlaylist ? "Playlist téléchargée" : "Téléchargement réussi", 2400);
-
       state.history.unshift({
-        title: state.downloadFullPlaylist
-          ? "Playlist YouTube"
-          : state.videoInfo?.title || state.url,
+        title: state.downloadFullPlaylist ? "Playlist YouTube" : state.videoInfo?.title || state.url,
         format: state.format,
         folder: result.file_path,
         date: Date.now(),
       });
       saveHistory();
-
       setTimeout(() => {
         $("progress-section").classList.add("hidden");
-        urlInput.value = "";
+        $("url-input").value = "";
         state.url = "";
         state.videoInfo = null;
         state.isPlaylist = false;
         state.downloadFullPlaylist = false;
-        playlistToggle.checked = false;
-        previewCard.classList.add("hidden");
-        playlistSection.classList.add("hidden");
+        $("playlist-toggle").checked = false;
+        $("preview-card").classList.add("hidden");
+        $("playlist-section").classList.add("hidden");
         $("full-preview").classList.add("hidden");
         updateBtnState();
       }, 1800);
@@ -544,54 +740,29 @@ listen("download-progress", (event) => {
   }
 });
 
-// ========== Open default folder button (header icon) ==========
-// Opens the appropriate default folder depending on the active tab:
-// - "Capturer" tab: Vidéos\LoadLink-Videos (or Musique\LoadLink-Audio if audio selected)
-// - "Compresser" tab: Vidéos\LoadLink-Videos (where ZIPs and re-encoded files go)
 $("open-folder-btn").addEventListener("click", () => {
-  const isAudio = state.tab === "download" && state.type === "audio";
+  const isAudio = state.currentModule === "capture" && state.type === "audio";
   invoke("open_default_folder", { isAudio });
 });
 
-// ========== Compress tab ==========
-const compressBtn = $("compress-btn");
-const updateCompressBtnState = () => {
-  compressBtn.disabled = !(state.compressSource && !state.compressing);
-};
-
-const updateCompressUI = () => {
-  $("mode-zip").classList.toggle("selected", state.compressMode === "zip");
-  $("mode-reencode").classList.toggle("selected", state.compressMode === "reencode");
-  $("zip-level-row").classList.toggle("hidden", state.compressMode !== "zip");
-  $("reencode-mode-row").classList.toggle("hidden", state.compressMode !== "reencode");
-  $("reencode-quality-row").classList.toggle("hidden", state.compressMode !== "reencode");
-
-  const zipLevel = ZIP_LEVELS.find((l) => l.key === state.zipLevel);
-  $("zip-level-label").textContent = `Compression : ${zipLevel.label}`;
-
-  const mode = REENCODE_MODES.find((m) => m.key === state.reencodeMode);
-  $("reencode-mode-label").textContent = `Mode : ${mode.label}`;
-
-  if (state.reencodeMode === "crf") {
-    const reQ = REENCODE_QUALITIES.find((q) => q.key === state.reencodeQuality);
-    $("reencode-quality-label").textContent = `Qualité : ${reQ.label}`;
-  } else {
-    const reB = REENCODE_BITRATES.find((b) => b.key === state.reencodeBitrate);
-    $("reencode-quality-label").textContent = `Réduction : ${reB.label}`;
-  }
-
-  $("compress-btn-label").textContent = state.compressMode === "zip" ? "Compresser en ZIP" : "Réencoder les vidéos";
-};
-
-$("select-source-btn").addEventListener("click", async () => {
+// ===== Compress: source selection (button + drop zone click) =====
+const pickCompressSource = async () => {
+  // Si l'utilisateur clique sur la drop zone ou sur "Choisir un dossier"
+  // On ouvre un dialog "dossier OU fichiers"
+  // Tauri ne permet pas les deux en un seul dialog : on fait dossier par défaut.
   const selected = await open({ directory: true, multiple: false });
-  if (selected) {
-    state.compressSource = selected;
-    $("source-label").textContent = selected.split(/[\\/]/).pop() || selected;
-    updateCompressBtnState();
-  }
+  if (selected) setCompressSource(selected);
+};
+
+$("select-source-btn").addEventListener("click", pickCompressSource);
+$("compress-drop-zone").addEventListener("click", pickCompressSource);
+
+$("compress-source-clear").addEventListener("click", (e) => {
+  e.stopPropagation();
+  clearCompressSource();
 });
 
+// ===== Compress: mode =====
 $("mode-zip").addEventListener("click", () => { state.compressMode = "zip"; updateCompressUI(); });
 $("mode-reencode").addEventListener("click", () => { state.compressMode = "reencode"; updateCompressUI(); });
 
@@ -631,7 +802,8 @@ $("compress-output-row").addEventListener("click", async () => {
   }
 });
 
-compressBtn.addEventListener("click", async () => {
+// ===== Compress: launch =====
+$("compress-btn").addEventListener("click", async () => {
   if (state.compressing || !state.compressSource) return;
   state.compressing = true;
   updateCompressBtnState();
@@ -641,15 +813,29 @@ compressBtn.addEventListener("click", async () => {
   $("compress-progress-meta").textContent = "";
 
   try {
+    // Si la source est un array de fichiers, on prend le dossier parent du premier fichier
+    // (le backend Phase 1 attend un chemin de dossier). Future amélioration : ajouter une
+    // commande backend qui accepte un array de fichiers.
+    let sourceForBackend = state.compressSource;
+    if (state.compressSourceType === "files" && Array.isArray(state.compressSource)) {
+      const firstFile = state.compressSource[0];
+      sourceForBackend = firstFile.substring(0, firstFile.lastIndexOf(/[\\/]/.test(firstFile) ? firstFile.match(/[\\/]/)[0] : "\\"));
+      // Fallback simple : prendre le dossier parent
+      const parts = firstFile.split(/[\\/]/);
+      parts.pop();
+      sourceForBackend = parts.join(firstFile.includes("\\") ? "\\" : "/");
+      showToast("Note : seul le dossier parent sera compressé (limite Phase 2)", 3500);
+    }
+
     const command = state.compressMode === "zip" ? "compress_zip" : "reencode_videos";
     const args = state.compressMode === "zip"
       ? {
-          source: state.compressSource,
+          source: sourceForBackend,
           outputDir: state.compressOutputDir,
           level: parseInt(state.zipLevel),
         }
       : {
-          source: state.compressSource,
+          source: sourceForBackend,
           outputDir: state.compressOutputDir,
           mode: state.reencodeMode,
           crf: parseInt(state.reencodeQuality),
@@ -665,6 +851,7 @@ compressBtn.addEventListener("click", async () => {
       showToast("Compression terminée", 2500);
       setTimeout(() => {
         $("compress-progress-section").classList.add("hidden");
+        clearCompressSource();
       }, 2500);
     } else {
       showToast("Erreur : " + (result.error || "inconnue"), 4000);
@@ -696,36 +883,36 @@ listen("compress-progress", (event) => {
   }
 });
 
-// ========== Auto-update yt-dlp ==========
+// ===== yt-dlp update =====
 const checkYtdlpUpdate = async () => {
+  const elSidebar = $("update-status-sidebar");
   try {
-    $("update-status").textContent = "Vérification…";
+    if (elSidebar) elSidebar.textContent = "Vérification yt-dlp…";
     const result = await invoke("update_ytdlp");
-    $("update-status").textContent = result.updated ? "yt-dlp à jour ✓" : "yt-dlp à jour";
+    const msg = result.updated ? "yt-dlp à jour ✓" : "yt-dlp à jour";
+    if (elSidebar) elSidebar.textContent = msg;
   } catch {
-    $("update-status").textContent = "Hors ligne";
+    if (elSidebar) elSidebar.textContent = "yt-dlp hors ligne";
   }
 };
 
-// ========== Welcome modal ==========
+// ===== Welcome modal =====
 $("welcome-ok").addEventListener("click", () => {
   $("welcome-modal").classList.add("hidden");
   localStorage.setItem("welcome-seen-v3", "true");
 });
 
-$("help-link").addEventListener("click", () => {
-  $("welcome-modal").classList.remove("hidden");
-});
-
-// ========== Init ==========
+// ============================================
+// INIT
+// ============================================
 (async () => {
+  applyTheme();
   updateFormatUI();
   updateCompressUI();
   renderHistory();
   updateBtnState();
   updateCompressBtnState();
 
-  // Use a new localStorage key (v3) so the modal reappears once for existing users
   if (!localStorage.getItem("welcome-seen-v3")) {
     $("welcome-modal").classList.remove("hidden");
   }

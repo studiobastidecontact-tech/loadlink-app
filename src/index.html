@@ -4,301 +4,533 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LoadLink</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main class="app">
 
-    <header class="app-header">
-      <h1>LoadLink</h1>
-      <button class="icon-btn" id="open-folder-btn" title="Ouvrir le dossier" aria-label="Ouvrir le dossier">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+<!-- ============ HOME PAGE ============ -->
+<div class="home-page" id="homePage">
+  <div class="home-topbar">
+    <div class="home-logo">
+      <div class="home-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+      LoadLink
+    </div>
+    <div class="home-topbar-actions">
+      <button class="icon-btn" id="themeBtnHome" title="Basculer le thème">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
-    </header>
+    </div>
+  </div>
 
-    <!-- Tabs -->
-    <nav class="tabs">
-      <button class="tab selected" data-tab="download" id="tab-download">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span>Capturer</span>
-      </button>
-      <button class="tab" data-tab="compress" id="tab-compress">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-        <span>Compresser</span>
-      </button>
+  <div class="home-content">
+    <div class="home-hero">
+      <h1>Que veux-tu faire aujourd'hui&nbsp;?</h1>
+      <p>LoadLink — votre suite locale de capture, conversion et archivage multimédia. Choisissez un module pour commencer.</p>
+    </div>
+
+    <div class="modules-grid">
+      <div class="module-card" data-module="capture">
+        <div class="module-card-icon mc-capture">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </div>
+        <div class="module-card-title">Capturer</div>
+        <div class="module-card-desc">Télécharger une vidéo ou un audio depuis une URL.</div>
+      </div>
+
+      <div class="module-card soon" data-module="transcribe">
+        <div class="module-card-badge">Bientôt</div>
+        <div class="module-card-icon mc-transcribe">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </div>
+        <div class="module-card-title">Transcrire</div>
+        <div class="module-card-desc">Convertir audio en texte avec horodatage.</div>
+      </div>
+
+      <div class="module-card" data-module="compress">
+        <div class="module-card-icon mc-compress">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="21" y2="3"/><line x1="3" y1="21" x2="14" y2="10"/></svg>
+        </div>
+        <div class="module-card-title">Compresser</div>
+        <div class="module-card-desc">Archiver en ZIP ou réencoder en H.265.</div>
+      </div>
+
+      <div class="module-card soon" data-module="convert">
+        <div class="module-card-badge">Bientôt</div>
+        <div class="module-card-icon mc-convert">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+        </div>
+        <div class="module-card-title">Convertir</div>
+        <div class="module-card-desc">Changer le format d'un fichier local.</div>
+      </div>
+
+      <div class="module-card soon" data-module="audio">
+        <div class="module-card-badge">Bientôt</div>
+        <div class="module-card-icon mc-audio">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </div>
+        <div class="module-card-title">Audio</div>
+        <div class="module-card-desc">Édition audio, normalisation, mastering.</div>
+      </div>
+
+      <div class="module-card soon" data-module="video">
+        <div class="module-card-badge">Bientôt</div>
+        <div class="module-card-icon mc-video">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        </div>
+        <div class="module-card-title">Vidéo</div>
+        <div class="module-card-desc">Découper, recadrer, sous-titrer.</div>
+      </div>
+
+      <div class="module-card soon" data-module="ai">
+        <div class="module-card-badge">Bientôt</div>
+        <div class="module-card-icon mc-ai">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="module-card-title">IA Studio</div>
+        <div class="module-card-desc">Traitements assistés par IA.</div>
+      </div>
+
+      <div class="module-card soon" data-module="import">
+        <div class="module-card-badge">Bientôt</div>
+        <div class="module-card-icon mc-import">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div class="module-card-title">Importer</div>
+        <div class="module-card-desc">Importer depuis carte SD, drone, caméra.</div>
+      </div>
+
+      <div class="module-card soon" data-module="plugins">
+        <div class="module-card-badge">Bientôt</div>
+        <div class="module-card-icon mc-plugins">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+        </div>
+        <div class="module-card-title">Plugins</div>
+        <div class="module-card-desc">Extensions et intégrations tierces.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-mini" id="footerMini">
+    <span id="update-status">LoadLink v2.0-alpha</span>
+    <span> · </span>
+    <span class="help-link" id="help-link" style="cursor:pointer;">Aide</span>
+  </div>
+</div>
+
+<!-- ============ APP PAGE (sidebar + main) ============ -->
+<div class="app-page hidden" id="appPage">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+      LoadLink
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-item" data-module="home" id="navHome">
+        <span class="nav-icon ni-home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 2l9 7.5"/><path d="M5 9v11a1 1 0 0 0 1 1h4v-7h4v7h4a1 1 0 0 0 1-1V9"/></svg>
+        </span>
+        Accueil
+      </div>
+
+      <div class="nav-divider"></div>
+
+      <div class="nav-section-label">Modules</div>
+
+      <div class="nav-item" data-module="capture">
+        <span class="nav-icon ni-capture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+        Capturer
+      </div>
+      <div class="nav-item soon" data-module="transcribe">
+        <span class="nav-icon ni-transcribe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
+        Transcrire
+        <span class="nav-soon-badge">Bientôt</span>
+      </div>
+      <div class="nav-item" data-module="compress">
+        <span class="nav-icon ni-compress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="21" y2="3"/><line x1="3" y1="21" x2="14" y2="10"/></svg></span>
+        Compresser
+      </div>
+      <div class="nav-item soon" data-module="convert">
+        <span class="nav-icon ni-convert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>
+        Convertir
+        <span class="nav-soon-badge">Bientôt</span>
+      </div>
+      <div class="nav-item soon" data-module="audio">
+        <span class="nav-icon ni-audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+        Audio
+        <span class="nav-soon-badge">Bientôt</span>
+      </div>
+      <div class="nav-item soon" data-module="video">
+        <span class="nav-icon ni-video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span>
+        Vidéo
+        <span class="nav-soon-badge">Bientôt</span>
+      </div>
+      <div class="nav-item soon" data-module="ai">
+        <span class="nav-icon ni-ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
+        IA Studio
+        <span class="nav-soon-badge">Bientôt</span>
+      </div>
+      <div class="nav-item soon" data-module="import">
+        <span class="nav-icon ni-import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
+        Importer
+        <span class="nav-soon-badge">Bientôt</span>
+      </div>
+      <div class="nav-item soon" data-module="plugins">
+        <span class="nav-icon ni-plugins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></span>
+        Plugins
+        <span class="nav-soon-badge">Bientôt</span>
+      </div>
     </nav>
 
-    <!-- ============ DOWNLOAD TAB ============ -->
-    <div class="tab-content" id="content-download">
+    <div class="update-status" id="update-status-sidebar">Vérification…</div>
 
-      <section class="card url-section">
-        <label class="label">Source</label>
-        <div class="input-wrapper">
-          <input type="text" id="url-input" placeholder="Colle une URL source ou Ctrl+V" autocomplete="off" />
-          <button class="paste-btn" id="paste-btn" title="Coller" aria-label="Coller">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-          </button>
-        </div>
-      </section>
-
-      <section class="card preview-card hidden" id="preview-card">
-        <div class="thumbnail-wrapper">
-          <img id="thumbnail" alt="Miniature" />
-          <span class="duration-badge" id="duration-badge"></span>
-        </div>
-        <div class="preview-info">
-          <p class="video-title" id="video-title"></p>
-          <p class="video-uploader" id="video-uploader"></p>
-        </div>
-      </section>
-
-      <section class="card loading-card hidden" id="loading-card">
-        <div class="spinner"></div>
-        <p>Chargement des infos…</p>
-      </section>
-
-      <section class="playlist-section hidden" id="playlist-section">
-        <div class="playlist-toggle">
-          <div class="playlist-info">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            <span>Liste détectée</span>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="playlist-toggle" />
-            <span class="slider"></span>
-          </label>
-        </div>
-        <p class="playlist-hint" id="playlist-hint">Traiter seulement cet élément</p>
-      </section>
-
-      <section class="format-section">
-        <div class="format-grid">
-          <button class="format-btn selected" data-type="video" id="format-video">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-            <span class="format-label">Vidéo</span>
-            <span class="format-meta" id="video-meta">MP4 1080p</span>
-          </button>
-          <button class="format-btn" data-type="audio" id="format-audio">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-            <span class="format-label">Piste audio</span>
-            <span class="format-meta" id="audio-meta">WAV / FLAC</span>
-          </button>
-        </div>
-      </section>
-
-      <section class="options-section">
-        <div class="option-row" id="format-detail-row">
-          <div class="option-left">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-            <span class="option-label" id="format-detail-label">Format : MP4</span>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-        <div class="option-row" id="quality-row">
-          <div class="option-left">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span class="option-label" id="quality-label">Qualité : Max</span>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-        <div class="option-row" id="folder-row">
-          <div class="option-left">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <span class="option-label" id="folder-label">Dossier par défaut</span>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-        <div class="option-row" id="rename-row">
-          <div class="option-left">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            <span class="option-label" id="rename-label">Nom automatique</span>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-      </section>
-
-      <section class="progress-section hidden" id="progress-section">
-        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-        <div class="progress-info">
-          <span id="progress-stage">Préparation…</span>
-          <span id="progress-meta"></span>
-        </div>
-      </section>
-
-      <button class="download-btn" id="download-btn" disabled>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span id="btn-label">Lancer</span>
+    <div class="sidebar-bottom">
+      <button class="icon-btn" id="help-link-sidebar" title="Aide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </button>
+      <button class="icon-btn" id="themeBtnSidebar" title="Basculer le thème">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </aside>
 
-      <!-- FULL PREVIEW -->
-      <section class="full-preview hidden" id="full-preview">
-        <p class="history-title">Aperçu du traitement</p>
-        <div class="full-preview-card">
-          <div class="full-preview-media">
-            <img id="full-preview-thumb" alt="" />
-            <span class="full-preview-duration" id="full-preview-duration"></span>
+  <main class="main">
+
+    <!-- ====== CAPTURE PAGE ====== -->
+    <div class="module-page" id="page-capture">
+      <div class="topbar">
+        <div class="topbar-info">
+          <div class="page-title">Capturer</div>
+          <div class="page-sub">Télécharge une vidéo ou un audio depuis une URL.</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-btn" id="open-folder-btn" title="Ouvrir le dossier de sortie">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="content">
+
+        <div class="card">
+          <label class="field-label">Source</label>
+          <div class="input-wrap">
+            <input type="text" id="url-input" placeholder="Colle une URL source ou Ctrl+V" autocomplete="off" />
+            <button class="input-icon" id="paste-btn" title="Coller" aria-label="Coller">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+            </button>
           </div>
-          <div class="full-preview-info">
-            <h3 class="full-preview-title" id="full-preview-title">—</h3>
-            <p class="full-preview-uploader" id="full-preview-uploader">—</p>
-            <div class="full-preview-grid">
-              <div class="full-preview-item">
-                <span class="full-preview-key">Format</span>
-                <span class="full-preview-value" id="full-preview-format">—</span>
-              </div>
-              <div class="full-preview-item">
-                <span class="full-preview-key">Qualité</span>
-                <span class="full-preview-value" id="full-preview-quality">—</span>
-              </div>
-              <div class="full-preview-item full-preview-item-wide">
-                <span class="full-preview-key">Destination</span>
-                <span class="full-preview-value full-preview-dest" id="full-preview-dest">—</span>
+        </div>
+
+        <div class="card preview-card hidden" id="preview-card">
+          <div class="thumbnail-wrapper">
+            <img id="thumbnail" alt="Miniature" />
+            <span class="duration-badge" id="duration-badge"></span>
+          </div>
+          <div class="preview-info">
+            <p class="video-title" id="video-title"></p>
+            <p class="video-uploader" id="video-uploader"></p>
+          </div>
+        </div>
+
+        <div class="card loading-card hidden" id="loading-card">
+          <div class="spinner"></div>
+          <p>Chargement des infos…</p>
+        </div>
+
+        <div class="playlist-section hidden" id="playlist-section">
+          <div class="playlist-toggle">
+            <div class="playlist-info">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              <span>Liste détectée</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="playlist-toggle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="playlist-hint" id="playlist-hint">Traiter seulement cet élément</p>
+        </div>
+
+        <div class="card">
+          <label class="field-label">Type</label>
+          <div class="format-grid">
+            <button class="format-btn selected" data-type="video" id="format-video">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              <span class="format-btn-label">Vidéo</span>
+              <span class="format-btn-meta" id="video-meta">MP4 Maximum</span>
+            </button>
+            <button class="format-btn" data-type="audio" id="format-audio">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              <span class="format-btn-label">Piste audio</span>
+              <span class="format-btn-meta" id="audio-meta">WAV / FLAC</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card" style="padding: 14px;">
+          <div class="option-row" id="format-detail-row">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              <span id="format-detail-label">Format : MP4</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="option-row" id="quality-row">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span id="quality-label">Qualité : Maximum</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="option-row" id="folder-row">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span id="folder-label">Dossier par défaut</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="option-row" id="rename-row">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <span id="rename-label">Nom automatique</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+        </div>
+
+        <div class="progress-section hidden" id="progress-section">
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+          <div class="progress-info">
+            <span id="progress-stage">Préparation…</span>
+            <span id="progress-meta"></span>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="download-btn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span id="btn-label">Lancer</span>
+        </button>
+
+        <div class="full-preview hidden" id="full-preview">
+          <p class="history-title">Aperçu du traitement</p>
+          <div class="full-preview-card">
+            <div class="full-preview-media">
+              <img id="full-preview-thumb" alt="" />
+              <span class="full-preview-duration" id="full-preview-duration"></span>
+            </div>
+            <div class="full-preview-info">
+              <h3 class="full-preview-title" id="full-preview-title">—</h3>
+              <p class="full-preview-uploader" id="full-preview-uploader">—</p>
+              <div class="full-preview-grid">
+                <div class="full-preview-item">
+                  <span class="full-preview-key">Format</span>
+                  <span class="full-preview-value" id="full-preview-format">—</span>
+                </div>
+                <div class="full-preview-item">
+                  <span class="full-preview-key">Qualité</span>
+                  <span class="full-preview-value" id="full-preview-quality">—</span>
+                </div>
+                <div class="full-preview-item full-preview-item-wide">
+                  <span class="full-preview-key">Destination</span>
+                  <span class="full-preview-value full-preview-dest" id="full-preview-dest">—</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </section>
 
-      <section class="history-section" id="history-section">
-        <p class="history-title">Récents</p>
-        <div id="history-list"></div>
-      </section>
+        <div class="history-section" id="history-section">
+          <p class="history-title">Récents</p>
+          <div id="history-list"></div>
+        </div>
+
+      </div>
     </div>
 
-    <!-- ============ COMPRESS TAB ============ -->
-    <div class="tab-content hidden" id="content-compress">
+    <!-- ====== COMPRESS PAGE ====== -->
+    <div class="module-page hidden" id="page-compress">
+      <div class="topbar">
+        <div class="topbar-info">
+          <div class="page-title">Compresser</div>
+          <div class="page-sub">Archive en ZIP ou réencode des vidéos en H.265.</div>
+        </div>
+      </div>
+      <div class="content">
 
-      <section class="card url-section">
-        <label class="label">Dossier ou fichiers à compresser</label>
-        <button class="select-folder-btn" id="select-source-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          <span id="source-label">Choisir un dossier</span>
+        <!-- ★ DROP ZONE ★ -->
+        <div class="card">
+          <label class="field-label">Source à compresser</label>
+
+          <div class="drop-zone" id="compress-drop-zone" data-target="compress">
+            <div class="drop-zone-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div>
+              <div class="drop-zone-title">Glisse un dossier ou des fichiers ici</div>
+              <div class="drop-zone-subtitle">Dossier entier ou plusieurs fichiers acceptés</div>
+            </div>
+          </div>
+
+          <div class="drop-zone-or">ou</div>
+
+          <div class="option-row" id="select-source-btn" style="margin-bottom: 0;">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span id="source-label">Choisir un dossier</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+
+          <div class="drop-zone-info hidden" id="compress-source-info" style="margin-top: 12px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span class="drop-zone-info-text" id="compress-source-info-text">Aucune source</span>
+            <button class="drop-zone-clear" id="compress-source-clear" title="Retirer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <label class="field-label">Mode</label>
+          <div class="format-grid">
+            <button class="format-btn selected" data-mode="zip" id="mode-zip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+              <span class="format-btn-label">Archiver</span>
+              <span class="format-btn-meta">ZIP sans perte</span>
+            </button>
+            <button class="format-btn" data-mode="reencode" id="mode-reencode">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              <span class="format-btn-label">Réencoder</span>
+              <span class="format-btn-meta">H.265 -40 à -60%</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card" style="padding: 14px;">
+          <div class="option-row" id="zip-level-row">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span id="zip-level-label">Compression : Maximum</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="option-row hidden" id="reencode-mode-row">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              <span id="reencode-mode-label">Mode : Bitrate cible</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="option-row hidden" id="reencode-quality-row">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span id="reencode-quality-label">Réduction : Moyen (-50%)</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="option-row" id="compress-output-row" style="margin-bottom: 0;">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span id="compress-output-label">Sortie : Vidéos\LoadLink-Videos (par défaut)</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+        </div>
+
+        <div class="progress-section hidden" id="compress-progress-section">
+          <div class="progress-bar"><div class="progress-fill" id="compress-progress-fill"></div></div>
+          <div class="progress-info">
+            <span id="compress-progress-stage">Préparation…</span>
+            <span id="compress-progress-meta"></span>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="compress-btn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/></svg>
+          <span id="compress-btn-label">Compresser en ZIP</span>
         </button>
-      </section>
 
-      <section class="format-section">
-        <div class="format-grid">
-          <button class="format-btn selected" data-mode="zip" id="mode-zip">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-            <span class="format-label">Archiver</span>
-            <span class="format-meta">ZIP sans perte</span>
-          </button>
-          <button class="format-btn" data-mode="reencode" id="mode-reencode">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-            <span class="format-label">Réencoder vidéos</span>
-            <span class="format-meta">H.265 -40 à -60%</span>
-          </button>
-        </div>
-      </section>
-
-      <section class="options-section">
-        <div class="option-row hidden" id="zip-level-row">
-          <div class="option-left">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span class="option-label" id="zip-level-label">Compression : Maximum</span>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-        <div class="option-row hidden" id="reencode-mode-row">
-          <div class="option-left">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-            <span class="option-label" id="reencode-mode-label">Mode : Bitrate cible</span>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-        <div class="option-row hidden" id="reencode-quality-row">
-          <div class="option-left">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span class="option-label" id="reencode-quality-label">Réduction : Moyen (-50%)</span>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-        <div class="option-row" id="compress-output-row">
-          <div class="option-left">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <span class="option-label" id="compress-output-label">Sortie : Vidéos\LoadLink-Videos (par défaut)</span>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-      </section>
-
-      <section class="progress-section hidden" id="compress-progress-section">
-        <div class="progress-bar"><div class="progress-fill" id="compress-progress-fill"></div></div>
-        <div class="progress-info">
-          <span id="compress-progress-stage">Préparation…</span>
-          <span id="compress-progress-meta"></span>
-        </div>
-      </section>
-
-      <button class="download-btn" id="compress-btn" disabled>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/></svg>
-        <span id="compress-btn-label">Compresser</span>
-      </button>
-
+      </div>
     </div>
 
-    <footer class="app-footer">
-      <span id="update-status">Vérification…</span>
-      <span> · </span>
-      <span class="help-link" id="help-link">Aide</span>
-    </footer>
+    <!-- ====== PLACEHOLDER PAGE ====== -->
+    <div class="module-page hidden" id="page-placeholder">
+      <div class="placeholder-page">
+        <div class="placeholder-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-title" id="placeholderTitle">Module en développement</div>
+        <div class="placeholder-text" id="placeholderText">Ce module sera bientôt disponible.</div>
+        <div class="placeholder-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Prochaine version
+        </div>
+      </div>
+    </div>
 
   </main>
+</div>
 
-  <!-- ====== Modals ====== -->
-  <div class="modal hidden" id="rename-modal">
-    <div class="modal-card">
-      <h2>Nom du fichier</h2>
-      <input type="text" id="rename-input" placeholder="Laisse vide pour le titre par défaut" />
-      <div class="modal-actions">
-        <button class="btn-secondary" id="rename-cancel">Annuler</button>
-        <button class="btn-primary" id="rename-ok">OK</button>
-      </div>
+<!-- ====== MODALS ====== -->
+<div class="modal hidden" id="rename-modal">
+  <div class="modal-card">
+    <h2>Nom du fichier</h2>
+    <input type="text" id="rename-input" placeholder="Laisse vide pour le titre par défaut" />
+    <div class="modal-actions">
+      <button class="btn-secondary" id="rename-cancel">Annuler</button>
+      <button class="btn-primary" style="width:auto;margin-top:0;padding:9px 18px;" id="rename-ok">OK</button>
     </div>
   </div>
+</div>
 
-  <div class="modal hidden" id="format-modal">
-    <div class="modal-card format-modal-card">
-      <h2 id="format-modal-title">Choisis le format</h2>
-      <div class="format-list" id="format-list"></div>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="format-cancel">Fermer</button>
-      </div>
+<div class="modal hidden" id="format-modal">
+  <div class="modal-card format-modal-card">
+    <h2 id="format-modal-title">Choisis le format</h2>
+    <div class="format-list" id="format-list"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="format-cancel">Fermer</button>
     </div>
   </div>
+</div>
 
-  <div class="modal hidden" id="welcome-modal">
-    <div class="modal-card welcome-card">
-      <div class="welcome-icon">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      </div>
-      <h2>Bienvenue sur LoadLink</h2>
-      <p class="welcome-intro">Outil local de capture, conversion et archivage multimédia.</p>
-
-      <div class="welcome-tip">
-        <p><strong>📥 Capturer</strong><br/>
-        Indique une URL source, choisis un format (vidéo MP4/WEBM ou piste audio WAV/FLAC/M4A/OGG/AAC) et la qualité.<br/>
-        Le traitement par lot est supporté pour les listes (toggle automatique).</p>
-      </div>
-      <div class="welcome-tip">
-        <p><strong>📦 Compresser</strong><br/>
-        Onglet "Compresser" : archive un dossier en ZIP, ou réencode des vidéos en H.265 pour gagner 40-60% de taille sans perte visible.</p>
-      </div>
-      <div class="welcome-tip">
-        <p><strong>📂 Dossiers par défaut</strong><br/>
-        Vidéos → <code>Vidéos\LoadLink-Videos</code> · Audio → <code>Musique\LoadLink-Audio</code> · Compressions → <code>Vidéos\LoadLink-Videos</code></p>
-      </div>
-      <div class="welcome-tip">
-        <p><strong>⚖️ Responsabilité</strong><br/>
-        LoadLink est un outil technique neutre. Tu es seul responsable du respect des droits applicables aux contenus que tu traites (contenus propres, sources libres, portabilité RGPD, etc.).</p>
-      </div>
-
-      <button class="btn-primary welcome-ok" id="welcome-ok">Compris, c'est parti !</button>
+<div class="modal hidden" id="welcome-modal">
+  <div class="modal-card welcome-card">
+    <div class="welcome-icon">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     </div>
+    <h2>Bienvenue sur LoadLink</h2>
+    <p class="welcome-intro">Outil local de capture, conversion et archivage multimédia.</p>
+
+    <div class="welcome-tip">
+      <strong>📥 Capturer</strong><br/>
+      Indique une URL source, choisis un format (vidéo MP4/WEBM ou piste audio WAV/FLAC/M4A/OGG/AAC) et la qualité.
+    </div>
+    <div class="welcome-tip">
+      <strong>📦 Compresser</strong><br/>
+      Archive un dossier en ZIP (drag & drop ou sélection), ou réencode des vidéos en H.265 pour gagner 40-60% de taille.
+    </div>
+    <div class="welcome-tip">
+      <strong>📂 Dossiers par défaut</strong><br/>
+      Vidéos → <code>Vidéos\LoadLink-Videos</code> · Audio → <code>Musique\LoadLink-Audio</code>
+    </div>
+    <div class="welcome-tip">
+      <strong>⚖️ Responsabilité</strong><br/>
+      LoadLink est un outil technique neutre. Tu es seul responsable du respect des droits applicables.
+    </div>
+
+    <button class="btn-primary welcome-ok" id="welcome-ok">Compris, c'est parti !</button>
   </div>
+</div>
 
-  <div class="toast hidden" id="toast"></div>
+<div class="toast hidden" id="toast"></div>
 
-  <script src="main.js"></script>
+<script src="main.js"></script>
 </body>
 </html>
