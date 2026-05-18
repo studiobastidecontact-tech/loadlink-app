@@ -52,3 +52,6 @@ src-tauri/binaries/ffmpeg-x86_64-apple-darwin
 
 src-tauri/binaries/test.mp4
 src-tauri/binaries/*.mp4
+
+# Phase 1 migration backup
+src-tauri/src/lib.rs.OLD

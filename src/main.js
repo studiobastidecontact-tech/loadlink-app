@@ -77,9 +77,9 @@ const state = {
   compressSource: null,
   compressOutputDir: null,
   zipLevel: "9",
-  reencodeMode: "bitrate",     // "crf" or "bitrate"
-  reencodeQuality: "26",        // CRF value (used when reencodeMode = "crf")
-  reencodeBitrate: "0.5",       // ratio (used when reencodeMode = "bitrate")
+  reencodeMode: "bitrate",
+  reencodeQuality: "26",
+  reencodeBitrate: "0.5",
   compressing: false,
 };
 
@@ -99,7 +99,6 @@ function switchTab(tab) {
 }
 
 // ========== Helpers ==========
-// Accept any valid http(s) URL — yt-dlp supports 1800+ sites
 const isValidUrl = (s) => {
   if (!s) return false;
   try {
@@ -112,29 +111,20 @@ const isValidUrl = (s) => {
 
 const isYoutube = (s) => /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(s);
 
-// Real playlist detection: YouTube generates auto playlists with prefixes like
-// RD (Radio/Mix), UL (Uploads-like), OLAK (Album auto), RDMM (Music Mix), etc.
-// These are NOT real downloadable playlists — they're virtual/dynamic streams.
-// Real playlists start with PL, FL, LL, WL.
 const isFakePlaylist = (listId) => {
   if (!listId) return false;
-  // Radio/Mix/Auto-generated playlists — always ignore
   return /^(RD|UL|OLAK|RDMM|RDCLAK|RDAMVM|RDAT|RDQ|RDEM)/.test(listId);
 };
 
 const hasPlaylist = (s) => {
   if (!isYoutube(s)) return false;
-  // Plain /playlist?list= URL → always a real playlist
   if (/\/playlist\?/.test(s)) return true;
-  // /watch?v=...&list=... → check the list ID is real, not a radio/mix
   const match = s.match(/[?&]list=([^&]+)/);
   if (!match) return false;
   return !isFakePlaylist(match[1]);
 };
 
 const cleanUrl = (s, keepPlaylist) => {
-  // Only clean YouTube URLs (strip tracking params, normalize youtu.be)
-  // For other sites, return the URL as-is — yt-dlp handles them correctly
   if (!isYoutube(s)) return s;
   try {
     const u = new URL(s.startsWith("http") ? s : "https://" + s);
@@ -144,7 +134,6 @@ const cleanUrl = (s, keepPlaylist) => {
     }
     const v = u.searchParams.get("v");
     const list = u.searchParams.get("list");
-    // Always drop fake/radio playlists, even if keepPlaylist=true
     const realList = list && !isFakePlaylist(list) ? list : null;
     if (keepPlaylist && realList) {
       if (v) return `https://www.youtube.com/watch?v=${v}&list=${realList}`;
@@ -249,36 +238,28 @@ const updateFormatUI = () => {
   updateFullPreview();
 };
 
-// Get real file size from backend data (returns bytes, or null if unknown)
 const getRealFileSize = () => {
   if (!state.videoInfo) return null;
 
   if (state.type === "video") {
     const sizes = state.videoInfo.video_sizes || {};
-    // Try exact match first, then closest lower quality
     if (sizes[state.quality]) return sizes[state.quality];
-    // For "max", fall back to highest available
     if (state.quality === "max" && sizes["max"]) return sizes["max"];
-    // Try lower qualities as fallback (e.g. asked 4K but only 1080p available)
     const fallbackOrder = ["2160", "1440", "1080", "720", "480", "360"];
     for (const q of fallbackOrder) {
       if (sizes[q]) return sizes[q];
     }
     return null;
   } else {
-    // Audio
     const sizes = state.videoInfo.audio_sizes || {};
     if (state.format === "wav") {
-      // WAV is uncompressed: 1411 kbps at CD quality
       const dur = state.videoInfo.duration || 0;
       return (dur * 1411 * 1000) / 8;
     }
     if (state.format === "flac") {
-      // FLAC ~ 900 kbps average
       const dur = state.videoInfo.duration || 0;
       return (dur * 900 * 1000) / 8;
     }
-    // Compressed formats: use backend-extracted size scaled to quality
     if (sizes[state.quality]) return sizes[state.quality];
     return sizes["raw"] || null;
   }
@@ -300,7 +281,6 @@ const updateFullPreview = () => {
   preview.classList.remove("hidden");
   $("full-preview-thumb").src = state.videoInfo.thumbnail || "";
 
-  // Title: show custom name if defined, otherwise original title
   const displayTitle = state.customName
     ? `${state.customName}.${state.format}`
     : state.videoInfo.title || "—";
@@ -312,7 +292,6 @@ const updateFullPreview = () => {
   $("full-preview-format").textContent = FORMATS[state.format].label;
   $("full-preview-quality").textContent = qualityLabel();
 
-  // Destination
   let dest;
   if (state.customDir) {
     dest = state.customDir;
@@ -544,7 +523,7 @@ downloadBtn.addEventListener("click", async () => {
   }
 
   state.downloading = false;
-  $("btn-label").textContent = "Télécharger";
+  $("btn-label").textContent = "Lancer";
   updateBtnState();
 });
 
@@ -565,8 +544,13 @@ listen("download-progress", (event) => {
   }
 });
 
+// ========== Open default folder button (header icon) ==========
+// Opens the appropriate default folder depending on the active tab:
+// - "Capturer" tab: Vidéos\LoadLink-Videos (or Musique\LoadLink-Audio if audio selected)
+// - "Compresser" tab: Vidéos\LoadLink-Videos (where ZIPs and re-encoded files go)
 $("open-folder-btn").addEventListener("click", () => {
-  invoke("open_default_folder", { isAudio: state.type === "audio" });
+  const isAudio = state.tab === "download" && state.type === "audio";
+  invoke("open_default_folder", { isAudio });
 });
 
 // ========== Compress tab ==========
@@ -723,15 +707,10 @@ const checkYtdlpUpdate = async () => {
   }
 };
 
-// ========== Credit link (footer only) ==========
-const openInstagram = () => {
-  window.__TAURI__.opener.openUrl("https://www.instagram.com/soleil_solal_/");
-};
-$("credit-link").addEventListener("click", openInstagram);
-
+// ========== Welcome modal ==========
 $("welcome-ok").addEventListener("click", () => {
   $("welcome-modal").classList.add("hidden");
-  localStorage.setItem("welcome-seen-v2", "true");
+  localStorage.setItem("welcome-seen-v3", "true");
 });
 
 $("help-link").addEventListener("click", () => {
@@ -746,7 +725,8 @@ $("help-link").addEventListener("click", () => {
   updateBtnState();
   updateCompressBtnState();
 
-  if (!localStorage.getItem("welcome-seen-v2")) {
+  // Use a new localStorage key (v3) so the modal reappears once for existing users
+  if (!localStorage.getItem("welcome-seen-v3")) {
     $("welcome-modal").classList.remove("hidden");
   }
 
