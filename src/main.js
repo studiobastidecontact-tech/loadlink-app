@@ -70,7 +70,7 @@ const MODULE_INFO = {
   capture:    { title: "Capturer", sub: "Télécharge une vidéo ou un audio depuis une URL.", ready: true },
   transcribe: { title: "Transcrire", sub: "Convertit un fichier audio ou vidéo en texte horodaté.", ready: false },
   compress:   { title: "Compresser", sub: "Archive en ZIP ou réencode des vidéos en H.265.", ready: true },
-  convert:    { title: "Convertir", sub: "Change le format d'un fichier local sans perte de qualité.", ready: false },
+  convert:    { title: "Convertir", sub: "Change le format d'un fichier local sans perte de qualité.", ready: true },
   audio:      { title: "Audio", sub: "Édition audio multitrack, normalisation, mastering.", ready: false },
   video:      { title: "Vidéo", sub: "Découpage, recadrage, sous-titres et effets vidéo.", ready: false },
   ai:         { title: "IA Studio", sub: "Traitements assistés par intelligence artificielle.", ready: false },

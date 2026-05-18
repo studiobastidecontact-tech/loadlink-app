@@ -5,7 +5,11 @@ use loadlink_compressor::{
     compress_zip as compressor_zip, ChunkedUploadState, DroppedFile, DroppedFilesOptions,
     ZipOptions,
 };
-use loadlink_converter::{reencode_videos as converter_reencode, ReencodeOptions};
+use loadlink_converter::{
+    convert_files_batch as converter_batch, find_libreoffice,
+    reencode_videos as converter_reencode, ConvertBatchOptions, ConvertFileEntry, ConvertResult,
+    ReencodeOptions,
+};
 use loadlink_core::{
     CompressResult, DownloadResult, ProgressUpdate, UpdateResult, VideoInfo,
 };
@@ -169,7 +173,7 @@ async fn compress_zip(
 }
 
 // ============================================
-// Phase 2: drag & drop — small files (base64 in memory)
+// Phase 2: drag & drop — small files
 // ============================================
 
 #[tauri::command]
@@ -235,7 +239,7 @@ async fn compress_files_from_data(
 }
 
 // ============================================
-// Phase 2: drag & drop — large files (chunked streaming)
+// Phase 2: drag & drop — chunked streaming
 // ============================================
 
 #[tauri::command]
@@ -326,7 +330,7 @@ async fn chunked_upload_cancel(state: State<'_, AppState>) -> Result<(), String>
 }
 
 // ============================================
-// Existing commands
+// Reencode (Compresser module — H.265 video reencoding)
 // ============================================
 
 #[tauri::command]
@@ -393,6 +397,73 @@ async fn reencode_videos(
     }
 }
 
+// ============================================
+// PHASE 3: Convertir module
+// ============================================
+
+#[tauri::command]
+async fn convert_files_batch(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    files: Vec<ConvertFileEntry>,
+    output_dir: Option<String>,
+) -> Result<ConvertResult, String> {
+    let title = format!("Convert — {} fichiers", files.len());
+    let mut job = Job::new(JobKind::Reencode, title);
+    job.input_path = Some(format!("<batch:{}>", files.len()));
+    let job_id = job.id;
+    let _ = state.job_manager.insert(&job);
+    let _ = state
+        .job_manager
+        .update_state(job_id, JobState::Running, 0.0, None, None);
+
+    let opts = ConvertBatchOptions { files, output_dir };
+    let result = converter_batch(&app, opts).await;
+
+    match result {
+        Ok(r) => {
+            if r.success {
+                let _ = state.job_manager.update_state(
+                    job_id,
+                    JobState::Completed,
+                    100.0,
+                    None,
+                    Some(r.output_path.clone()),
+                );
+            } else {
+                let _ = state.job_manager.update_state(
+                    job_id,
+                    JobState::Failed,
+                    0.0,
+                    r.error.clone(),
+                    None,
+                );
+            }
+            Ok(r)
+        }
+        Err(e) => {
+            let err = e.to_string();
+            let _ = state.job_manager.update_state(
+                job_id,
+                JobState::Failed,
+                0.0,
+                Some(err.clone()),
+                None,
+            );
+            Err(err)
+        }
+    }
+}
+
+#[tauri::command]
+async fn check_libreoffice() -> Result<bool, String> {
+    Ok(find_libreoffice().is_some())
+}
+
+// ============================================
+// Misc commands
+// ============================================
+
 #[tauri::command]
 async fn update_ytdlp(app: AppHandle) -> Result<UpdateResult, String> {
     importer_update_ytdlp(&app)
@@ -438,6 +509,16 @@ async fn open_default_folder(is_audio: bool) -> Result<(), String> {
             .join("Videos")
             .join("LoadLink-Videos")
     };
+    std::fs::create_dir_all(&folder).ok();
+    open_folder(folder.to_string_lossy().to_string()).await
+}
+
+#[tauri::command]
+async fn open_converted_folder() -> Result<(), String> {
+    let user_profile = std::env::var("USERPROFILE").unwrap_or_default();
+    let folder = PathBuf::from(&user_profile)
+        .join("Videos")
+        .join("LoadLink-Converted");
     std::fs::create_dir_all(&folder).ok();
     open_folder(folder.to_string_lossy().to_string()).await
 }
@@ -505,11 +586,15 @@ pub fn run() {
             cleanup_old_jobs,
             // Phase 2 drag & drop — small files
             compress_files_from_data,
-            // Phase 2 drag & drop — chunked streaming (any size)
+            // Phase 2 drag & drop — chunked streaming
             chunked_upload_start,
             chunked_upload_append,
             chunked_upload_compress,
             chunked_upload_cancel,
+            // Phase 3 Convertir
+            convert_files_batch,
+            check_libreoffice,
+            open_converted_folder,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
