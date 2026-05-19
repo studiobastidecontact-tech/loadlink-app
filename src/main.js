@@ -898,6 +898,7 @@ const AUDIO_PRESET_LABELS = {
   clear_voice: "Voix claire",
   voice_memo: "Note vocale lisible",
   podcast_interview: "Podcast / Interview",
+  chain: "Chaine d'effets",
 };
 const AUDIO_DEFAULT_EFFECTS = [
   { key: "eq", label: "EQ Parametrique", enabled: true },
@@ -907,6 +908,33 @@ const AUDIO_DEFAULT_EFFECTS = [
   { key: "reverb", label: "Reverberation", enabled: false },
   { key: "limiter", label: "Limiter", enabled: true },
 ];
+const AUDIO_DEFAULT_EQ_BANDS = [
+  { kind: "highpass", freq: 80, gain: 0, q: 0.7, color: "#10b981" },
+  { kind: "peaking", freq: 250, gain: 0, q: 1, color: "#3b82f6" },
+  { kind: "peaking", freq: 1200, gain: 0, q: 1, color: "#a855f7" },
+  { kind: "peaking", freq: 4500, gain: 0, q: 1, color: "#f59e0b" },
+  { kind: "highshelf", freq: 12000, gain: 0, q: 0.7, color: "#ef4444" },
+];
+const AUDIO_DEFAULT_COMPRESSOR = {
+  threshold: -18,
+  ratio: 3,
+  attack: 10,
+  release: 100,
+  makeup: 2,
+};
+
+function createDefaultEffectChain() {
+  return {
+    eq: { enabled: true, bands: AUDIO_DEFAULT_EQ_BANDS.map((band) => ({ ...band })) },
+    compressor: { enabled: true, ...AUDIO_DEFAULT_COMPRESSOR },
+    deesser: { enabled: true, intensity: 0 },
+    denoise: { enabled: true, amount: 0 },
+    reverb: { enabled: false },
+    limiter: { enabled: true },
+    silence: { enabled: false, threshold: -35, duration: 0.4 },
+    loudnorm: { enabled: false, targetLufs: -16 },
+  };
+}
 
 const audioState = {
   mediaPath: null,
@@ -925,10 +953,21 @@ const audioState = {
   lastErrorPreset: null,
   exportDir: null,
   exportProcessing: false,
+  refineOpen: false,
+  refineSliders: {
+    volume: 50,
+    noise: 50,
+    voice: 50,
+    compression: 50,
+    silence: 50,
+    sibilance: 50,
+  },
   studioTab: "edit",
   effectsTab: "effects",
   selectedEffect: "eq",
   effects: AUDIO_DEFAULT_EFFECTS.map((effect) => ({ ...effect })),
+  effectChain: createDefaultEffectChain(),
+  chainProcessing: false,
   analysis: null,
 };
 
@@ -940,6 +979,9 @@ let audioResultFallbackEl = null;
 let audioProgressUnlisten = null;
 let audioOperationToken = 0;
 let audioAnalyzeToken = 0;
+let audioChainDebounce = null;
+let audioChainToken = 0;
+let audioEqDrag = null;
 let audioLoadTokens = {
   original: 0,
   result: 0,
@@ -968,6 +1010,8 @@ function bindAudioModuleHandlers(appState) {
   const exportModal = document.getElementById("audio-export-modal");
   const backBtn = document.getElementById("audio-back-btn");
   const helpBtn = document.getElementById("audio-help-btn");
+  const refineToggle = document.getElementById("audio-refine-toggle");
+  const refineReset = document.getElementById("audio-refine-reset");
 
   backBtn?.addEventListener("click", goHome);
   helpBtn?.addEventListener("click", () => showToast("Aide Audio Studio disponible bientot", 2500));
@@ -1021,6 +1065,13 @@ function bindAudioModuleHandlers(appState) {
   document.getElementById("audio-add-effect-btn")?.addEventListener("click", () => {
     showToast("Ajout d'effet disponible en Phase D", 2500);
   });
+  refineToggle?.addEventListener("click", toggleAudioRefinePanel);
+  refineReset?.addEventListener("click", resetAudioRefineSliders);
+  document.querySelectorAll("[data-audio-refine]").forEach((input) => {
+    input.addEventListener("input", () => updateAudioRefineSlider(input.dataset.audioRefine, input.value));
+  });
+  window.addEventListener("mousemove", handleAudioEqDragMove);
+  window.addEventListener("mouseup", handleAudioEqDragEnd);
 
   bindAudioNativeDragDrop(appState);
 }
@@ -1231,8 +1282,12 @@ function toggleAudioEffect(effectKey) {
   const effect = audioState.effects.find((item) => item.key === effectKey);
   if (!effect) return;
   effect.enabled = !effect.enabled;
+  if (audioState.effectChain[effectKey]) {
+    audioState.effectChain[effectKey].enabled = effect.enabled;
+  }
   audioState.selectedEffect = effectKey;
   renderAudioEffectsSidebar();
+  scheduleAudioChainRender(500);
 }
 
 function renderAudioEffectDetail() {
@@ -1244,6 +1299,10 @@ function renderAudioEffectDetail() {
     return;
   }
 
+  const body = effect.key === "eq"
+    ? renderAudioEqPanel()
+    : `<div class="audio-effect-detail-placeholder">Parametres - Disponibles en Phase D</div>`;
+
   detail.innerHTML = `
     <div class="audio-effect-detail-head">
       <div>
@@ -1254,10 +1313,364 @@ function renderAudioEffectDetail() {
         <span></span>
       </button>
     </div>
-    <div class="audio-effect-detail-placeholder">Parametres - Disponibles en Phase D</div>
+    ${body}
   `;
 
   detail.querySelector("#audio-effect-power")?.addEventListener("click", () => toggleAudioEffect(effect.key));
+  bindAudioEqPanel(detail);
+}
+
+function renderAudioEqPanel() {
+  const eq = audioState.effectChain.eq;
+  const bands = eq.bands;
+  const points = bands.map((band, index) => {
+    const pos = eqBandToPoint(band);
+    return { ...pos, band, index };
+  });
+  const sorted = [...points].sort((a, b) => a.x - b.x);
+  const path = sorted.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
+  const disabledClass = eq.enabled ? "" : " disabled";
+  return `
+    <div class="audio-eq-panel${disabledClass}">
+      <svg class="audio-eq-graph" id="audio-eq-graph" viewBox="0 0 280 180" role="img" aria-label="Courbe EQ">
+        ${[-18, -6, 0, 6, 12].map((db) => {
+          const y = gainToEqY(db);
+          return `<line class="audio-eq-grid" x1="0" y1="${y}" x2="280" y2="${y}"></line><text class="audio-eq-label" x="4" y="${y - 3}">${db}dB</text>`;
+        }).join("")}
+        ${[20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].map((freq) => {
+          const x = freqToEqX(freq);
+          const label = freq >= 1000 ? `${freq / 1000}k` : `${freq}`;
+          return `<line class="audio-eq-grid" x1="${x}" y1="0" x2="${x}" y2="180"></line><text class="audio-eq-label" x="${x + 2}" y="176">${label}</text>`;
+        }).join("")}
+        <polyline class="audio-eq-curve" points="${path}"></polyline>
+        ${points.map((point) => `<circle class="audio-eq-point" data-band="${point.index}" cx="${point.x}" cy="${point.y}" r="7" style="--band-color:${point.band.color}"></circle>`).join("")}
+      </svg>
+      <div class="audio-eq-readout" id="audio-eq-readout">Freq ${Math.round(bands[0].freq)} Hz / Gain ${bands[0].gain.toFixed(1)} dB</div>
+      <div class="audio-eq-table">
+        ${bands.map((band, index) => `
+          <div class="audio-eq-row">
+            <select data-eq-kind="${index}">
+              ${["highpass", "lowshelf", "peaking", "highshelf", "lowpass"].map((kind) => `<option value="${kind}"${band.kind === kind ? " selected" : ""}>${kind}</option>`).join("")}
+            </select>
+            <input data-eq-freq="${index}" type="number" min="20" max="20000" value="${Math.round(band.freq)}" />
+            <input data-eq-gain="${index}" type="number" min="-24" max="24" step="0.5" value="${band.gain}" />
+            <input data-eq-q="${index}" type="number" min="0.1" max="18" step="0.1" value="${band.q}" />
+          </div>
+        `).join("")}
+      </div>
+      <button type="button" class="audio-effect-reset" id="audio-eq-reset">Reset EQ</button>
+    </div>
+  `;
+}
+
+function bindAudioEqPanel(root) {
+  root.querySelectorAll(".audio-eq-point").forEach((point) => {
+    point.addEventListener("mousedown", (event) => {
+      audioEqDrag = { band: Number(point.dataset.band) };
+      updateAudioEqBandFromEvent(event);
+      event.preventDefault();
+    });
+  });
+  root.querySelectorAll("[data-eq-kind], [data-eq-freq], [data-eq-gain], [data-eq-q]").forEach((input) => {
+    input.addEventListener("input", () => {
+      const bandIndex = Number(input.dataset.eqKind ?? input.dataset.eqFreq ?? input.dataset.eqGain ?? input.dataset.eqQ);
+      const band = audioState.effectChain.eq.bands[bandIndex];
+      if (!band) return;
+      if (input.dataset.eqKind !== undefined) band.kind = input.value;
+      if (input.dataset.eqFreq !== undefined) band.freq = clampNumber(Number(input.value), 20, 20000);
+      if (input.dataset.eqGain !== undefined) band.gain = clampNumber(Number(input.value), -24, 24);
+      if (input.dataset.eqQ !== undefined) band.q = clampNumber(Number(input.value), 0.1, 18);
+      renderAudioEffectDetail();
+      if (audioState.effectChain.eq.enabled) scheduleAudioChainRender(500);
+    });
+  });
+  root.querySelector("#audio-eq-reset")?.addEventListener("click", () => {
+    audioState.effectChain.eq.bands = AUDIO_DEFAULT_EQ_BANDS.map((band) => ({ ...band }));
+    renderAudioEffectsSidebar();
+    if (audioState.effectChain.eq.enabled) scheduleAudioChainRender(500);
+  });
+}
+
+function handleAudioEqDragMove(event) {
+  if (!audioEqDrag) return;
+  updateAudioEqBandFromEvent(event);
+}
+
+function handleAudioEqDragEnd() {
+  audioEqDrag = null;
+}
+
+function updateAudioEqBandFromEvent(event) {
+  const graph = document.getElementById("audio-eq-graph");
+  if (!graph || !audioEqDrag) return;
+  const rect = graph.getBoundingClientRect();
+  const x = clampNumber(((event.clientX - rect.left) / rect.width) * 280, 0, 280);
+  const y = clampNumber(((event.clientY - rect.top) / rect.height) * 180, 0, 180);
+  const band = audioState.effectChain.eq.bands[audioEqDrag.band];
+  if (!band) return;
+  band.freq = eqXToFreq(x);
+  band.gain = eqYToGain(y);
+  updateAudioEqVisuals();
+  if (audioState.effectChain.eq.enabled) scheduleAudioChainRender(500);
+}
+
+function updateAudioEqVisuals() {
+  const eq = audioState.effectChain.eq;
+  const points = eq.bands.map((band, index) => ({ ...eqBandToPoint(band), band, index }));
+  const sorted = [...points].sort((a, b) => a.x - b.x);
+  const curve = document.querySelector(".audio-eq-curve");
+  const readout = document.getElementById("audio-eq-readout");
+  if (curve) curve.setAttribute("points", sorted.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" "));
+  points.forEach((point) => {
+    const circle = document.querySelector(`.audio-eq-point[data-band="${point.index}"]`);
+    if (circle) {
+      circle.setAttribute("cx", point.x);
+      circle.setAttribute("cy", point.y);
+    }
+  });
+  const active = points[audioEqDrag?.band || 0]?.band || eq.bands[0];
+  if (readout && active) readout.textContent = `Freq ${Math.round(active.freq)} Hz / Gain ${active.gain.toFixed(1)} dB`;
+}
+
+function clampNumber(value, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return min;
+  return Math.min(max, Math.max(min, number));
+}
+
+function freqToEqX(freq) {
+  const min = Math.log10(20);
+  const max = Math.log10(20000);
+  const normalized = (Math.log10(clampNumber(freq, 20, 20000)) - min) / (max - min);
+  return clampNumber(normalized * 280, 0, 280);
+}
+
+function eqXToFreq(x) {
+  const min = Math.log10(20);
+  const max = Math.log10(20000);
+  const normalized = clampNumber(x, 0, 280) / 280;
+  return Math.round(10 ** (min + normalized * (max - min)));
+}
+
+function gainToEqY(gain) {
+  return clampNumber(((12 - clampNumber(gain, -18, 12)) / 30) * 180, 0, 180);
+}
+
+function eqYToGain(y) {
+  return Number((12 - (clampNumber(y, 0, 180) / 180) * 30).toFixed(1));
+}
+
+function eqBandToPoint(band) {
+  return {
+    x: freqToEqX(band.freq),
+    y: gainToEqY(band.gain),
+  };
+}
+
+function scheduleAudioChainRender(delay = 500) {
+  if (!audioState.mediaPath || !audioState.resultPath || audioState.processing) return;
+  clearTimeout(audioChainDebounce);
+  audioChainDebounce = window.setTimeout(() => {
+    runAudioEffectChain();
+  }, delay);
+}
+
+async function runAudioEffectChain(options = {}) {
+  if (!audioState.mediaPath || audioState.processing) return null;
+
+  const token = ++audioOperationToken;
+  const chainToken = ++audioChainToken;
+  const previousResultPath = audioState.resultPath;
+  const previousPreset = audioState.currentPreset;
+  const previousTime = getAudioSourceCurrentTime(audioState.currentSrc);
+  const format = options.format || null;
+  const outputDir = options.outputDir || null;
+
+  // TODO: add backend cancellation for stale FFmpeg jobs; UI currently keeps only the latest result.
+  audioState.processing = true;
+  audioState.chainProcessing = true;
+  audioState.processingPreset = "chain";
+  audioState.processingProgress = 0;
+  audioState.lastErrorPreset = null;
+  audioUpdateUI();
+  await startAudioProgressListener(token, "chain");
+
+  try {
+    const result = await invoke("audio_apply_chain", {
+      req: {
+        input: audioState.mediaPath,
+        outputDir,
+        format,
+        effects: buildAudioEffectPayload(),
+      },
+    });
+
+    if (token !== audioOperationToken || chainToken !== audioChainToken) return null;
+    if (!result || result.success === false) {
+      throw new Error((result && result.error) || "Traitement de chaine echoue");
+    }
+
+    const outputPath = result.outputPath || result.output_path;
+    if (!outputPath) throw new Error("Aucun fichier de sortie retourne");
+
+    destroyAudioPlayer("result");
+    audioState.resultPath = outputPath;
+    audioState.resultFormat = format;
+    audioState.resultOutputDir = outputDir || getAudioDefaultOutputDir();
+    audioState.resultDuration = null;
+    audioState.currentPreset = "chain";
+    audioState.currentSrc = "result";
+    audioState.processingProgress = 100;
+    audioState.processing = false;
+    audioState.chainProcessing = false;
+    audioState.processingPreset = null;
+    audioUpdateUI();
+    requestAnimationFrame(() => loadAudioWaveform("result", outputPath, {
+      activate: true,
+      seekTime: Number.isFinite(previousTime) ? previousTime : 0,
+    }));
+    analyzeAudioFile(outputPath);
+    return outputPath;
+  } catch (err) {
+    if (token === audioOperationToken && chainToken === audioChainToken) {
+      audioState.resultPath = previousResultPath;
+      audioState.currentPreset = previousPreset;
+      audioState.processing = false;
+      audioState.chainProcessing = false;
+      audioState.processingPreset = null;
+      audioState.processingProgress = 0;
+      audioUpdateUI();
+      const message = err && err.message ? err.message : String(err);
+      showToast("Erreur chaine audio : " + message, 5000);
+    }
+    return null;
+  } finally {
+    if (token === audioOperationToken) {
+      stopAudioProgressListener();
+      audioState.processing = false;
+      audioState.chainProcessing = false;
+      audioState.processingPreset = null;
+      audioUpdateUI();
+    }
+  }
+}
+
+function buildAudioEffectPayload() {
+  const chain = cloneAudioEffectChainWithRefine();
+  const ordered = [];
+
+  audioState.effects.forEach((effect) => {
+    if (effect.key === "eq") {
+      ordered.push({
+        type: "eq",
+        enabled: Boolean(chain.eq.enabled),
+        bands: chain.eq.bands.map((band) => ({
+          kind: band.kind,
+          freq: Number(band.freq),
+          gain: Number(band.gain),
+          q: Number(band.q),
+        })),
+      });
+    }
+    if (effect.key === "compressor") {
+      ordered.push({
+        type: "compressor",
+        enabled: Boolean(chain.compressor.enabled),
+        threshold: Number(chain.compressor.threshold),
+        ratio: Number(chain.compressor.ratio),
+        attack: Number(chain.compressor.attack),
+        release: Number(chain.compressor.release),
+        makeup: Number(chain.compressor.makeup),
+      });
+    }
+    if (effect.key === "deesser") {
+      ordered.push({ type: "de_esser", enabled: Boolean(chain.deesser.enabled), intensity: chain.deesser.intensity });
+    }
+    if (effect.key === "denoise") {
+      ordered.push({ type: "denoise", enabled: Boolean(chain.denoise.enabled), amount: chain.denoise.amount });
+    }
+    if (effect.key === "reverb") ordered.push({ type: "reverb", enabled: Boolean(chain.reverb.enabled) });
+    if (effect.key === "limiter") ordered.push({ type: "limiter", enabled: Boolean(chain.limiter.enabled) });
+  });
+
+  ordered.push({
+    type: "silence",
+    enabled: Boolean(chain.silence.enabled),
+    threshold: chain.silence.threshold,
+    duration: chain.silence.duration,
+  });
+  ordered.push({
+    type: "loudnorm",
+    enabled: Boolean(chain.loudnorm.enabled),
+    target_lufs: chain.loudnorm.targetLufs,
+  });
+
+  return ordered;
+}
+
+function cloneAudioEffectChainWithRefine() {
+  const chain = {
+    eq: {
+      ...audioState.effectChain.eq,
+      bands: audioState.effectChain.eq.bands.map((band) => ({ ...band })),
+    },
+    compressor: { ...audioState.effectChain.compressor },
+    deesser: { ...audioState.effectChain.deesser },
+    denoise: { ...audioState.effectChain.denoise },
+    reverb: { ...audioState.effectChain.reverb },
+    limiter: { ...audioState.effectChain.limiter },
+    silence: { ...audioState.effectChain.silence },
+    loudnorm: { ...audioState.effectChain.loudnorm },
+  };
+
+  if (!audioState.resultPath) return chain;
+  const sliders = audioState.refineSliders;
+  chain.loudnorm.enabled = true;
+  chain.loudnorm.targetLufs = mapAudioRefineVolume(sliders.volume, getAudioPresetDefaultLufs(audioState.currentPreset));
+  chain.denoise.enabled = chain.denoise.enabled || sliders.noise !== 50;
+  chain.denoise.amount = mapAudioSlider(sliders.noise, 6, getAudioPresetDefaultNoise(audioState.currentPreset), 30);
+  applyAudioVoiceRefine(chain.eq.bands, sliders.voice);
+  chain.compressor.ratio = mapAudioSlider(sliders.compression, 2, AUDIO_DEFAULT_COMPRESSOR.ratio, 6);
+  chain.compressor.attack = mapAudioSlider(sliders.compression, 20, AUDIO_DEFAULT_COMPRESSOR.attack, 3);
+  chain.silence.enabled = sliders.silence > 55;
+  chain.silence.threshold = -35;
+  chain.silence.duration = mapAudioSlider(sliders.silence, 0.9, 0.6, 0.4);
+  chain.deesser.enabled = chain.deesser.enabled || sliders.sibilance > 55;
+  chain.deesser.intensity = sliders.sibilance <= 50 ? chain.deesser.intensity : mapAudioSlider(sliders.sibilance, 0, 0.35, 1);
+  return chain;
+}
+
+function mapAudioSlider(value, low, center, high) {
+  const v = clampNumber(value, 0, 100);
+  if (v <= 50) return Number((low + (center - low) * (v / 50)).toFixed(2));
+  return Number((center + (high - center) * ((v - 50) / 50)).toFixed(2));
+}
+
+function mapAudioRefineVolume(value, defaultLufs) {
+  return mapAudioSlider(value, -23, defaultLufs, -10);
+}
+
+function getAudioPresetDefaultLufs(preset) {
+  if (preset === "voice_memo") return -15;
+  return -16;
+}
+
+function getAudioPresetDefaultNoise(preset) {
+  if (preset === "voice_memo") return 22;
+  if (preset === "podcast_interview") return 10;
+  return 14;
+}
+
+function applyAudioVoiceRefine(bands, value) {
+  const warmth = mapAudioSlider(value, 2, 0, -2);
+  const clarity = mapAudioSlider(value, -1, 0, 3);
+  const air = mapAudioSlider(value, -0.5, 0, 2);
+  const lowMid = bands.find((band) => band.freq >= 180 && band.freq <= 320);
+  const presence = bands.find((band) => band.freq >= 3500 && band.freq <= 5500);
+  const shelf = bands.find((band) => band.kind === "highshelf") || bands[bands.length - 1];
+  if (lowMid) lowMid.gain = Number((lowMid.gain + warmth).toFixed(1));
+  if (presence) presence.gain = Number((presence.gain + clarity).toFixed(1));
+  if (shelf) shelf.gain = Number((shelf.gain + air).toFixed(1));
 }
 
 function setAudioStudioTab(tab) {
