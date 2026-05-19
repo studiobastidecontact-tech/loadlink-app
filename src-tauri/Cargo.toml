@@ -18,6 +18,8 @@ members = [
     "crates/converter",
     "crates/compressor",
     "crates/job-manager",
+
+    "crates/transcriber",
 ]
 
 # ============================================
