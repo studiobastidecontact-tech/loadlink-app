@@ -152,6 +152,10 @@ const homePage = () => $("homePage");
 const appPage = () => $("appPage");
 
 const goHome = () => {
+  // Garde "modifs non enregistrees" si on quitte le module Transcrire
+  if (state.currentModule === "transcribe") {
+    if (typeof window.__playerCanLeave === "function" && !window.__playerCanLeave()) return;
+  }
   state.currentModule = "home";
   appPage().classList.add("hidden");
   homePage().classList.remove("hidden");
@@ -171,6 +175,10 @@ const openModule = (moduleKey) => {
   if (moduleKey === "home") { goHome(); return; }
   const info = MODULE_INFO[moduleKey];
   if (!info) return;
+  // Garde "modifs non enregistrees" si on quitte le module Transcrire
+  if (state.currentModule === "transcribe" && moduleKey !== "transcribe") {
+    if (typeof window.__playerCanLeave === "function" && !window.__playerCanLeave()) return;
+  }
   state.currentModule = moduleKey;
   homePage().classList.add("hidden");
   appPage().classList.remove("hidden");
@@ -1990,6 +1998,34 @@ async function initPlayerModule() {
     dirty: false,
   };
 
+  // Garde "modifications non enregistrees" - utilisable par openModule/goHome
+  // Renvoie true si OK pour quitter (pas dirty, ou utilisateur a confirme).
+  window.__playerCanLeave = () => {
+    if (!playerState.dirty) return true;
+    return confirm("Modifications de sous-titres non enregistrees.\nContinuer sans enregistrer ?");
+  };
+
+  // Hook fermeture fenetre Tauri 2.x : intercepte le clic sur la croix
+  try {
+    const winApi =
+      (window.__TAURI__ && window.__TAURI__.webviewWindow && window.__TAURI__.webviewWindow.getCurrentWebviewWindow) ||
+      (window.__TAURI__ && window.__TAURI__.window && window.__TAURI__.window.getCurrentWindow);
+    if (winApi) {
+      const w = winApi();
+      if (w && typeof w.onCloseRequested === "function") {
+        await w.onCloseRequested(async (event) => {
+          if (!playerState.dirty) return;
+          const ok = confirm("Modifications de sous-titres non enregistrees.\nFermer l'application sans enregistrer ?");
+          if (!ok) {
+            event.preventDefault();
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[player] onCloseRequested setup failed:", err);
+  }
+
   const dropZone = () => getEl("player-drop-zone");
   const playerZone = () => getEl("player-zone");
   const mediaWrap = () => getEl("player-media-wrap");
@@ -2249,9 +2285,23 @@ async function initPlayerModule() {
     playerState.mediaEl = el;
   }
 
+  function updateSegmentsCount() {
+    const el = getEl("player-segments-count");
+    if (!el) return;
+    const n = playerState.segments.length;
+    if (n === 0) {
+      el.textContent = playerState.srtPath ? "Aucun segment" : "—";
+    } else if (n === 1) {
+      el.textContent = "1 segment";
+    } else {
+      el.textContent = n + " segments";
+    }
+  }
+
   function renderSegments() {
     const wrap = segmentsWrap();
     if (!wrap) return;
+    updateSegmentsCount();
     wrap.innerHTML = "";
     if (playerState.segments.length === 0) {
       if (playerState.srtPath) {
@@ -2309,14 +2359,22 @@ async function initPlayerModule() {
   }
 
   function updateSegmentHighlight() {
-    const items = document.querySelectorAll(".player-segment");
+    const wrap = segmentsWrap();
+    if (!wrap) return;
+    const items = wrap.querySelectorAll(".player-segment");
     items.forEach((item, idx) => {
       if (idx === playerState.activeSegmentIdx) {
         item.classList.add("active");
-        const rect = item.getBoundingClientRect();
-        const parentRect = item.parentElement.parentElement.getBoundingClientRect();
-        if (rect.top < parentRect.top || rect.bottom > parentRect.bottom) {
-          item.scrollIntoView({ behavior: "smooth", block: "center" });
+        // Scroll uniquement dans le conteneur, jamais la page entiere
+        const itemRect = item.getBoundingClientRect();
+        const wrapRect = wrap.getBoundingClientRect();
+        const itemTopInWrap = itemRect.top - wrapRect.top + wrap.scrollTop;
+        const itemBottomInWrap = itemTopInWrap + item.offsetHeight;
+        const viewTop = wrap.scrollTop;
+        const viewBottom = viewTop + wrap.clientHeight;
+        if (itemTopInWrap < viewTop || itemBottomInWrap > viewBottom) {
+          const target = itemTopInWrap - wrap.clientHeight / 2 + item.offsetHeight / 2;
+          wrap.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
         }
       } else {
         item.classList.remove("active");
@@ -2325,6 +2383,8 @@ async function initPlayerModule() {
   }
 
   async function refreshPlayerUI() {
+    // Toujours synchroniser les boutons clear (visibles si fichier charge)
+    updateClearButtons();
     if (playerState.mediaPath || playerState.srtPath) {
       playerZone().classList.remove("hidden");
       if (playerState.srtPath) await loadSRT();
@@ -2366,12 +2426,16 @@ async function initPlayerModule() {
   if (clearSrtBtn) {
     clearSrtBtn.addEventListener("click", (e) => {
       e.stopPropagation();
+      if (playerState.dirty && !confirm("Modifications de sous-titres non enregistrees.\nAbandonner les modifications ?")) return;
       playerState.srtPath = null;
       playerState.segments = [];
+      playerState.dirty = false;
       const lbl = getEl("player-srt-label");
       if (lbl) lbl.textContent = "Choisir le fichier .srt";
       refreshPlayerUI();
+      updateSegmentsCount();
       updateClearButtons();
+      updateSaveButton();
     });
   }
 

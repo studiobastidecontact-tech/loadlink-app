@@ -1717,26 +1717,37 @@ body.dark .libreoffice-warning {
   width: 16px;
   height: 16px;
 }
+.player-segments-count {
+  font-size: 11px;
+  color: #888;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-right: 4px;
+  letter-spacing: 0.02em;
+}
 .option-clear {
   background: transparent;
   border: none;
-  padding: 4px;
-  margin-right: 8px;
+  padding: 6px;
+  margin-right: 14px;
   cursor: pointer;
-  color: #888;
+  color: var(--text2);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  transition: all 0.15s;
+  border-radius: 6px;
+  transition: background .15s, color .15s;
+  align-self: center;
+  flex-shrink: 0;
 }
 .option-clear:hover {
-  background: rgba(255,255,255,0.06);
-  color: var(--accent, #E8390C);
+  background: var(--surface3);
+  color: var(--danger, #dc2626);
 }
 .option-clear svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
 }
 .option-clear.hidden {
   display: none;
