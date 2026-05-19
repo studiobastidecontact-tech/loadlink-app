@@ -2693,6 +2693,69 @@ async function initPlayerModule() {
     }
   }
 
+  // Phase 7 : parser timestamp tolerant (MM:SS, H:MM:SS, MM:SS.ms, HH:MM:SS,ms)
+  function parseTimestamp(str) {
+    if (typeof str !== "string") return NaN;
+    const s = str.trim().replace(",", ".");
+    if (!s) return NaN;
+    const parts = s.split(":").map((p) => p.trim());
+    if (parts.length === 0 || parts.length > 3) return NaN;
+    for (const p of parts) if (!/^\d+(\.\d+)?$/.test(p)) return NaN;
+    if (parts.length === 1) return parseFloat(parts[0]);
+    if (parts.length === 2) return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+    return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+  }
+
+  // Phase 7 : valide les bornes d'un segment (start < end, pas de chevauchement)
+  function validateSegmentBounds(start, end, excludeIdx) {
+    if (isNaN(start) || isNaN(end)) return { ok: false, error: "Format de temps invalide." };
+    if (start < 0) return { ok: false, error: "Le debut doit etre positif." };
+    if (start >= end) return { ok: false, error: "La fin doit etre apres le debut." };
+    for (let i = 0; i < playerState.segments.length; i++) {
+      if (i === excludeIdx) continue;
+      const seg = playerState.segments[i];
+      if (start < seg.end && end > seg.start) {
+        return { ok: false, error: "Chevauche le segment " + (i + 1) + " (" + formatTime(seg.start) + " - " + formatTime(seg.end) + ")." };
+      }
+    }
+    return { ok: true };
+  }
+
+  // Phase 7 : suppression directe (dirty=true permet de revenir en arriere via reload)
+  function deleteSegment(idx) {
+    if (idx < 0 || idx >= playerState.segments.length) return;
+    playerState.segments.splice(idx, 1);
+    playerState.dirty = true;
+    renderSegments();
+    updateSaveButton();
+    if (typeof showToast === "function") showToast("Segment supprime", 1500);
+  }
+
+  // Phase 7 : commit d'un nouveau start tape inline sur le timestamp
+  function commitTimestampEdit(idx, newStr) {
+    const seg = playerState.segments[idx];
+    if (!seg) return false;
+    const newStart = parseTimestamp(newStr);
+    if (isNaN(newStart)) {
+      if (typeof showToast === "function") showToast("Format de temps invalide", 2500);
+      return false;
+    }
+    const newEnd = seg.end > newStart ? seg.end : newStart + 1; // garde une duree minimale
+    const v = validateSegmentBounds(newStart, newEnd, idx);
+    if (!v.ok) {
+      if (typeof showToast === "function") showToast(v.error, 3000);
+      return false;
+    }
+    seg.start = newStart;
+    if (newEnd !== seg.end) seg.end = newEnd;
+    // Tri par start au cas ou
+    playerState.segments.sort((a, b) => a.start - b.start);
+    playerState.dirty = true;
+    renderSegments();
+    updateSaveButton();
+    return true;
+  }
+
   function renderSegments() {
     const wrap = segmentsWrap();
     if (!wrap) return;
@@ -2704,6 +2767,11 @@ async function initPlayerModule() {
       } else {
         wrap.innerHTML = '<div style="padding:12px; color:#aaa; font-size:13px;">Charge un .srt pour voir les sous-titres synchronisés</div>';
       }
+      // En mode edition, on permet quand meme d'ajouter un premier segment
+      if (playerState.editMode && playerState.srtPath) {
+        const addEnd = makeAddSegmentEndButton();
+        wrap.appendChild(addEnd);
+      }
       return;
     }
     const list = document.createElement("div");
@@ -2711,6 +2779,12 @@ async function initPlayerModule() {
     if (playerState.editMode) list.classList.add("edit-mode");
 
     playerState.segments.forEach((seg, idx) => {
+      // Separateur "+ Inserer ici" AVANT chaque segment sauf le premier (mode edit)
+      if (playerState.editMode && idx > 0) {
+        const insert = makeInsertSeparator(idx);
+        list.appendChild(insert);
+      }
+
       const item = document.createElement("div");
       item.className = "player-segment";
       item.dataset.idx = idx;
@@ -2724,6 +2798,32 @@ async function initPlayerModule() {
       text.textContent = seg.text;
 
       if (playerState.editMode) {
+        // Edition inline du timestamp (start uniquement)
+        time.contentEditable = "true";
+        time.spellcheck = false;
+        let originalTimeText = time.textContent;
+        time.addEventListener("focus", () => {
+          originalTimeText = time.textContent;
+          // Selection complete au focus
+          const range = document.createRange();
+          range.selectNodeContents(time);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        });
+        time.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") { e.preventDefault(); time.blur(); }
+          else if (e.key === "Escape") { e.preventDefault(); time.textContent = originalTimeText; time.blur(); }
+        });
+        time.addEventListener("blur", () => {
+          const newStr = time.textContent.trim();
+          if (newStr === originalTimeText) return;
+          const ok = commitTimestampEdit(idx, newStr);
+          if (!ok) time.textContent = originalTimeText;
+        });
+        time.addEventListener("click", (e) => e.stopPropagation());
+
+        // Edition texte
         text.contentEditable = "true";
         text.spellcheck = true;
         text.addEventListener("input", () => {
@@ -2731,17 +2831,30 @@ async function initPlayerModule() {
           playerState.dirty = true;
           updateSaveButton();
         });
-        // Empecher le seek sur clic en mode edition
         text.addEventListener("click", (e) => e.stopPropagation());
+
+        // Bouton poubelle (visible au hover)
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "player-segment-delete";
+        del.title = "Supprimer ce segment";
+        del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>';
+        del.addEventListener("click", (e) => {
+          e.stopPropagation();
+          deleteSegment(idx);
+        });
+        item.appendChild(del);
       }
 
       item.appendChild(time);
       item.appendChild(text);
 
-      // Le clic sur item (pas sur le texte editable) = seek
+      // Le clic sur item = seek (sauf en mode edition sur les zones editables)
       item.addEventListener("click", (e) => {
-        // En mode edition, seul le clic sur la zone temps fait seek
-        if (playerState.editMode && e.target.classList.contains("player-segment-text")) return;
+        if (playerState.editMode) {
+          const cls = e.target.classList;
+          if (cls && (cls.contains("player-segment-text") || cls.contains("player-segment-time") || e.target.closest(".player-segment-delete"))) return;
+        }
         if (playerState.mediaEl) {
           playerState.mediaEl.currentTime = seg.start;
           playerState.mediaEl.play();
@@ -2750,7 +2863,113 @@ async function initPlayerModule() {
 
       list.appendChild(item);
     });
+
     wrap.appendChild(list);
+
+    // Bouton "+ Ajouter en fin" (mode edit)
+    if (playerState.editMode) {
+      const addEnd = makeAddSegmentEndButton();
+      wrap.appendChild(addEnd);
+    }
+  }
+
+  // Helper : separateur cliquable "+" entre 2 segments
+  function makeInsertSeparator(insertIdx) {
+    const sep = document.createElement("div");
+    sep.className = "player-segment-insert";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "player-segment-insert-btn";
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Insérer ici</span>';
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openSegmentModal(insertIdx);
+    });
+    sep.appendChild(btn);
+    return sep;
+  }
+
+  // Helper : gros bouton "Ajouter un segment en fin"
+  function makeAddSegmentEndButton() {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "player-add-segment-end";
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Ajouter un segment</span>';
+    btn.addEventListener("click", () => openSegmentModal(playerState.segments.length));
+    return btn;
+  }
+
+  // ===== Phase 7 : MODAL d'ajout de segment =====
+  let _segmentModalInsertIdx = -1;
+  function openSegmentModal(insertIdx) {
+    _segmentModalInsertIdx = insertIdx;
+    const segs = playerState.segments;
+    const prev = insertIdx > 0 ? segs[insertIdx - 1] : null;
+    const next = insertIdx < segs.length ? segs[insertIdx] : null;
+    const defaultStart = prev ? prev.end : 0;
+    const defaultEnd = next ? next.start : defaultStart + 3;
+    const startInput = getEl("segment-modal-start");
+    const endInput = getEl("segment-modal-end");
+    const textInput = getEl("segment-modal-text");
+    const errorEl = getEl("segment-modal-error");
+    if (startInput) startInput.value = formatTime(defaultStart);
+    if (endInput) endInput.value = formatTime(defaultEnd);
+    if (textInput) textInput.value = "";
+    if (errorEl) { errorEl.classList.add("hidden"); errorEl.textContent = ""; }
+    const modal = getEl("segment-modal");
+    if (modal) modal.classList.remove("hidden");
+    setTimeout(() => { if (textInput) textInput.focus(); }, 50);
+  }
+  function closeSegmentModal() {
+    const modal = getEl("segment-modal");
+    if (modal) modal.classList.add("hidden");
+    _segmentModalInsertIdx = -1;
+  }
+  function submitSegmentModal() {
+    const startInput = getEl("segment-modal-start");
+    const endInput = getEl("segment-modal-end");
+    const textInput = getEl("segment-modal-text");
+    const errorEl = getEl("segment-modal-error");
+    if (!startInput || !endInput || !textInput) return;
+    const start = parseTimestamp(startInput.value);
+    const end = parseTimestamp(endInput.value);
+    const text = (textInput.value || "").trim();
+    if (!text) {
+      if (errorEl) { errorEl.textContent = "Le texte ne peut pas etre vide."; errorEl.classList.remove("hidden"); }
+      textInput.focus();
+      return;
+    }
+    const v = validateSegmentBounds(start, end, -1);
+    if (!v.ok) {
+      if (errorEl) { errorEl.textContent = v.error; errorEl.classList.remove("hidden"); }
+      return;
+    }
+    // Insertion + tri
+    playerState.segments.push({ start, end, text });
+    playerState.segments.sort((a, b) => a.start - b.start);
+    playerState.dirty = true;
+    renderSegments();
+    updateSaveButton();
+    closeSegmentModal();
+    if (typeof showToast === "function") showToast("Segment ajoute", 1500);
+  }
+  // Bind du modal (une seule fois)
+  {
+    const cancelBtn = getEl("segment-modal-cancel");
+    if (cancelBtn) cancelBtn.addEventListener("click", closeSegmentModal);
+    const okBtn = getEl("segment-modal-ok");
+    if (okBtn) okBtn.addEventListener("click", submitSegmentModal);
+    const modalEl = getEl("segment-modal");
+    if (modalEl) {
+      modalEl.addEventListener("click", (e) => {
+        if (e.target === modalEl) closeSegmentModal();
+      });
+    }
+    document.addEventListener("keydown", (e) => {
+      const m = getEl("segment-modal");
+      if (!m || m.classList.contains("hidden")) return;
+      if (e.key === "Escape") closeSegmentModal();
+    });
   }
 
   function updateSegmentHighlight() {

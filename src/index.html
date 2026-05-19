@@ -993,6 +993,32 @@
   </div>
 </div>
 
+<!-- Phase 7 : modal ajout/edition de segment -->
+<div class="modal hidden" id="segment-modal">
+  <div class="modal-card segment-modal-card">
+    <h2 id="segment-modal-title">Ajouter un segment</h2>
+    <div class="segment-modal-error hidden" id="segment-modal-error"></div>
+    <div class="segment-modal-row">
+      <div class="segment-modal-field">
+        <label for="segment-modal-start">Début</label>
+        <input type="text" id="segment-modal-start" placeholder="00:00" autocomplete="off" />
+      </div>
+      <div class="segment-modal-field">
+        <label for="segment-modal-end">Fin</label>
+        <input type="text" id="segment-modal-end" placeholder="00:03" autocomplete="off" />
+      </div>
+    </div>
+    <div class="segment-modal-field" style="margin-bottom: 18px;">
+      <label for="segment-modal-text">Texte</label>
+      <textarea id="segment-modal-text" placeholder="Texte du segment…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="segment-modal-cancel">Annuler</button>
+      <button class="btn-primary" id="segment-modal-ok" style="width:auto; padding:10px 22px; margin-top:0;">Ajouter</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal hidden" id="welcome-modal">
   <div class="modal-card welcome-card">
     <div class="welcome-icon">

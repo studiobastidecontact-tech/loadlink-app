@@ -2446,5 +2446,205 @@ body.dark .libreoffice-warning {
   font-style: italic;
 }
 
+/* ============================================
+   Phase 7 - Edition segments : ajout / suppression / timestamps inline
+   ============================================ */
+
+/* Poubelle de suppression (visible au hover en mode edition) */
+.player-segments-list.edit-mode .player-segment {
+  position: relative;
+}
+.player-segment-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity .15s, background .15s, color .15s;
+}
+.player-segment:hover .player-segment-delete {
+  opacity: 1;
+}
+.player-segment-delete:hover {
+  background: rgba(220, 38, 38, 0.12);
+  color: var(--danger, #dc2626);
+}
+.player-segment-delete svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Separateur cliquable "+" entre segments (mode edition) */
+.player-segment-insert {
+  height: 8px;
+  margin: -1px 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s, height .15s, margin .15s;
+}
+.player-segments-list.edit-mode .player-segment-insert:hover {
+  opacity: 1;
+  height: 28px;
+  margin: 2px 0;
+}
+.player-segment-insert::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 50%;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.4;
+}
+.player-segment-insert-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  z-index: 1;
+}
+.player-segment-insert-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Bouton "Ajouter en fin" toujours visible en mode edition */
+.player-add-segment-end {
+  display: none;
+  width: calc(100% - 12px);
+  margin: 8px 6px 4px;
+  padding: 14px;
+  background: var(--surface2);
+  border: 1.5px dashed var(--border);
+  border-radius: 10px;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.player-add-segment-end:hover {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.player-add-segment-end svg {
+  width: 16px;
+  height: 16px;
+}
+.player-add-segment-end.hidden { display: none; }
+
+/* Timestamp editable inline (mode edition) */
+.player-segments-list.edit-mode .player-segment-time {
+  cursor: text;
+  padding: 2px 6px;
+  margin: 1px -6px;
+  border-radius: 4px;
+  border: 1px dashed transparent;
+  transition: border-color .15s, background .15s;
+}
+.player-segments-list.edit-mode .player-segment-time:hover {
+  border-color: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.02);
+}
+.player-segments-list.edit-mode .player-segment-time:focus {
+  outline: none;
+  border-color: var(--accent);
+  border-style: solid;
+  background: #fff;
+  color: var(--accent);
+}
+
+/* Modal d'ajout/edit de segment */
+.segment-modal-card {
+  max-width: 460px;
+}
+.segment-modal-card h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 17px;
+  margin-bottom: 18px;
+}
+.segment-modal-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.segment-modal-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.segment-modal-field label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.segment-modal-field input,
+.segment-modal-field textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s, background .15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.segment-modal-field input:focus,
+.segment-modal-field textarea:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.segment-modal-field input {
+  font-family: 'DM Mono', 'DM Sans', monospace;
+}
+.segment-modal-field textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+.segment-modal-error {
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  color: var(--danger, #dc2626);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  margin-bottom: 12px;
+}
+.segment-modal-error.hidden { display: none; }
+
 /* Phase 6 : suppression - styles #player-export-card (element supprime).
    Le panneau export est maintenant dans l'onglet sidebar EDIT (.edit-export-slot). */
