@@ -58,19 +58,5 @@ src-tauri/src/lib.rs.OLD
 
 
 # Phase 4 - Python embeddable (use setup-python.ps1 to install)
-# We gitignore Python distribution dirs but keep scripts/ versioned
-src-tauri/binaries/python/python.exe
-src-tauri/binaries/python/python311.dll
-src-tauri/binaries/python/python3.dll
-src-tauri/binaries/python/python311.zip
-src-tauri/binaries/python/python311._pth
-src-tauri/binaries/python/vcruntime140.dll
-src-tauri/binaries/python/vcruntime140_1.dll
-src-tauri/binaries/python/Lib/
-src-tauri/binaries/python/Scripts/
-src-tauri/binaries/python/Include/
-src-tauri/binaries/python/share/
-src-tauri/binaries/python/DLLs/
-src-tauri/binaries/python/__pycache__/
-src-tauri/binaries/python/*.pyd
-src-tauri/binaries/python/*.cat
+# Whole python/ dir is ignored; whisper_runner.py is force-added with git add -f
+src-tauri/binaries/python/
