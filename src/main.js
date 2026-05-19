@@ -901,6 +901,9 @@ const audioState = {
 };
 
 let audioModuleInitialized = false;
+let audioOriginalWave = null;
+let audioFallbackEl = null;
+let audioLoadToken = 0;
 
 function initAudioModule(appState = state) {
   if (!audioModuleInitialized) {
@@ -916,8 +919,12 @@ function bindAudioModuleHandlers(appState) {
   const urlLink = document.getElementById("audio-url-link");
   const fileChip = document.getElementById("audio-file-chip");
   const resetBtn = document.getElementById("audio-reset-btn");
+  const playBtn = document.getElementById("audio-play-btn");
+  const timeline = document.getElementById("audio-timeline");
 
   importCard?.addEventListener("click", pickAudioFile);
+  playBtn?.addEventListener("click", audioTogglePlayback);
+  timeline?.addEventListener("click", audioSeekFromTimelineEvent);
 
   recordCard?.addEventListener("click", () => {
     showToast("Enregistrement disponible en Phase F", 2500);
@@ -1028,6 +1035,7 @@ function loadAudioFile(path) {
     return;
   }
 
+  destroyAudioOriginalPlayer();
   audioState.mediaPath = path;
   audioState.mediaName = getPathName(path);
   audioState.mediaSize = null;
@@ -1038,6 +1046,7 @@ function loadAudioFile(path) {
   audioState.currentSrc = "original";
 
   audioUpdateUI();
+  requestAnimationFrame(() => loadAudioOriginalWaveform(path));
   showToast("Fichier audio chargé", 1800);
 }
 
@@ -1074,12 +1083,269 @@ function audioUpdateUI() {
     if (status) status.textContent = "Appliquer";
   });
 
+  if (hasMedia) {
+    syncAudioTransportFromPlayer();
+  } else {
+    updateAudioTransport(0, 0);
+    setAudioTransportEnabled(false);
+    setAudioPlayButton(false);
+  }
+}
+
+function loadAudioOriginalWaveform(path) {
+  const container = document.getElementById("audio-waveform-original");
+  if (!container) return;
+
+  destroyAudioOriginalPlayer();
+  const token = ++audioLoadToken;
+
+  container.classList.remove("error");
+  container.classList.add("loading");
+  container.textContent = "Chargement du waveform...";
+  setAudioTransportEnabled(false);
+  updateAudioTransport(0, 0);
+
+  const src = getAudioAssetSrc(path);
+  const WaveSurferCtor = window.WaveSurfer;
+  if (!WaveSurferCtor || typeof WaveSurferCtor.create !== "function") {
+    renderAudioFallback(src, "Impossible d'afficher ce fichier audio");
+    return;
+  }
+
+  try {
+    container.textContent = "";
+    audioOriginalWave = WaveSurferCtor.create({
+      container,
+      url: src,
+      height: 100,
+      waveColor: getCssVar("--text2", "#8a8f98"),
+      progressColor: getCssVar("--accent", "#2563eb"),
+      cursorColor: "#E8390C",
+      cursorWidth: 2,
+      barWidth: 2,
+      barRadius: 2,
+      barGap: 2,
+      normalize: true,
+      interact: true,
+    });
+
+    audioOriginalWave.on("ready", () => {
+      if (token !== audioLoadToken) return;
+      container.classList.remove("loading");
+      audioState.mediaDuration = audioOriginalWave.getDuration();
+      setAudioTransportEnabled(true);
+      updateAudioTransport(0, audioState.mediaDuration);
+    });
+
+    audioOriginalWave.on("timeupdate", (time) => {
+      if (token !== audioLoadToken) return;
+      updateAudioTransport(time, audioOriginalWave.getDuration());
+    });
+
+    audioOriginalWave.on("audioprocess", (time) => {
+      if (token !== audioLoadToken) return;
+      updateAudioTransport(time, audioOriginalWave.getDuration());
+    });
+
+    audioOriginalWave.on("seeking", (time) => {
+      if (token !== audioLoadToken) return;
+      updateAudioTransport(time, audioOriginalWave.getDuration());
+    });
+
+    audioOriginalWave.on("play", () => setAudioPlayButton(true));
+    audioOriginalWave.on("pause", () => setAudioPlayButton(false));
+    audioOriginalWave.on("finish", () => {
+      setAudioPlayButton(false);
+      updateAudioTransport(audioOriginalWave.getDuration(), audioOriginalWave.getDuration());
+    });
+
+    audioOriginalWave.on("error", (err) => {
+      if (token !== audioLoadToken) return;
+      console.error("[audio] wavesurfer load error:", err);
+      renderAudioFallback(src, "Impossible d'afficher ce fichier audio");
+    });
+  } catch (err) {
+    console.error("[audio] wavesurfer init failed:", err);
+    renderAudioFallback(src, "Impossible d'afficher ce fichier audio");
+  }
+}
+
+function destroyAudioOriginalPlayer() {
+  audioLoadToken += 1;
+
+  if (audioOriginalWave) {
+    try {
+      audioOriginalWave.destroy();
+    } catch (err) {
+      console.warn("[audio] wavesurfer destroy failed:", err);
+    }
+    audioOriginalWave = null;
+  }
+
+  if (audioFallbackEl) {
+    try {
+      audioFallbackEl.pause();
+      audioFallbackEl.removeAttribute("src");
+      audioFallbackEl.load();
+    } catch (err) {
+      console.warn("[audio] fallback cleanup failed:", err);
+    }
+    audioFallbackEl = null;
+  }
+
+  const container = document.getElementById("audio-waveform-original");
+  if (container) {
+    container.classList.remove("loading", "error");
+    container.innerHTML = "";
+  }
+}
+
+function renderAudioFallback(src, message) {
+  const container = document.getElementById("audio-waveform-original");
+  if (!container) return;
+
+  if (audioOriginalWave) {
+    try {
+      audioOriginalWave.destroy();
+    } catch (err) {
+      console.warn("[audio] wavesurfer fallback destroy failed:", err);
+    }
+    audioOriginalWave = null;
+  }
+
+  container.classList.remove("loading");
+  container.classList.add("error");
+  container.innerHTML = "";
+
+  const error = document.createElement("div");
+  error.className = "audio-wave-error";
+  error.textContent = message;
+
+  const audio = document.createElement("audio");
+  audio.className = "audio-native-fallback";
+  audio.controls = true;
+  audio.src = src;
+  audioFallbackEl = audio;
+
+  audio.addEventListener("loadedmetadata", () => {
+    audioState.mediaDuration = audio.duration || 0;
+    setAudioTransportEnabled(true);
+    updateAudioTransport(0, audioState.mediaDuration);
+  });
+  audio.addEventListener("timeupdate", () => updateAudioTransport(audio.currentTime || 0, audio.duration || 0));
+  audio.addEventListener("play", () => setAudioPlayButton(true));
+  audio.addEventListener("pause", () => setAudioPlayButton(false));
+  audio.addEventListener("ended", () => setAudioPlayButton(false));
+  audio.addEventListener("error", () => {
+    setAudioTransportEnabled(false);
+    updateAudioTransport(0, 0);
+  });
+
+  container.append(error, audio);
+}
+
+function audioTogglePlayback() {
+  if (audioOriginalWave) {
+    audioOriginalWave.playPause();
+    return;
+  }
+
+  if (!audioFallbackEl) return;
+  if (audioFallbackEl.paused) {
+    audioFallbackEl.play().catch((err) => {
+      console.error("[audio] fallback play failed:", err);
+      showToast("Lecture impossible", 2500);
+    });
+  } else {
+    audioFallbackEl.pause();
+  }
+}
+
+function audioSeekFromTimelineEvent(event) {
+  const timeline = document.getElementById("audio-timeline");
+  if (!timeline) return;
+
+  const rect = timeline.getBoundingClientRect();
+  if (!rect.width) return;
+  const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+
+  if (audioOriginalWave) {
+    audioOriginalWave.seekTo(ratio);
+    updateAudioTransport(audioOriginalWave.getCurrentTime(), audioOriginalWave.getDuration());
+    return;
+  }
+
+  if (audioFallbackEl && Number.isFinite(audioFallbackEl.duration) && audioFallbackEl.duration > 0) {
+    audioFallbackEl.currentTime = audioFallbackEl.duration * ratio;
+    updateAudioTransport(audioFallbackEl.currentTime, audioFallbackEl.duration);
+  }
+}
+
+function syncAudioTransportFromPlayer() {
+  if (audioOriginalWave) {
+    updateAudioTransport(audioOriginalWave.getCurrentTime(), audioOriginalWave.getDuration());
+    setAudioTransportEnabled(true);
+    return;
+  }
+
+  if (audioFallbackEl) {
+    updateAudioTransport(audioFallbackEl.currentTime || 0, audioFallbackEl.duration || 0);
+    setAudioTransportEnabled(true);
+    return;
+  }
+
+  updateAudioTransport(0, audioState.mediaDuration || 0);
+}
+
+function updateAudioTransport(current, duration) {
+  const safeCurrent = Number.isFinite(current) && current > 0 ? current : 0;
+  const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0;
   const currentTime = document.getElementById("audio-current-time");
   const totalTime = document.getElementById("audio-total-time");
   const timelineFill = document.getElementById("audio-timeline-fill");
-  if (currentTime) currentTime.textContent = "00:00";
-  if (totalTime) totalTime.textContent = "00:00";
-  if (timelineFill) timelineFill.style.width = "0%";
+  const percent = safeDuration > 0 ? Math.min(100, Math.max(0, (safeCurrent / safeDuration) * 100)) : 0;
+
+  if (currentTime) currentTime.textContent = formatAudioTime(safeCurrent);
+  if (totalTime) totalTime.textContent = formatAudioTime(safeDuration);
+  if (timelineFill) timelineFill.style.width = `${percent}%`;
+}
+
+function setAudioTransportEnabled(enabled) {
+  const playBtn = document.getElementById("audio-play-btn");
+  const timeline = document.getElementById("audio-timeline");
+  if (playBtn) playBtn.disabled = !enabled;
+  if (timeline) timeline.classList.toggle("disabled", !enabled);
+}
+
+function setAudioPlayButton(isPlaying) {
+  const playBtn = document.getElementById("audio-play-btn");
+  if (!playBtn) return;
+  playBtn.innerHTML = isPlaying
+    ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7z"/><path d="M13 5h4v14h-4z"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+}
+
+function formatAudioTime(seconds) {
+  const total = Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0;
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  }
+  return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function getAudioAssetSrc(path) {
+  const convertFileSrc =
+    (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.convertFileSrc)
+    || ((p) => p);
+  return convertFileSrc(path);
+}
+
+function getCssVar(name, fallback) {
+  const value = getComputedStyle(document.body).getPropertyValue(name).trim();
+  return value || fallback;
 }
 
 function resetAudioWithConfirm() {
@@ -1089,6 +1355,7 @@ function resetAudioWithConfirm() {
 }
 
 function resetAudioState() {
+  destroyAudioOriginalPlayer();
   audioState.mediaPath = null;
   audioState.mediaName = null;
   audioState.mediaSize = null;
