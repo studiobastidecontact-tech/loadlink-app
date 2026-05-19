@@ -1662,10 +1662,101 @@ body.dark .libreoffice-warning {
 }
 
 .audio-studio-shell {
-  height: calc(100vh - 64px);
+  height: calc(100vh - 174px);
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr) 360px;
   background: var(--bg);
+}
+
+.audio-meter-footer {
+  height: 110px;
+  min-height: 110px;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 220px 180px;
+  gap: 18px;
+  align-items: center;
+  padding: 14px 22px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.audio-meter-block,
+.audio-lufs-box {
+  min-width: 0;
+}
+
+.audio-meter-title {
+  color: var(--text2);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.audio-meter-row {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  color: var(--text2);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.audio-meter-bar {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface3);
+}
+
+.audio-meter-fill {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #10b981 0%, #10b981 62%, #f59e0b 78%, #ef4444 100%);
+  transition: width .25s ease;
+}
+
+.audio-meter-peak {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: 0%;
+  width: 2px;
+  background: rgba(255,255,255,.86);
+  transition: left .25s ease;
+}
+
+.audio-meter-scale {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 26px;
+  color: var(--text3);
+  font-family: 'DM Mono', 'DM Sans', monospace;
+  font-size: 10px;
+}
+
+.audio-lufs-box {
+  text-align: center;
+}
+
+.audio-lufs-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+
+.audio-lufs-unit,
+.audio-lufs-secondary {
+  color: var(--text2);
+  font-size: 11px;
+  margin-top: 4px;
 }
 
 .audio-tracks-sidebar,
@@ -2571,6 +2662,11 @@ body.dark .audio-waveform {
   .audio-studio-shell {
     grid-template-columns: 1fr;
     height: auto;
+  }
+
+  .audio-meter-footer {
+    height: auto;
+    grid-template-columns: 1fr;
   }
 
   .audio-tracks-sidebar,

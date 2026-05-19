@@ -929,6 +929,7 @@ const audioState = {
   effectsTab: "effects",
   selectedEffect: "eq",
   effects: AUDIO_DEFAULT_EFFECTS.map((effect) => ({ ...effect })),
+  analysis: null,
 };
 
 let audioModuleInitialized = false;
@@ -1124,8 +1125,10 @@ function loadAudioFile(path) {
   audioState.lastErrorPreset = null;
   audioState.exportDir = null;
   audioState.exportProcessing = false;
+  audioState.analysis = null;
 
   audioUpdateUI();
+  analyzeAudioFile(path);
   requestAnimationFrame(() => loadAudioWaveform("original", path, { activate: true }));
   showToast("Fichier audio chargé", 1800);
 }
@@ -1170,6 +1173,7 @@ function audioUpdateUI() {
   renderAudioPresetCards();
   renderAudioAbToggle();
   renderAudioEffectsSidebar();
+  renderAudioMeters();
   updateAudioExportModal();
 
   if (hasMedia) {
@@ -1483,6 +1487,7 @@ async function runAudioPreset(presetKey, options = {}) {
       activate: true,
       seekTime: Number.isFinite(previousTime) ? previousTime : 0,
     }));
+    analyzeAudioFile(outputPath);
     showToast("Preset applique", 2200);
     return outputPath;
   } catch (err) {
@@ -1907,6 +1912,47 @@ function normalizeAudioPath(path) {
   return String(path || "").replace(/\//g, "\\").replace(/\\+$/g, "").toLowerCase();
 }
 
+async function analyzeAudioFile(path) {
+  if (!path) return;
+  try {
+    const analysis = await invoke("audio_analyze", { input: path });
+    if (path !== audioState.mediaPath && path !== audioState.resultPath) return;
+    audioState.analysis = analysis;
+    renderAudioMeters();
+  } catch (err) {
+    console.warn("[audio] analyze failed:", err);
+    audioState.analysis = null;
+    renderAudioMeters();
+  }
+}
+
+function renderAudioMeters() {
+  const analysis = audioState.analysis || {};
+  const peak = Number.isFinite(analysis.peakDbfs) ? analysis.peakDbfs : null;
+  const lufs = Number.isFinite(analysis.loudnessLufs) ? analysis.loudnessLufs : null;
+  const peakPercent = peak === null ? 0 : dbToPercent(peak);
+  const lFill = document.getElementById("audio-meter-l-fill");
+  const rFill = document.getElementById("audio-meter-r-fill");
+  const lPeak = document.getElementById("audio-meter-l-peak");
+  const rPeak = document.getElementById("audio-meter-r-peak");
+  const lufsValue = document.getElementById("audio-lufs-value");
+  const lufsShort = document.getElementById("audio-lufs-short");
+  const peakValue = document.getElementById("audio-peak-value");
+
+  if (lFill) lFill.style.width = `${peakPercent}%`;
+  if (rFill) rFill.style.width = `${Math.max(0, peakPercent - 6)}%`;
+  if (lPeak) lPeak.style.left = `${Math.min(100, peakPercent + 3)}%`;
+  if (rPeak) rPeak.style.left = `${Math.min(100, Math.max(0, peakPercent - 2))}%`;
+  if (lufsValue) lufsValue.textContent = lufs === null ? "--" : lufs.toFixed(1);
+  if (lufsShort) lufsShort.textContent = lufs === null ? "-- Short Term" : `${(lufs + 0.4).toFixed(1)} Short Term`;
+  if (peakValue) peakValue.textContent = peak === null ? "--" : peak.toFixed(1);
+}
+
+function dbToPercent(db) {
+  const clamped = Math.min(0, Math.max(-60, db));
+  return ((clamped + 60) / 60) * 100;
+}
+
 function audioStopTransientListeners() {
   stopAudioProgressListener();
 }
@@ -1941,6 +1987,7 @@ function resetAudioState() {
   audioState.lastErrorPreset = null;
   audioState.exportDir = null;
   audioState.exportProcessing = false;
+  audioState.analysis = null;
   audioState.studioTab = "edit";
   document.getElementById("audio-export-modal")?.classList.add("hidden");
   audioUpdateUI();

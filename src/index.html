@@ -1188,6 +1188,39 @@
               </div>
             </aside>
           </div>
+          <footer class="audio-meter-footer" id="audio-meter-footer">
+            <div class="audio-meter-block audio-meter-levels">
+              <div class="audio-meter-title">Niveaux</div>
+              <div class="audio-meter-row">
+                <span>L</span>
+                <div class="audio-meter-bar">
+                  <div class="audio-meter-fill" id="audio-meter-l-fill"></div>
+                  <div class="audio-meter-peak" id="audio-meter-l-peak"></div>
+                </div>
+              </div>
+              <div class="audio-meter-row">
+                <span>R</span>
+                <div class="audio-meter-bar">
+                  <div class="audio-meter-fill" id="audio-meter-r-fill"></div>
+                  <div class="audio-meter-peak" id="audio-meter-r-peak"></div>
+                </div>
+              </div>
+              <div class="audio-meter-scale"><span>-60</span><span>-36</span><span>-18</span><span>-6</span><span>0</span></div>
+            </div>
+
+            <div class="audio-lufs-box">
+              <div class="audio-meter-title">Loudness (LUFS)</div>
+              <div class="audio-lufs-value" id="audio-lufs-value">--</div>
+              <div class="audio-lufs-unit">INT</div>
+              <div class="audio-lufs-secondary" id="audio-lufs-short">-- Short Term</div>
+            </div>
+
+            <div class="audio-lufs-box">
+              <div class="audio-meter-title">True Peak</div>
+              <div class="audio-lufs-value" id="audio-peak-value">--</div>
+              <div class="audio-lufs-unit">dBTP</div>
+            </div>
+          </footer>
         </section>
       </div>
     </div>
