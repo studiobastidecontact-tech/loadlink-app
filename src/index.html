@@ -784,9 +784,16 @@
 
         <!-- LECTEUR + EDITEUR DE TRANSCRIPTION -->
 
-        <!-- DROP ZONE -->
-        <div class="card" id="player-load-card">
-          <label class="field-label">Charger</label>
+        <!-- DROP ZONE (collapsible via JS) -->
+        <div class="card player-load-card" id="player-load-card">
+          <div class="player-load-summary" id="player-load-summary-btn">
+            <span class="summary-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <span class="summary-text" id="player-load-summary-text">Charger un fichier</span>
+            <svg class="summary-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="player-load-body" id="player-load-body">
           <div class="drop-zone" id="player-drop-zone" data-target="player">
             <div class="drop-zone-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -818,6 +825,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
             <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
           </div>
         </div>
 
@@ -854,6 +862,21 @@
           </div>
         </div>
 
+        <!-- EXPORT PANEL (cache tant que media + srt pas charges) -->
+        <div class="card hidden" id="player-export-card">
+          <label class="field-label">Export sous-titré</label>
+          <div class="option-row" id="export-font-row">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+              <span id="export-font-label">Police : DM Sans</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <button class="btn-primary" id="export-launch-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Exporter la vidéo sous-titrée</span>
+          </button>
+        </div>
 
       </div>
     </div>

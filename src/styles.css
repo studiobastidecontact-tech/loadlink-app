@@ -1752,3 +1752,90 @@ body.dark .libreoffice-warning {
 .option-clear.hidden {
   display: none;
 }
+
+/* Player : forcer la zone gauche a prendre tout l'espace,
+   et garantir un vrai gap visible entre la croix et le chevron */
+#player-select-media-btn,
+#player-select-srt-btn {
+  gap: 12px;
+}
+#player-select-media-btn > .option-row-left,
+#player-select-srt-btn > .option-row-left {
+  flex: 1;
+  min-width: 0;
+}
+#player-select-media-btn > .option-clear,
+#player-select-srt-btn > .option-clear {
+  margin-right: 18px;
+}
+#player-select-media-btn > .chevron,
+#player-select-srt-btn > .chevron {
+  flex-shrink: 0;
+}
+
+/* ============================================
+   Player : carte "Charger" collapsible (toggle JS)
+   ============================================ */
+.player-load-card {
+  padding: 0;
+}
+.player-load-summary {
+  cursor: pointer;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+  transition: background .15s;
+  border-bottom: 1px solid var(--border);
+}
+.player-load-summary:hover { background: var(--surface2); }
+.player-load-card.collapsed > .player-load-summary {
+  border-bottom: none;
+}
+.player-load-summary .summary-icon {
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.player-load-summary .summary-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.player-load-summary .summary-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.player-load-summary .summary-chev {
+  width: 18px;
+  height: 18px;
+  color: var(--text2);
+  flex-shrink: 0;
+  transition: transform .2s ease;
+}
+.player-load-card.collapsed .summary-chev {
+  transform: rotate(-90deg);
+}
+.player-load-body {
+  padding: 16px 18px 18px 18px;
+}
+.player-load-card.collapsed > .player-load-body {
+  display: none;
+}
+
+/* ============================================
+   Player : carte Export
+   ============================================ */
+#player-export-card .option-row {
+  margin-bottom: 12px;
+}
+#player-export-card .btn-primary {
+  margin-top: 4px;
+}

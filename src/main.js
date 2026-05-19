@@ -2199,6 +2199,83 @@ async function initPlayerModule() {
     return m + ":" + String(s).padStart(2, "0");
   }
 
+  // Decoupe d'un segment SRT en phrases sur ponctuation forte (. ! ? ...)
+  function splitToSentences(text) {
+    if (!text) return [];
+    return text
+      .split(/(?<=[.!?…])\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+  }
+
+  // Conversion SRT -> WebVTT en eclatant chaque segment en cues phrase par phrase.
+  // Le temps est reparti au prorata du nombre de caracteres de chaque phrase.
+  function srtToVttPerSentence(segments) {
+    const fmt = (t) => {
+      const h = Math.floor(t / 3600);
+      const m = Math.floor((t % 3600) / 60);
+      const sec = (t % 60).toFixed(3).padStart(6, "0");
+      return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + sec;
+    };
+    let vtt = "WEBVTT\n\n";
+    let cueIdx = 1;
+    segments.forEach((seg) => {
+      const sentences = splitToSentences(seg.text || "");
+      if (sentences.length <= 1) {
+        vtt += cueIdx + "\n" + fmt(seg.start) + " --> " + fmt(seg.end) + "\n" + (seg.text || "") + "\n\n";
+        cueIdx++;
+        return;
+      }
+      const totalChars = sentences.reduce((sum, s) => sum + s.length, 0) || 1;
+      const totalDur = Math.max(0, seg.end - seg.start);
+      let t = seg.start;
+      sentences.forEach((sentence, i) => {
+        const portion = sentence.length / totalChars;
+        const dur = totalDur * portion;
+        const cueStart = t;
+        const cueEnd = (i === sentences.length - 1) ? seg.end : t + dur;
+        vtt += cueIdx + "\n" + fmt(cueStart) + " --> " + fmt(cueEnd) + "\n" + sentence + "\n\n";
+        t = cueEnd;
+        cueIdx++;
+      });
+    });
+    return vtt;
+  }
+
+  // Gestion de la carte "Charger un fichier" collapsible : resume + auto-collapse une fois
+  let _autoCollapsedOnce = false;
+  function updateLoadCardSummary() {
+    const summary = getEl("player-load-summary-text");
+    const card = getEl("player-load-card");
+    if (!summary) return;
+    const m = playerState.mediaPath ? playerState.mediaPath.split(/[\\/]/).pop() : null;
+    const s = playerState.srtPath ? playerState.srtPath.split(/[\\/]/).pop() : null;
+    if (m && s) {
+      summary.textContent = m + "  +  " + s;
+    } else if (m) {
+      summary.textContent = m;
+    } else if (s) {
+      summary.textContent = s;
+    } else {
+      summary.textContent = "Charger un fichier";
+      _autoCollapsedOnce = false;
+    }
+    // Auto-collapse une seule fois quand au moins un fichier est charge
+    if (card && (m || s) && !_autoCollapsedOnce) {
+      card.classList.add("collapsed");
+      _autoCollapsedOnce = true;
+    }
+  }
+
+  // Toggle manuel : clic sur le header de la carte "Charger"
+  const loadSummaryBtn = getEl("player-load-summary-btn");
+  const loadCard = getEl("player-load-card");
+  if (loadSummaryBtn && loadCard) {
+    loadSummaryBtn.addEventListener("click", () => {
+      loadCard.classList.toggle("collapsed");
+    });
+  }
+
   // ===== Charger le SRT =====
   async function loadSRT() {
     if (!playerState.srtPath) return;
@@ -2242,7 +2319,7 @@ async function initPlayerModule() {
     if (isVideo) {
       el.style.maxHeight = "400px";
       el.style.display = "block";
-      // Ajout track HTML5 pour sous-titres live
+      // Ajout track HTML5 pour sous-titres live (decoupes par phrase)
       if (playerState.srtPath) {
         try {
           const track = document.createElement("track");
@@ -2250,22 +2327,8 @@ async function initPlayerModule() {
           track.label = "Francais";
           track.srclang = "fr";
           track.default = true;
-          // Convertir le .srt en VTT inline (les browsers HTML5 ne lisent que WebVTT)
           if (playerState.segments && playerState.segments.length > 0) {
-            const toVtt = (s) => {
-              const fmt = (t) => {
-                const h = Math.floor(t / 3600);
-                const m = Math.floor((t % 3600) / 60);
-                const sec = (t % 60).toFixed(3).padStart(6, "0");
-                return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + sec.replace(".", ".");
-              };
-              let vtt = "WEBVTT\n\n";
-              s.forEach((seg, i) => {
-                vtt += (i + 1) + "\n" + fmt(seg.start) + " --> " + fmt(seg.end) + "\n" + (seg.text || "") + "\n\n";
-              });
-              return vtt;
-            };
-            const vttBlob = new Blob([toVtt(playerState.segments)], { type: "text/vtt" });
+            const vttBlob = new Blob([srtToVttPerSentence(playerState.segments)], { type: "text/vtt" });
             track.src = URL.createObjectURL(vttBlob);
             el.appendChild(track);
           }
@@ -2385,6 +2448,8 @@ async function initPlayerModule() {
   async function refreshPlayerUI() {
     // Toujours synchroniser les boutons clear (visibles si fichier charge)
     updateClearButtons();
+    // Toujours rafraichir le resume du <details> "Charger" (auto-collapse inclus)
+    updateLoadCardSummary();
     if (playerState.mediaPath || playerState.srtPath) {
       playerZone().classList.remove("hidden");
       if (playerState.srtPath) await loadSRT();
@@ -2394,11 +2459,17 @@ async function initPlayerModule() {
       // Activer les boutons selon ce qui est charge
       const exportBtn = getEl("player-export-btn");
       const editBtn = getEl("player-edit-btn");
+      const exportCard = getEl("player-export-card");
       const hasMedia = !!playerState.mediaPath;
       const hasSrt = !!playerState.srtPath;
       if (exportBtn) exportBtn.disabled = !(hasMedia && hasSrt);
       if (editBtn) editBtn.disabled = !hasSrt;
+      if (exportCard) exportCard.classList.toggle("hidden", !(hasMedia && hasSrt));
       updateSaveButton();
+    } else {
+      // Tout est vide : cacher le panneau export
+      const exportCard = getEl("player-export-card");
+      if (exportCard) exportCard.classList.add("hidden");
     }
   }
 
@@ -2436,6 +2507,56 @@ async function initPlayerModule() {
       updateSegmentsCount();
       updateClearButtons();
       updateSaveButton();
+    });
+  }
+
+  // ===== EXPORT PANEL =====
+  const exportState = { font: "DM Sans" };
+  const FONT_OPTIONS = [
+    { key: "DM Sans", label: "DM Sans", desc: "Sans-serif moderne (defaut)" },
+    { key: "Syne", label: "Syne", desc: "Sans-serif editorial" },
+    { key: "Inter", label: "Inter", desc: "Sans-serif neutre" },
+    { key: "Arial", label: "Arial", desc: "Sans-serif systeme" },
+    { key: "Helvetica", label: "Helvetica", desc: "Sans-serif classique" },
+    { key: "Georgia", label: "Georgia", desc: "Serif lisible" },
+    { key: "Times New Roman", label: "Times New Roman", desc: "Serif classique" },
+    { key: "Courier New", label: "Courier New", desc: "Monospace" },
+  ];
+
+  const fontRow = getEl("export-font-row");
+  if (fontRow) {
+    fontRow.addEventListener("click", () => {
+      if (typeof showOptionsModal !== "function") return;
+      showOptionsModal("Police des sous-titres", FONT_OPTIONS, exportState.font, (key) => {
+        exportState.font = key;
+        const lbl = getEl("export-font-label");
+        if (lbl) lbl.textContent = "Police : " + key;
+      });
+    });
+  }
+
+  const exportLaunchBtn = getEl("export-launch-btn");
+  if (exportLaunchBtn) {
+    exportLaunchBtn.addEventListener("click", () => {
+      if (!playerState.mediaPath || !playerState.srtPath) {
+        if (typeof showToast === "function") showToast("Charge un media et un SRT d'abord", 2500);
+        return;
+      }
+      // Stub UI : le backend export n'est pas encore branche
+      if (typeof showToast === "function") {
+        showToast("Export bientot disponible - police : " + exportState.font, 3500);
+      }
+    });
+  }
+
+  // Bouton export du header : scroll vers le panneau si visible
+  const exportHeaderBtn = getEl("player-export-btn");
+  if (exportHeaderBtn) {
+    exportHeaderBtn.addEventListener("click", () => {
+      const card = getEl("player-export-card");
+      if (card && !card.classList.contains("hidden")) {
+        card.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     });
   }
 
