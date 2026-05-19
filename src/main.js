@@ -1494,47 +1494,39 @@ async function initConvertModule() {
   // Wait a short tick to ensure DOM ready (called from main IIFE post-init)
   await new Promise((r) => setTimeout(r, 50));
 
-  // Drag & drop
+  // Drag & drop (Tauri 2.x webview API - returns absolute paths)
   const dropZone = document.getElementById("convert-drop-zone");
   if (dropZone) {
-    const onDragEnter = (e) => {
-      e.preventDefault();
-      if (typeof state !== "undefined" && state.currentModule !== "convert") return;
-      dropZone.classList.add("drag-over");
-    };
-    const onDragOver = (e) => {
-      e.preventDefault();
-      if (typeof state !== "undefined" && state.currentModule !== "convert") return;
-      e.dataTransfer.dropEffect = "copy";
-      dropZone.classList.add("drag-over");
-    };
-    const onDragLeave = (e) => {
-      e.preventDefault();
-      if (e.target === dropZone) dropZone.classList.remove("drag-over");
-    };
-    const onDrop = (e) => {
-      e.preventDefault();
-      dropZone.classList.remove("drag-over");
-      if (typeof state !== "undefined" && state.currentModule !== "convert") return;
-      const files = e.dataTransfer.files;
-      if (!files || files.length === 0) {
-        convertToast("Aucun fichier detecte", 2500);
-        return;
+    try {
+      const wv =
+        (window.__TAURI__ && window.__TAURI__.webview && window.__TAURI__.webview.getCurrentWebview)
+          ? window.__TAURI__.webview.getCurrentWebview()
+          : null;
+      if (wv && typeof wv.onDragDropEvent === "function") {
+        await wv.onDragDropEvent((event) => {
+          if (typeof state !== "undefined" && state.currentModule !== "convert") return;
+          const p = event.payload;
+          if (!p) return;
+          if (p.type === "enter" || p.type === "over") {
+            dropZone.classList.add("drag-over");
+          } else if (p.type === "leave") {
+            dropZone.classList.remove("drag-over");
+          } else if (p.type === "drop") {
+            dropZone.classList.remove("drag-over");
+            const paths = Array.isArray(p.paths) ? p.paths : [];
+            if (paths.length === 0) {
+              convertToast("Aucun fichier detecte", 2500);
+              return;
+            }
+            addConvertFiles(paths);
+          }
+        });
+      } else {
+        console.warn("[convert] Tauri webview.getCurrentWebview indisponible, drag&drop desactive");
       }
-      const paths = [];
-      for (let i = 0; i < files.length; i++) {
-        if (files[i].path) paths.push(files[i].path);
-      }
-      if (paths.length === 0) {
-        convertToast("Le drag & drop ne fournit pas les chemins. Utilise 'Choisir des fichiers'.", 4000);
-        return;
-      }
-      addConvertFiles(paths);
-    };
-    dropZone.addEventListener("dragenter", onDragEnter);
-    dropZone.addEventListener("dragover", onDragOver);
-    dropZone.addEventListener("dragleave", onDragLeave);
-    dropZone.addEventListener("drop", onDrop);
+    } catch (err) {
+      console.error("[convert] onDragDropEvent setup failed:", err);
+    }
   }
 
   // "Choisir des fichiers" button
