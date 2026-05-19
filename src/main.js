@@ -71,7 +71,6 @@ const MODULE_INFO = {
   transcribe: { title: "Transcrire", sub: "Convertit un fichier audio ou vidéo en texte horodaté.", ready: true },
   compress:   { title: "Compresser", sub: "Archive en ZIP ou réencode des vidéos en H.265.", ready: true },
   convert:    { title: "Convertir", sub: "Change le format d'un fichier local sans perte de qualité.", ready: true },
-  player:     { title: "Lire", sub: "Lecteur synchronisé audio/vidéo et transcription.", ready: true },
   audio:      { title: "Audio", sub: "Édition audio multitrack, normalisation, mastering.", ready: false },
   video:      { title: "Vidéo", sub: "Découpage, recadrage, sous-titres et effets vidéo.", ready: false },
   ai:         { title: "IA Studio", sub: "Traitements assistés par intelligence artificielle.", ready: false },
@@ -2004,7 +2003,7 @@ async function initPlayerModule() {
         : null;
     if (wv && typeof wv.onDragDropEvent === "function") {
       await wv.onDragDropEvent((event) => {
-        if (typeof state === "undefined" || state.currentModule !== "player") return;
+        if (typeof state === "undefined" || state.currentModule !== "transcribe") return;
         const p = event.payload;
         if (!p) return;
         const zone = dropZone();
