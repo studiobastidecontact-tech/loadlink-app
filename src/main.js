@@ -2206,6 +2206,35 @@ async function initPlayerModule() {
     if (isVideo) {
       el.style.maxHeight = "400px";
       el.style.display = "block";
+      // Ajout track HTML5 pour sous-titres live
+      if (playerState.srtPath) {
+        try {
+          const track = document.createElement("track");
+          track.kind = "subtitles";
+          track.label = "Francais";
+          track.srclang = "fr";
+          track.default = true;
+          // Convertir le .srt en VTT inline (les browsers HTML5 ne lisent que WebVTT)
+          if (playerState.segments && playerState.segments.length > 0) {
+            const toVtt = (s) => {
+              const fmt = (t) => {
+                const h = Math.floor(t / 3600);
+                const m = Math.floor((t % 3600) / 60);
+                const sec = (t % 60).toFixed(3).padStart(6, "0");
+                return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + sec.replace(".", ".");
+              };
+              let vtt = "WEBVTT\n\n";
+              s.forEach((seg, i) => {
+                vtt += (i + 1) + "\n" + fmt(seg.start) + " --> " + fmt(seg.end) + "\n" + (seg.text || "") + "\n\n";
+              });
+              return vtt;
+            };
+            const vttBlob = new Blob([toVtt(playerState.segments)], { type: "text/vtt" });
+            track.src = URL.createObjectURL(vttBlob);
+            el.appendChild(track);
+          }
+        } catch (e) { console.warn("Track injection failed:", e); }
+      }
     } else {
       el.style.padding = "20px";
     }
@@ -2314,7 +2343,39 @@ async function initPlayerModule() {
   }
 
   // ===== API publique pour auto-switch depuis Transcribe =====
-  window.__playerLoad = function(mediaPath, srtPath) {
+  // Handlers boutons clear (Patch E)
+  function updateClearButtons() {
+    const clrM = getEl("player-clear-media-btn");
+    const clrS = getEl("player-clear-srt-btn");
+    if (clrM) clrM.classList.toggle("hidden", !playerState.mediaPath);
+    if (clrS) clrS.classList.toggle("hidden", !playerState.srtPath);
+  }
+  const clearMediaBtn = getEl("player-clear-media-btn");
+  if (clearMediaBtn) {
+    clearMediaBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      playerState.mediaPath = null;
+      playerState.mediaEl = null;
+      const lbl = getEl("player-media-label");
+      if (lbl) lbl.textContent = "Choisir l'audio/video";
+      refreshPlayerUI();
+      updateClearButtons();
+    });
+  }
+  const clearSrtBtn = getEl("player-clear-srt-btn");
+  if (clearSrtBtn) {
+    clearSrtBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      playerState.srtPath = null;
+      playerState.segments = [];
+      const lbl = getEl("player-srt-label");
+      if (lbl) lbl.textContent = "Choisir le fichier .srt";
+      refreshPlayerUI();
+      updateClearButtons();
+    });
+  }
+
+    window.__playerLoad = function(mediaPath, srtPath) {
     if (mediaPath) {
       playerState.mediaPath = mediaPath;
       const lblM = getEl("player-media-label");
@@ -2326,6 +2387,7 @@ async function initPlayerModule() {
       if (lblS) lblS.textContent = srtPath.split(/[\\/]/).pop();
     }
     refreshPlayerUI();
+    updateClearButtons();
   };
 }
 
