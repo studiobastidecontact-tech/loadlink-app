@@ -460,215 +460,213 @@
 
     <!-- ====== PLACEHOLDER PAGE ====== -->
     <!-- ====== CONVERT PAGE (safe version - no emojis) ====== -->
+    <!-- ====== CONVERT PAGE (matches Capturer/Compresser design system) ====== -->
 <div class="module-page hidden" id="page-convert">
-  <h1 class="module-title">Convertir</h1>
-  <p class="module-subtitle">Change le format de tes fichiers video, audio, image ou document.</p>
-
-  <!-- Source files -->
-  <div class="card">
-    <div class="card-label">FICHIERS A CONVERTIR</div>
-
-    <div class="drop-zone" id="convert-drop-zone">
-      <div class="drop-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      </div>
-      <div class="drop-title">Glisse tes fichiers ici</div>
-      <div class="drop-hint">Videos, audios, images, documents - detection automatique</div>
+  <div class="topbar">
+    <div class="topbar-info">
+      <div class="page-title">Convertir</div>
+      <div class="page-sub">Change le format de tes fichiers video, audio, image ou document.</div>
     </div>
-
-    <div class="or-separator">OU</div>
-
-    <button class="option-row" id="convert-select-files-btn">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-      </span>
-      <span class="option-label">Choisir des fichiers</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-
-    <div class="source-info hidden" id="convert-source-info">
-      <span class="source-info-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-      </span>
-      <span class="source-info-text" id="convert-source-info-text">-</span>
-      <button class="source-info-clear" id="convert-source-clear" title="Retirer">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="convert-open-folder-btn" title="Ouvrir le dossier de sortie">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
       </button>
     </div>
   </div>
+  <div class="content">
 
-  <!-- ===== VIDEO config card (hidden by default) ===== -->
-  <div class="card convert-type-card hidden" id="convert-video-card">
-    <div class="card-label">
-      <span id="convert-video-count">0</span> VIDEOS DETECTEES
-    </div>
+    <!-- DROP ZONE -->
+    <div class="card">
+      <label class="field-label">Fichiers a convertir</label>
 
-    <button class="option-row" id="convert-video-format-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-      </span>
-      <span class="option-label" id="convert-video-format-label">Format : MP4</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-
-    <button class="option-row" id="convert-video-codec-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>
-      </span>
-      <span class="option-label" id="convert-video-codec-label">Codec : Auto</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-
-    <button class="option-row" id="convert-video-bitrate-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-      </span>
-      <span class="option-label" id="convert-video-bitrate-label">Bitrate : Auto</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-
-    <button class="option-row" id="convert-video-resolution-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-      </span>
-      <span class="option-label" id="convert-video-resolution-label">Resolution : Auto</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-
-    <button class="option-row" id="convert-video-fps-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      </span>
-      <span class="option-label" id="convert-video-fps-label">FPS : Auto</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-  </div>
-
-  <!-- ===== AUDIO config card ===== -->
-  <div class="card convert-type-card hidden" id="convert-audio-card">
-    <div class="card-label">
-      <span id="convert-audio-count">0</span> AUDIOS DETECTES
-    </div>
-
-    <button class="option-row" id="convert-audio-format-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-      </span>
-      <span class="option-label" id="convert-audio-format-label">Format : MP3</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-
-    <button class="option-row" id="convert-audio-bitrate-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-      </span>
-      <span class="option-label" id="convert-audio-bitrate-label">Bitrate : Auto</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-
-    <button class="option-row" id="convert-audio-samplerate-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      </span>
-      <span class="option-label" id="convert-audio-samplerate-label">Sample rate : Auto</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-
-    <button class="option-row" id="convert-audio-channels-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-      </span>
-      <span class="option-label" id="convert-audio-channels-label">Canaux : Auto</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-  </div>
-
-  <!-- ===== IMAGE config card ===== -->
-  <div class="card convert-type-card hidden" id="convert-image-card">
-    <div class="card-label">
-      <span id="convert-image-count">0</span> IMAGES DETECTEES
-    </div>
-
-    <button class="option-row" id="convert-image-format-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      </span>
-      <span class="option-label" id="convert-image-format-label">Format : JPG</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-
-    <button class="option-row" id="convert-image-quality-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      </span>
-      <span class="option-label" id="convert-image-quality-label">Qualite : Auto</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-
-    <button class="option-row" id="convert-image-resolution-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
-      </span>
-      <span class="option-label" id="convert-image-resolution-label">Taille : Auto</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-  </div>
-
-  <!-- ===== DOCUMENT config card ===== -->
-  <div class="card convert-type-card hidden" id="convert-doc-card">
-    <div class="card-label">
-      <span id="convert-doc-count">0</span> DOCUMENTS DETECTES
-    </div>
-
-    <button class="option-row" id="convert-doc-format-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      </span>
-      <span class="option-label" id="convert-doc-format-label">Format : PDF</span>
-      <span class="option-chevron">&gt;</span>
-    </button>
-
-    <div class="libreoffice-warning hidden" id="libreoffice-warning">
-      <div class="lo-warning-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div class="drop-zone" id="convert-drop-zone" data-target="convert">
+        <div class="drop-zone-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div>
+          <div class="drop-zone-title">Glisse tes fichiers ici</div>
+          <div class="drop-zone-subtitle">Detection automatique : video, audio, image, document</div>
+        </div>
       </div>
-      <div class="lo-warning-content">
-        <div class="lo-warning-title">LibreOffice non installe</div>
-        <div class="lo-warning-text">La conversion de documents necessite LibreOffice. <a href="https://www.libreoffice.org/download/download-libreoffice/" id="libreoffice-link">Telecharger LibreOffice</a> puis relancer LoadLink.</div>
+
+      <div class="drop-zone-or">ou</div>
+
+      <div class="option-row" id="convert-select-files-btn" style="margin-bottom: 0;">
+        <div class="option-row-left">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+          <span>Choisir des fichiers</span>
+        </div>
+        <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+
+      <div class="drop-zone-info hidden" id="convert-source-info" style="margin-top: 12px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span class="drop-zone-info-text" id="convert-source-info-text">Aucune source</span>
+        <button class="drop-zone-clear" id="convert-source-clear" title="Retirer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     </div>
-  </div>
 
-  <!-- ===== Output dir ===== -->
-  <div class="card">
-    <button class="option-row" id="convert-output-row">
-      <span class="option-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-      </span>
-      <span class="option-label" id="convert-output-label">Sortie : LoadLink-Converted (par defaut)</span>
-      <span class="option-chevron">&gt;</span>
+    <!-- VIDEO CARD -->
+    <div class="card hidden" id="convert-video-card">
+      <label class="field-label"><span id="convert-video-count">0</span> video(s) - options</label>
+      <div style="padding: 0;">
+        <div class="option-row" id="convert-video-format-row">
+          <div class="option-row-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            <span id="convert-video-format-label">Format : MP4</span>
+          </div>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+        <div class="option-row" id="convert-video-codec-row">
+          <div class="option-row-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+            <span id="convert-video-codec-label">Codec : Auto</span>
+          </div>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+        <div class="option-row" id="convert-video-bitrate-row">
+          <div class="option-row-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <span id="convert-video-bitrate-label">Bitrate : Auto</span>
+          </div>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+        <div class="option-row" id="convert-video-resolution-row">
+          <div class="option-row-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+            <span id="convert-video-resolution-label">Resolution : Auto</span>
+          </div>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+        <div class="option-row" id="convert-video-fps-row" style="margin-bottom: 0;">
+          <div class="option-row-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span id="convert-video-fps-label">FPS : Auto</span>
+          </div>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDIO CARD -->
+    <div class="card hidden" id="convert-audio-card">
+      <label class="field-label"><span id="convert-audio-count">0</span> audio(s) - options</label>
+      <div style="padding: 0;">
+        <div class="option-row" id="convert-audio-format-row">
+          <div class="option-row-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            <span id="convert-audio-format-label">Format : MP3</span>
+          </div>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+        <div class="option-row" id="convert-audio-bitrate-row">
+          <div class="option-row-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <span id="convert-audio-bitrate-label">Bitrate : Auto</span>
+          </div>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+        <div class="option-row" id="convert-audio-samplerate-row">
+          <div class="option-row-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span id="convert-audio-samplerate-label">Sample rate : Auto</span>
+          </div>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+        <div class="option-row" id="convert-audio-channels-row" style="margin-bottom: 0;">
+          <div class="option-row-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+            <span id="convert-audio-channels-label">Canaux : Auto</span>
+          </div>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMAGE CARD -->
+    <div class="card hidden" id="convert-image-card">
+      <label class="field-label"><span id="convert-image-count">0</span> image(s) - options</label>
+      <div style="padding: 0;">
+        <div class="option-row" id="convert-image-format-row">
+          <div class="option-row-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span id="convert-image-format-label">Format : JPG</span>
+          </div>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+        <div class="option-row" id="convert-image-quality-row">
+          <div class="option-row-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span id="convert-image-quality-label">Qualite : Auto</span>
+          </div>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+        <div class="option-row" id="convert-image-resolution-row" style="margin-bottom: 0;">
+          <div class="option-row-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+            <span id="convert-image-resolution-label">Taille : Auto</span>
+          </div>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOCUMENT CARD -->
+    <div class="card hidden" id="convert-doc-card">
+      <label class="field-label"><span id="convert-doc-count">0</span> document(s) - options</label>
+      <div style="padding: 0;">
+        <div class="option-row" id="convert-doc-format-row" style="margin-bottom: 0;">
+          <div class="option-row-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span id="convert-doc-format-label">Format : PDF</span>
+          </div>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </div>
+        <div class="libreoffice-warning hidden" id="libreoffice-warning" style="margin-top: 12px;">
+          <div class="lo-warning-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="lo-warning-content">
+            <div class="lo-warning-title">LibreOffice non installe</div>
+            <div class="lo-warning-text">La conversion de documents necessite LibreOffice. <a href="https://www.libreoffice.org/download/" id="libreoffice-link">Telecharger LibreOffice</a> puis relancer LoadLink.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTPUT FOLDER -->
+    <div class="card" style="padding: 14px;">
+      <div class="option-row" id="convert-output-row" style="margin-bottom: 0;">
+        <div class="option-row-left">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span id="convert-output-label">Sortie : Dossier par defaut</span>
+        </div>
+        <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+    </div>
+
+    <!-- LAUNCH BUTTON -->
+    <button class="primary-btn" id="convert-btn" disabled>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+      <span id="convert-btn-label">Convertir</span>
     </button>
-  </div>
 
-  <!-- ===== Launch button ===== -->
-  <button class="primary-btn" id="convert-btn" disabled>
-    <span class="btn-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
-    </span>
-    <span id="convert-btn-label">Convertir</span>
-  </button>
+    <!-- PROGRESS -->
+    <div class="progress-section hidden" id="convert-progress-section">
+      <div class="progress-bar">
+        <div class="progress-fill" id="convert-progress-fill"></div>
+      </div>
+      <div class="progress-info">
+        <span id="convert-progress-stage">Preparation...</span>
+        <span id="convert-progress-meta"></span>
+      </div>
+    </div>
 
-  <!-- ===== Progress ===== -->
-  <div class="progress-section hidden" id="convert-progress-section">
-    <div class="progress-bar">
-      <div class="progress-fill" id="convert-progress-fill"></div>
-    </div>
-    <div class="progress-info">
-      <span id="convert-progress-stage">Preparation...</span>
-      <span id="convert-progress-meta"></span>
-    </div>
   </div>
 </div>
+
 
 
     <div class="module-page hidden" id="page-placeholder">
