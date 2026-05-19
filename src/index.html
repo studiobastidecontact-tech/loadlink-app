@@ -65,6 +65,14 @@
         <div class="module-card-desc">Changer le format d'un fichier local.</div>
       </div>
 
+      <div class="module-card" data-module="player">
+        <div class="module-card-icon mc-player">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <div class="module-card-title">Lire</div>
+        <div class="module-card-desc">Lecteur synchronisé audio/vidéo + transcription.</div>
+      </div>
+
       <div class="module-card soon" data-module="audio">
         <div class="module-card-badge">Bientôt</div>
         <div class="module-card-icon mc-audio">
@@ -157,6 +165,10 @@
       <div class="nav-item" data-module="convert">
         <span class="nav-icon ni-convert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>
         Convertir
+      </div>
+      <div class="nav-item" data-module="player">
+        <span class="nav-icon ni-player"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>
+        Lire
       </div>
       <div class="nav-item soon" data-module="audio">
         <span class="nav-icon ni-audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
@@ -777,6 +789,65 @@
         <div class="history-section" id="transcribe-history-section" style="display:none;">
           <p class="history-title">Récents</p>
           <div id="transcribe-history-list"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ====== PLAYER PAGE ====== -->
+    <div class="module-page hidden" id="page-player">
+      <div class="topbar">
+        <div class="topbar-info">
+          <div class="page-title">Lire</div>
+          <div class="page-sub">Lecteur synchronisé audio/vidéo et transcription.</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-btn" id="player-export-btn" title="Exporter en vidéo sous-titrée" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- DROP ZONE -->
+        <div class="card" id="player-load-card">
+          <label class="field-label">Charger</label>
+          <div class="drop-zone" id="player-drop-zone" data-target="player">
+            <div class="drop-zone-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div>
+              <div class="drop-zone-title">Glisse un audio/vidéo ou un .srt</div>
+              <div class="drop-zone-subtitle">Ou glisse les deux ensemble pour les apparier</div>
+            </div>
+          </div>
+
+          <div class="drop-zone-or">ou</div>
+
+          <div class="option-row" id="player-select-media-btn">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              <span id="player-media-label">Choisir l'audio/vidéo</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="option-row" id="player-select-srt-btn" style="margin-bottom: 0;">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+              <span id="player-srt-label">Choisir le fichier .srt</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+        </div>
+
+        <!-- PLAYER ZONE (cachee tant que rien n'est charge) -->
+        <div class="card hidden" id="player-zone">
+          <div id="player-media-wrap" style="position:relative; background:#000; border-radius:8px; overflow:hidden;">
+            <!-- audio ou video injecte ici par JS -->
+          </div>
+          <div id="player-segments-wrap" style="margin-top:12px; max-height:300px; overflow-y:auto;">
+            <!-- segments injectes ici par JS -->
+          </div>
         </div>
 
       </div>

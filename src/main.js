@@ -71,6 +71,7 @@ const MODULE_INFO = {
   transcribe: { title: "Transcrire", sub: "Convertit un fichier audio ou vidéo en texte horodaté.", ready: true },
   compress:   { title: "Compresser", sub: "Archive en ZIP ou réencode des vidéos en H.265.", ready: true },
   convert:    { title: "Convertir", sub: "Change le format d'un fichier local sans perte de qualité.", ready: true },
+  player:     { title: "Lire", sub: "Lecteur synchronisé audio/vidéo et transcription.", ready: true },
   audio:      { title: "Audio", sub: "Édition audio multitrack, normalisation, mastering.", ready: false },
   video:      { title: "Vidéo", sub: "Découpage, recadrage, sous-titres et effets vidéo.", ready: false },
   ai:         { title: "IA Studio", sub: "Traitements assistés par intelligence artificielle.", ready: false },
@@ -1937,3 +1938,133 @@ async function initTranscribeModule() {
 
 // Auto-init at startup
 initTranscribeModule();
+// player-module-snippet.js
+// Snippet a appendre a main.js apres "initTranscribeModule();"
+// PowerShell ne touche pas a ce fichier, donc pas de probleme d'interpolation $
+
+
+// ============================================
+// MODULE LIRE (player) - Phase 4.5 Etape 1
+// Skeleton : charge media + srt, affiche les noms (lecteur reel en etape 2)
+// ============================================
+async function initPlayerModule() {
+  const getEl = (id) => document.getElementById(id);
+
+  const playerState = {
+    mediaPath: null,
+    srtPath: null,
+  };
+
+  const dropZone = () => getEl("player-drop-zone");
+  const playerZone = () => getEl("player-zone");
+  const mediaWrap = () => getEl("player-media-wrap");
+  const segmentsWrap = () => getEl("player-segments-wrap");
+
+  // Drag and drop
+  try {
+    const wv =
+      (window.__TAURI__ && window.__TAURI__.webview && window.__TAURI__.webview.getCurrentWebview)
+        ? window.__TAURI__.webview.getCurrentWebview()
+        : null;
+    if (wv && typeof wv.onDragDropEvent === "function") {
+      await wv.onDragDropEvent((event) => {
+        if (typeof state === "undefined" || state.currentModule !== "player") return;
+        const p = event.payload;
+        if (!p) return;
+        const zone = dropZone();
+        if (p.type === "enter" || p.type === "over") {
+          if (zone) zone.classList.add("drag-over");
+        } else if (p.type === "leave") {
+          if (zone) zone.classList.remove("drag-over");
+        } else if (p.type === "drop") {
+          if (zone) zone.classList.remove("drag-over");
+          const paths = Array.isArray(p.paths) ? p.paths : [];
+          if (paths.length === 0) {
+            if (typeof showToast === "function") showToast("Aucun element detecte", 2500);
+            return;
+          }
+          paths.forEach(autoAssignFile);
+          refreshPlayerUI();
+        }
+      });
+    } else {
+      console.warn("[player] drag&drop indisponible");
+    }
+  } catch (err) {
+    console.error("[player] onDragDropEvent setup failed:", err);
+  }
+
+  function autoAssignFile(path) {
+    const ext = path.split(".").pop().toLowerCase();
+    if (ext === "srt") {
+      playerState.srtPath = path;
+      const label = getEl("player-srt-label");
+      if (label) label.textContent = path.split(/[\\/]/).pop();
+    } else if (["mp3","wav","m4a","flac","ogg","mp4","mov","mkv","webm","avi"].includes(ext)) {
+      playerState.mediaPath = path;
+      const label = getEl("player-media-label");
+      if (label) label.textContent = path.split(/[\\/]/).pop();
+    } else {
+      if (typeof showToast === "function") showToast("Format non supporte: " + ext, 3000);
+    }
+  }
+
+  // File pickers
+  const btnMedia = getEl("player-select-media-btn");
+  if (btnMedia) {
+    btnMedia.addEventListener("click", async () => {
+      try {
+        const selected = await open({
+          multiple: false,
+          filters: [{ name: "Audio/Video", extensions: ["mp3","wav","m4a","flac","ogg","mp4","mov","mkv","webm","avi"] }],
+        });
+        if (selected) {
+          playerState.mediaPath = selected;
+          const label = getEl("player-media-label");
+          if (label) label.textContent = selected.split(/[\\/]/).pop();
+          refreshPlayerUI();
+        }
+      } catch (e) {
+        console.error("[player] picker media error:", e);
+      }
+    });
+  }
+
+  const btnSrt = getEl("player-select-srt-btn");
+  if (btnSrt) {
+    btnSrt.addEventListener("click", async () => {
+      try {
+        const selected = await open({
+          multiple: false,
+          filters: [{ name: "Sous-titres SRT", extensions: ["srt"] }],
+        });
+        if (selected) {
+          playerState.srtPath = selected;
+          const label = getEl("player-srt-label");
+          if (label) label.textContent = selected.split(/[\\/]/).pop();
+          refreshPlayerUI();
+        }
+      } catch (e) {
+        console.error("[player] picker srt error:", e);
+      }
+    });
+  }
+
+  function refreshPlayerUI() {
+    const zone = playerZone();
+    const media = mediaWrap();
+    const segs = segmentsWrap();
+    if (!zone || !media || !segs) return;
+    if (playerState.mediaPath || playerState.srtPath) {
+      zone.classList.remove("hidden");
+      media.innerHTML = '<div style="padding:40px; text-align:center; color:#888;">Lecteur HTML5 a venir en etape 2</div>';
+      const info = [];
+      if (playerState.mediaPath) info.push("Media: " + playerState.mediaPath.split(/[\\/]/).pop());
+      if (playerState.srtPath) info.push("SRT: " + playerState.srtPath.split(/[\\/]/).pop());
+      segs.innerHTML = '<div style="padding:12px; color:#aaa; font-size:13px;">' + info.join("<br/>") + '</div>';
+    }
+  }
+}
+
+initPlayerModule();
+
