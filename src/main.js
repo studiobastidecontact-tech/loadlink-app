@@ -1211,6 +1211,7 @@ function audioUpdateUI() {
 
   document.getElementById("audio-result-panel")?.classList.toggle("hidden", !audioState.resultPath);
   document.getElementById("audio-ab-toggle")?.classList.toggle("hidden", !audioState.resultPath);
+  renderAudioRefinePanel();
 
   const exportBtn = document.getElementById("audio-export-btn");
   if (exportBtn) exportBtn.disabled = !audioState.resultPath || audioState.processing;
@@ -1892,6 +1893,42 @@ function renderAudioAbToggle() {
   document.querySelectorAll("#audio-ab-toggle [data-audio-source]").forEach((button) => {
     button.classList.toggle("active", button.dataset.audioSource === audioState.currentSrc);
   });
+}
+
+function renderAudioRefinePanel() {
+  const panel = document.getElementById("audio-refine-panel");
+  const body = document.getElementById("audio-refine-body");
+  const chevron = document.getElementById("audio-refine-chevron");
+  if (!panel || !body) return;
+  const visible = Boolean(audioState.resultPath);
+  panel.classList.toggle("hidden", !visible);
+  body.classList.toggle("hidden", !visible || !audioState.refineOpen);
+  panel.classList.toggle("open", visible && audioState.refineOpen);
+  if (chevron) chevron.textContent = audioState.refineOpen ? "⌄" : "›";
+  Object.entries(audioState.refineSliders).forEach(([key, value]) => {
+    const input = panel.querySelector(`[data-audio-refine="${key}"]`);
+    if (input && Number(input.value) !== value) input.value = value;
+  });
+}
+
+function toggleAudioRefinePanel() {
+  if (!audioState.resultPath) return;
+  audioState.refineOpen = !audioState.refineOpen;
+  renderAudioRefinePanel();
+}
+
+function updateAudioRefineSlider(key, value) {
+  if (!Object.prototype.hasOwnProperty.call(audioState.refineSliders, key)) return;
+  audioState.refineSliders[key] = clampNumber(Number(value), 0, 100);
+  scheduleAudioChainRender(800);
+}
+
+function resetAudioRefineSliders() {
+  Object.keys(audioState.refineSliders).forEach((key) => {
+    audioState.refineSliders[key] = 50;
+  });
+  renderAudioRefinePanel();
+  scheduleAudioChainRender(800);
 }
 
 async function handleAudioPresetClick(presetKey) {

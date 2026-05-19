@@ -1155,6 +1155,52 @@
                 </button>
               </div>
 
+              <section class="audio-refine-panel hidden" id="audio-refine-panel">
+                <button type="button" class="audio-refine-toggle" id="audio-refine-toggle">
+                  <span>Affiner le r&eacute;sultat</span>
+                  <span id="audio-refine-chevron">›</span>
+                </button>
+                <div class="audio-refine-body hidden" id="audio-refine-body">
+                  <label class="audio-refine-slider">
+                    <span>Volume</span>
+                    <small>Plus doux</small>
+                    <input type="range" min="0" max="100" value="50" data-audio-refine="volume" />
+                    <small>Plus fort</small>
+                  </label>
+                  <label class="audio-refine-slider">
+                    <span>Bruit de fond</span>
+                    <small>Garder</small>
+                    <input type="range" min="0" max="100" value="50" data-audio-refine="noise" />
+                    <small>Plus enlev&eacute;</small>
+                  </label>
+                  <label class="audio-refine-slider">
+                    <span>Voix</span>
+                    <small>Plus chaude</small>
+                    <input type="range" min="0" max="100" value="50" data-audio-refine="voice" />
+                    <small>Plus claire</small>
+                  </label>
+                  <label class="audio-refine-slider">
+                    <span>Compression</span>
+                    <small>Plus naturelle</small>
+                    <input type="range" min="0" max="100" value="50" data-audio-refine="compression" />
+                    <small>Plus stable</small>
+                  </label>
+                  <label class="audio-refine-slider">
+                    <span>Silences</span>
+                    <small>Garder tout</small>
+                    <input type="range" min="0" max="100" value="50" data-audio-refine="silence" />
+                    <small>Couper le superflu</small>
+                  </label>
+                  <label class="audio-refine-slider">
+                    <span>Sibilance</span>
+                    <small>Garder</small>
+                    <input type="range" min="0" max="100" value="50" data-audio-refine="sibilance" />
+                    <small>Att&eacute;nuer</small>
+                  </label>
+                  <button type="button" class="audio-refine-reset" id="audio-refine-reset">Reset affinage</button>
+                </div>
+              </section>
+
               <div class="audio-actions">
                 <button type="button" class="btn-secondary" id="audio-reset-btn">Recommencer</button>
               </div>

@@ -2593,6 +2593,85 @@ body.dark .audio-waveform {
   gap: 8px;
 }
 
+.audio-refine-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.audio-refine-toggle {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 0 16px;
+}
+
+.audio-refine-panel.open .audio-refine-toggle {
+  border-bottom: 1px solid var(--border);
+}
+
+.audio-refine-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 16px;
+  animation: audioFadeUp .22s ease;
+}
+
+.audio-refine-slider {
+  display: grid;
+  grid-template-columns: minmax(90px, .8fr) minmax(72px, auto) 1fr minmax(82px, auto);
+  align-items: center;
+  gap: 10px;
+  color: var(--text2);
+  font-size: 12px;
+}
+
+.audio-refine-slider span {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.audio-refine-slider small {
+  color: var(--text3);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.audio-refine-slider input {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.audio-refine-reset {
+  grid-column: 1 / -1;
+  justify-self: end;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--text2);
+  cursor: pointer;
+  font-weight: 800;
+  padding: 9px 12px;
+}
+
+.audio-refine-reset:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
 .audio-preset-card.processing .audio-preset-status::before {
   content: "";
   width: 12px;
