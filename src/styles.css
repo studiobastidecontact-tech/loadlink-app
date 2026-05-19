@@ -1367,6 +1367,14 @@ body.dark .libreoffice-warning {
   cursor: not-allowed;
 }
 
+.audio-entry-card.primary.drag-over,
+.audio-content.drag-over .audio-entry-card.primary {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  background: var(--accent-light);
+  box-shadow: var(--shadow-md);
+}
+
 .audio-entry-icon {
   width: 64px;
   height: 64px;
@@ -1417,6 +1425,10 @@ body.dark .libreoffice-warning {
   font-size: 13px;
   opacity: .55;
   padding: 8px 14px;
+}
+
+.audio-url-link:hover {
+  color: var(--text2);
 }
 
 .audio-url-link svg {

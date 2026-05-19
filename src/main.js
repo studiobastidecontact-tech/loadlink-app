@@ -191,6 +191,9 @@ const openModule = (moduleKey) => {
   hideAllModulePages();
   if (info.ready) {
     showModulePage("page-" + moduleKey);
+    if (moduleKey === "audio" && typeof initAudioModule === "function") {
+      initAudioModule(state);
+    }
   } else {
     showModulePage("page-placeholder");
     $("placeholderTitle").textContent = info.title + " — en développement";
@@ -881,6 +884,254 @@ $("welcome-ok").addEventListener("click", () => {
 })();
 
 ;
+// ============================================
+// PHASE B - AUDIO MODULE (Level 1 shell)
+// ============================================
+const AUDIO_SUPPORTED_EXTENSIONS = ["wav", "mp3", "m4a", "flac", "ogg", "opus", "aac", "wma", "aiff", "aif"];
+
+const audioState = {
+  mediaPath: null,
+  mediaName: null,
+  mediaSize: null,
+  mediaDuration: null,
+  currentPreset: null,
+  processing: false,
+  resultPath: null,
+  currentSrc: "original",
+};
+
+let audioModuleInitialized = false;
+
+function initAudioModule(appState = state) {
+  if (!audioModuleInitialized) {
+    audioModuleInitialized = true;
+    bindAudioModuleHandlers(appState);
+  }
+  audioUpdateUI();
+}
+
+function bindAudioModuleHandlers(appState) {
+  const importCard = document.getElementById("audio-import-card");
+  const recordCard = document.getElementById("audio-record-card");
+  const urlLink = document.getElementById("audio-url-link");
+  const fileChip = document.getElementById("audio-file-chip");
+  const resetBtn = document.getElementById("audio-reset-btn");
+
+  importCard?.addEventListener("click", pickAudioFile);
+
+  recordCard?.addEventListener("click", () => {
+    showToast("Enregistrement disponible en Phase F", 2500);
+  });
+
+  urlLink?.addEventListener("click", () => {
+    showToast("URL audio disponible en Phase H", 2500);
+  });
+
+  fileChip?.addEventListener("click", async (event) => {
+    if (event.target.closest("#audio-file-chip-clear")) {
+      event.stopPropagation();
+      resetAudioWithConfirm();
+      return;
+    }
+    if (!audioState.mediaPath) return;
+    await openAudioSourceFolder();
+  });
+
+  resetBtn?.addEventListener("click", resetAudioWithConfirm);
+
+  document.querySelectorAll(".audio-preset-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      if (!audioState.mediaPath) return;
+      showToast("Traitement audio disponible a l'etape 4", 2500);
+    });
+  });
+
+  bindAudioNativeDragDrop(appState);
+}
+
+async function pickAudioFile() {
+  try {
+    const tauriOpen =
+      (window.__TAURI__ && window.__TAURI__.dialog && window.__TAURI__.dialog.open)
+      || (typeof open === "function" ? open : null);
+    if (!tauriOpen) {
+      showToast("Dialogue Tauri non disponible", 3000);
+      return;
+    }
+    const selected = await tauriOpen({
+      multiple: false,
+      filters: [{
+        name: "Fichiers audio",
+        extensions: AUDIO_SUPPORTED_EXTENSIONS,
+      }],
+    });
+    if (!selected) return;
+    const path = Array.isArray(selected) ? selected[0] : selected;
+    loadAudioFile(path);
+  } catch (err) {
+    console.error("[audio] file picker error:", err);
+    showToast("Erreur : " + err, 3000);
+  }
+}
+
+async function bindAudioNativeDragDrop(appState) {
+  try {
+    const wv =
+      (window.__TAURI__ && window.__TAURI__.webview && window.__TAURI__.webview.getCurrentWebview)
+        ? window.__TAURI__.webview.getCurrentWebview()
+        : null;
+    if (wv && typeof wv.onDragDropEvent === "function") {
+      await wv.onDragDropEvent((event) => {
+        if (!appState || appState.currentModule !== "audio") return;
+        const payload = event.payload;
+        if (!payload) return;
+        const audioContent = document.querySelector(".audio-content");
+        const importCard = document.getElementById("audio-import-card");
+
+        if (payload.type === "enter" || payload.type === "over") {
+          audioContent?.classList.add("drag-over");
+          importCard?.classList.add("drag-over");
+          return;
+        }
+        if (payload.type === "leave") {
+          audioContent?.classList.remove("drag-over");
+          importCard?.classList.remove("drag-over");
+          return;
+        }
+        if (payload.type === "drop") {
+          audioContent?.classList.remove("drag-over");
+          importCard?.classList.remove("drag-over");
+          const paths = Array.isArray(payload.paths) ? payload.paths : [];
+          if (paths.length === 0) {
+            showToast("Aucun fichier détecté", 2500);
+            return;
+          }
+          if (paths.length > 1) {
+            showToast("Drag un seul fichier audio a la fois", 3000);
+            return;
+          }
+          loadAudioFile(paths[0]);
+        }
+      });
+    } else {
+      console.warn("[audio] Tauri webview.getCurrentWebview indisponible, drag&drop desactive");
+    }
+  } catch (err) {
+    console.error("[audio] onDragDropEvent setup failed:", err);
+  }
+}
+
+function loadAudioFile(path) {
+  if (!path || typeof path !== "string") return;
+  if (!isSupportedAudioPath(path)) {
+    showToast("Format non supporté", 2800);
+    return;
+  }
+
+  audioState.mediaPath = path;
+  audioState.mediaName = getPathName(path);
+  audioState.mediaSize = null;
+  audioState.mediaDuration = null;
+  audioState.currentPreset = null;
+  audioState.processing = false;
+  audioState.resultPath = null;
+  audioState.currentSrc = "original";
+
+  audioUpdateUI();
+  showToast("Fichier audio chargé", 1800);
+}
+
+function audioUpdateUI() {
+  const hasMedia = Boolean(audioState.mediaPath);
+  document.getElementById("audio-empty")?.classList.toggle("hidden", hasMedia);
+  document.getElementById("audio-workspace")?.classList.toggle("hidden", !hasMedia);
+  document.getElementById("audio-file-chip")?.classList.toggle("hidden", !hasMedia);
+
+  const chipName = document.getElementById("audio-file-chip-name");
+  if (chipName) {
+    chipName.textContent = audioState.mediaName || "fichier.audio";
+    chipName.title = audioState.mediaPath || "";
+  }
+
+  const originalMeta = document.getElementById("audio-original-meta");
+  if (originalMeta) {
+    const ext = getPathExtension(audioState.mediaPath || "");
+    originalMeta.textContent = hasMedia
+      ? `${audioState.mediaName}${ext ? " · " + ext.toUpperCase() : ""}`
+      : "Aucun fichier charge";
+  }
+
+  document.getElementById("audio-result-panel")?.classList.toggle("hidden", !audioState.resultPath);
+  document.getElementById("audio-ab-toggle")?.classList.toggle("hidden", !audioState.resultPath);
+
+  const exportBtn = document.getElementById("audio-export-btn");
+  if (exportBtn) exportBtn.disabled = !audioState.resultPath || audioState.processing;
+
+  document.querySelectorAll(".audio-preset-card").forEach((card) => {
+    card.classList.remove("active", "processing", "disabled");
+    card.disabled = false;
+    const status = card.querySelector(".audio-preset-status");
+    if (status) status.textContent = "Appliquer";
+  });
+
+  const currentTime = document.getElementById("audio-current-time");
+  const totalTime = document.getElementById("audio-total-time");
+  const timelineFill = document.getElementById("audio-timeline-fill");
+  if (currentTime) currentTime.textContent = "00:00";
+  if (totalTime) totalTime.textContent = "00:00";
+  if (timelineFill) timelineFill.style.width = "0%";
+}
+
+function resetAudioWithConfirm() {
+  if (!audioState.mediaPath) return;
+  if (!confirm("Abandonner ce fichier ?")) return;
+  resetAudioState();
+}
+
+function resetAudioState() {
+  audioState.mediaPath = null;
+  audioState.mediaName = null;
+  audioState.mediaSize = null;
+  audioState.mediaDuration = null;
+  audioState.currentPreset = null;
+  audioState.processing = false;
+  audioState.resultPath = null;
+  audioState.currentSrc = "original";
+  audioUpdateUI();
+}
+
+async function openAudioSourceFolder() {
+  const folder = getPathDir(audioState.mediaPath || "");
+  if (!folder) return;
+  try {
+    await invoke("open_folder", { path: folder });
+  } catch (err) {
+    console.error("[audio] open source folder failed:", err);
+    showToast("Impossible d'ouvrir le dossier source", 3000);
+  }
+}
+
+function isSupportedAudioPath(path) {
+  const ext = getPathExtension(path);
+  return AUDIO_SUPPORTED_EXTENSIONS.includes(ext);
+}
+
+function getPathExtension(path) {
+  const name = getPathName(path);
+  const idx = name.lastIndexOf(".");
+  return idx >= 0 ? name.slice(idx + 1).toLowerCase() : "";
+}
+
+function getPathName(path) {
+  return String(path).split(/[\\/]/).pop() || String(path);
+}
+
+function getPathDir(path) {
+  const normalized = String(path);
+  const idx = Math.max(normalized.lastIndexOf("\\"), normalized.lastIndexOf("/"));
+  return idx > 0 ? normalized.slice(0, idx) : "";
+}
+
 // ============================================
 // PHASE 3 - CONVERT MODULE
 // Leading semicolon to safely break from previous IIFE
