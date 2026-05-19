@@ -899,6 +899,14 @@ const AUDIO_PRESET_LABELS = {
   voice_memo: "Note vocale lisible",
   podcast_interview: "Podcast / Interview",
 };
+const AUDIO_DEFAULT_EFFECTS = [
+  { key: "eq", label: "EQ Parametrique", enabled: true },
+  { key: "compressor", label: "Compresseur", enabled: true },
+  { key: "deesser", label: "De-esser", enabled: true },
+  { key: "denoise", label: "Denoise", enabled: true },
+  { key: "reverb", label: "Reverberation", enabled: false },
+  { key: "limiter", label: "Limiter", enabled: true },
+];
 
 const audioState = {
   mediaPath: null,
@@ -918,6 +926,9 @@ const audioState = {
   exportDir: null,
   exportProcessing: false,
   studioTab: "edit",
+  effectsTab: "effects",
+  selectedEffect: "eq",
+  effects: AUDIO_DEFAULT_EFFECTS.map((effect) => ({ ...effect })),
 };
 
 let audioModuleInitialized = false;
@@ -999,6 +1010,14 @@ function bindAudioModuleHandlers(appState) {
 
   document.querySelectorAll("#audio-mode-tabs [data-audio-tab]").forEach((button) => {
     button.addEventListener("click", () => setAudioStudioTab(button.dataset.audioTab));
+  });
+
+  document.querySelectorAll("#audio-side-tabs [data-audio-side-tab]").forEach((button) => {
+    button.addEventListener("click", () => setAudioSideTab(button.dataset.audioSideTab));
+  });
+
+  document.getElementById("audio-add-effect-btn")?.addEventListener("click", () => {
+    showToast("Ajout d'effet disponible en Phase D", 2500);
   });
 
   bindAudioNativeDragDrop(appState);
@@ -1150,6 +1169,7 @@ function audioUpdateUI() {
 
   renderAudioPresetCards();
   renderAudioAbToggle();
+  renderAudioEffectsSidebar();
   updateAudioExportModal();
 
   if (hasMedia) {
@@ -1159,6 +1179,53 @@ function audioUpdateUI() {
     setAudioTransportEnabled(false);
     setAudioPlayButton(false);
   }
+}
+
+function setAudioSideTab(tab) {
+  if (!["effects", "settings", "analysis"].includes(tab)) return;
+  audioState.effectsTab = tab;
+  renderAudioEffectsSidebar();
+}
+
+function renderAudioEffectsSidebar() {
+  document.querySelectorAll("#audio-side-tabs [data-audio-side-tab]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.audioSideTab === audioState.effectsTab);
+  });
+
+  document.getElementById("audio-side-panel-effects")?.classList.toggle("hidden", audioState.effectsTab !== "effects");
+  document.getElementById("audio-side-panel-settings")?.classList.toggle("hidden", audioState.effectsTab !== "settings");
+  document.getElementById("audio-side-panel-analysis")?.classList.toggle("hidden", audioState.effectsTab !== "analysis");
+
+  const chain = document.getElementById("audio-effects-chain");
+  if (!chain) return;
+  chain.innerHTML = audioState.effects.map((effect) => `
+    <button type="button" class="audio-effect-row${effect.key === audioState.selectedEffect ? " selected" : ""}" data-effect="${effect.key}">
+      <span class="audio-effect-handle">⋮⋮</span>
+      <span class="audio-effect-name">${effect.label}</span>
+      <span class="audio-effect-switch${effect.enabled ? " on" : ""}" data-effect-toggle="${effect.key}" aria-hidden="true"><span></span></span>
+      <span class="audio-effect-menu">...</span>
+    </button>
+  `).join("");
+
+  chain.querySelectorAll(".audio-effect-row").forEach((row) => {
+    row.addEventListener("click", (event) => {
+      const effectKey = row.dataset.effect;
+      if (event.target.closest("[data-effect-toggle]")) {
+        toggleAudioEffect(effectKey);
+        return;
+      }
+      audioState.selectedEffect = effectKey;
+      renderAudioEffectsSidebar();
+    });
+  });
+}
+
+function toggleAudioEffect(effectKey) {
+  const effect = audioState.effects.find((item) => item.key === effectKey);
+  if (!effect) return;
+  effect.enabled = !effect.enabled;
+  audioState.selectedEffect = effectKey;
+  renderAudioEffectsSidebar();
 }
 
 function setAudioStudioTab(tab) {

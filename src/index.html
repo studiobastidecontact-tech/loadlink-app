@@ -1161,8 +1161,30 @@
             </main>
 
             <aside class="audio-effects-sidebar" id="audio-effects-sidebar">
-              <div class="audio-panel-heading">Studio</div>
-              <div class="audio-side-placeholder">Effets disponibles au prochain commit.</div>
+              <div class="audio-side-tabs" id="audio-side-tabs">
+                <button type="button" class="active" data-audio-side-tab="effects">Effets</button>
+                <button type="button" data-audio-side-tab="settings">R&eacute;glages</button>
+                <button type="button" data-audio-side-tab="analysis">Analyse</button>
+              </div>
+
+              <div class="audio-side-panel" id="audio-side-panel-effects">
+                <div class="audio-effects-header">
+                  <div class="audio-panel-heading">Cha&icirc;ne d'effets</div>
+                  <button type="button" class="audio-info-btn" title="Aide effets">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                  </button>
+                </div>
+                <div class="audio-effects-chain" id="audio-effects-chain"></div>
+                <button type="button" class="audio-add-effect-btn" id="audio-add-effect-btn">+ Ajouter un effet</button>
+              </div>
+
+              <div class="audio-side-panel hidden" id="audio-side-panel-settings">
+                <div class="audio-side-placeholder">R&eacute;glages disponibles bientot.</div>
+              </div>
+
+              <div class="audio-side-panel hidden" id="audio-side-panel-analysis">
+                <div class="audio-side-placeholder">Analyse avancee disponible bientot.</div>
+              </div>
             </aside>
           </div>
         </section>
