@@ -1177,6 +1177,8 @@ function loadAudioFile(path) {
   audioState.lastErrorPreset = null;
   audioState.exportDir = null;
   audioState.exportProcessing = false;
+  audioState.refineOpen = false;
+  resetAudioRefineState(false);
   audioState.analysis = null;
 
   audioUpdateUI();
@@ -1681,6 +1683,7 @@ function cloneAudioEffectChainWithRefine() {
 
   if (!audioState.resultPath) return chain;
   const sliders = audioState.refineSliders;
+  // Niveau 2: translate human controls into FFmpeg-oriented chain overrides.
   chain.loudnorm.enabled = true;
   chain.loudnorm.targetLufs = mapAudioRefineVolume(sliders.volume, getAudioPresetDefaultLufs(audioState.currentPreset));
   chain.denoise.enabled = chain.denoise.enabled || sliders.noise !== 50;
@@ -1924,11 +1927,16 @@ function updateAudioRefineSlider(key, value) {
 }
 
 function resetAudioRefineSliders() {
+  resetAudioRefineState(audioState.refineOpen);
+  renderAudioRefinePanel();
+  scheduleAudioChainRender(800);
+}
+
+function resetAudioRefineState(open = false) {
+  audioState.refineOpen = open;
   Object.keys(audioState.refineSliders).forEach((key) => {
     audioState.refineSliders[key] = 50;
   });
-  renderAudioRefinePanel();
-  scheduleAudioChainRender(800);
 }
 
 async function handleAudioPresetClick(presetKey) {
@@ -2497,6 +2505,8 @@ function resetAudioState() {
   audioState.lastErrorPreset = null;
   audioState.exportDir = null;
   audioState.exportProcessing = false;
+  audioState.refineOpen = false;
+  resetAudioRefineState(false);
   audioState.analysis = null;
   audioState.studioTab = "edit";
   document.getElementById("audio-export-modal")?.classList.add("hidden");
