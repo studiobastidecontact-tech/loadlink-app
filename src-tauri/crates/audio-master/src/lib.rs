@@ -67,6 +67,64 @@ pub struct AudioPresetOptions {
     pub format: Option<String>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioEffectChain {
+    pub input: String,
+    pub output_dir: Option<String>,
+    pub format: Option<String>,
+    pub effects: Vec<AudioEffect>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum AudioEffect {
+    Eq {
+        enabled: bool,
+        bands: Vec<EqBand>,
+    },
+    Compressor {
+        enabled: bool,
+        threshold: f32,
+        ratio: f32,
+        attack: f32,
+        release: f32,
+        makeup: f32,
+    },
+    DeEsser {
+        enabled: bool,
+        intensity: Option<f32>,
+    },
+    Denoise {
+        enabled: bool,
+        amount: Option<f32>,
+    },
+    Reverb {
+        enabled: bool,
+    },
+    Limiter {
+        enabled: bool,
+    },
+    Silence {
+        enabled: bool,
+        threshold: Option<f32>,
+        duration: Option<f32>,
+    },
+    Loudnorm {
+        enabled: bool,
+        target_lufs: f32,
+    },
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EqBand {
+    pub kind: String,
+    pub freq: f32,
+    pub gain: f32,
+    pub q: f32,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AudioPreset {
     ClearVoice,
@@ -354,6 +412,137 @@ pub async fn apply_preset(app: &AppHandle, opts: AudioPresetOptions) -> Result<A
     })
 }
 
+pub async fn apply_chain(app: &AppHandle, opts: AudioEffectChain) -> Result<AudioProcessResult> {
+    let ffmpeg = get_ffmpeg_path(app)?;
+    let source = PathBuf::from(&opts.input);
+    ensure_source_exists(&source)?;
+
+    let probe = probe_input(&ffmpeg, &source).await?;
+    let target_sample_rate = probe.sample_rate.unwrap_or(DEFAULT_SAMPLE_RATE);
+    let output_format = normalize_output_format(opts.format.as_deref(), &source)?;
+    let out_dir = resolve_output_dir(&source, opts.output_dir.as_deref())?;
+    std::fs::create_dir_all(&out_dir)?;
+    let out_path = unique_output_path(&source, &out_dir, "chain", &output_format);
+    let filter_chain = build_effect_chain(&opts.effects, target_sample_rate);
+    let source_name = display_name(&source);
+
+    emit_progress(app, 0.0, "preparing", Some(source_name.clone()), None, None);
+
+    let mut cmd = Command::new(&ffmpeg);
+    cmd.arg("-hide_banner")
+        .arg("-y")
+        .arg("-i")
+        .arg(&source)
+        .arg("-map")
+        .arg("0:a:0")
+        .arg("-vn")
+        .arg("-af")
+        .arg(&filter_chain);
+    append_codec_args(&mut cmd, &output_format);
+    cmd.arg("-progress")
+        .arg("pipe:1")
+        .arg("-nostats")
+        .arg(&out_path);
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    apply_no_window(&mut cmd);
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| LoadlinkError::SpawnFailed(format!("ffmpeg audio chain: {e}")))?;
+
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| LoadlinkError::Other("ffmpeg stdout indisponible".to_string()))?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| LoadlinkError::Other("ffmpeg stderr indisponible".to_string()))?;
+
+    let app_for_progress = app.clone();
+    let source_for_progress = source_name.clone();
+    let duration = probe.duration_seconds.unwrap_or(0.0);
+    let out_path_string = out_path.to_string_lossy().to_string();
+
+    let progress_task = tokio::spawn(async move {
+        let mut reader = BufReader::new(stdout).lines();
+        let time_re = Regex::new(r"out_time_(?:ms|us)=(\d+)").unwrap();
+        while let Ok(Some(line)) = reader.next_line().await {
+            if let Some(captures) = time_re.captures(&line) {
+                let micros = captures
+                    .get(1)
+                    .and_then(|m| m.as_str().parse::<f64>().ok())
+                    .unwrap_or(0.0);
+                let processed = micros / 1_000_000.0;
+                let percent = if duration > 0.0 {
+                    ((processed / duration) * 100.0).min(99.0) as f32
+                } else {
+                    50.0
+                };
+                emit_progress(
+                    &app_for_progress,
+                    percent,
+                    "processing",
+                    Some(source_for_progress.clone()),
+                    None,
+                    Some(out_path_string.clone()),
+                );
+            }
+        }
+    });
+
+    let stderr_task = tokio::spawn(async move {
+        let mut reader = BufReader::new(stderr).lines();
+        let mut collected = String::new();
+        while let Ok(Some(line)) = reader.next_line().await {
+            collected.push_str(&line);
+            collected.push('\n');
+        }
+        collected
+    });
+
+    let status = child
+        .wait()
+        .await
+        .map_err(|e| LoadlinkError::Other(format!("ffmpeg wait: {e}")))?;
+    let _ = progress_task.await;
+    let stderr_collected = stderr_task.await.unwrap_or_default();
+
+    if !status.success() {
+        let _ = std::fs::remove_file(&out_path);
+        let err = ffmpeg_error(&stderr_collected);
+        emit_progress(app, 0.0, "failed", Some(source_name), None, None);
+        return Ok(AudioProcessResult {
+            success: false,
+            output_path: String::new(),
+            preset: "chain".to_string(),
+            output_info: None,
+            error: Some(err),
+        });
+    }
+
+    emit_progress(
+        app,
+        100.0,
+        "completed",
+        Some(source_name),
+        None,
+        Some(out_path.to_string_lossy().to_string()),
+    );
+
+    let output_info = std::fs::metadata(&out_path)
+        .ok()
+        .map(|m| format!("Fichier audio: {:.1} Mo", m.len() as f64 / 1_048_576.0));
+
+    Ok(AudioProcessResult {
+        success: true,
+        output_path: out_path.to_string_lossy().to_string(),
+        preset: "chain".to_string(),
+        output_info,
+        error: None,
+    })
+}
+
 #[derive(Debug, Clone, Default)]
 struct InputProbe {
     duration_seconds: Option<f64>,
@@ -572,6 +761,96 @@ fn append_codec_args(cmd: &mut Command, format: &str) {
             cmd.arg("-c:a").arg("pcm_s16le");
         }
     }
+}
+
+fn build_effect_chain(effects: &[AudioEffect], target_sample_rate: u32) -> String {
+    let mut filters = Vec::new();
+
+    for effect in effects {
+        match effect {
+            AudioEffect::Eq { enabled, bands } if *enabled => {
+                for band in bands {
+                    if let Some(filter) = eq_band_filter(band) {
+                        filters.push(filter);
+                    }
+                }
+            }
+            AudioEffect::Compressor {
+                enabled,
+                threshold,
+                ratio,
+                attack,
+                release,
+                makeup,
+            } if *enabled => {
+                filters.push(format!(
+                    "acompressor=threshold={}dB:ratio={}:attack={}:release={}:makeup={}",
+                    clamp(*threshold, -60.0, 0.0),
+                    clamp(*ratio, 1.0, 20.0),
+                    clamp(*attack, 1.0, 100.0),
+                    clamp(*release, 10.0, 500.0),
+                    clamp(*makeup, 0.0, 24.0)
+                ));
+            }
+            AudioEffect::DeEsser { enabled, intensity } if *enabled => {
+                let i = clamp(intensity.unwrap_or(0.35), 0.0, 1.0);
+                filters.push(format!("deesser=i={i}:m=0.5:f=0.55:s=o"));
+            }
+            AudioEffect::Denoise { enabled, amount } if *enabled => {
+                let nr = clamp(amount.unwrap_or(12.0), 1.0, 30.0);
+                filters.push(format!("afftdn=nr={nr}"));
+            }
+            AudioEffect::Silence {
+                enabled,
+                threshold,
+                duration,
+            } if *enabled => {
+                let threshold = clamp(threshold.unwrap_or(-35.0), -80.0, -10.0);
+                let duration = clamp(duration.unwrap_or(0.4), 0.05, 3.0);
+                filters.push(format!(
+                    "silenceremove=start_periods=1:start_duration={duration}:start_threshold={threshold}dB:stop_periods=-1:stop_duration={duration}:stop_threshold={threshold}dB"
+                ));
+            }
+            AudioEffect::Loudnorm {
+                enabled,
+                target_lufs,
+            } if *enabled => {
+                filters.push(format!(
+                    "loudnorm=I={}:TP=-1.5:LRA=11",
+                    clamp(*target_lufs, -30.0, -8.0)
+                ));
+            }
+            AudioEffect::Limiter { enabled } if *enabled => {
+                // Final limiter is always appended below to keep a single true output guard.
+            }
+            AudioEffect::Reverb { enabled: _ } => {
+                // Reserved for a later phase.
+            }
+            _ => {}
+        }
+    }
+
+    filters.push(format!("aresample={target_sample_rate}"));
+    filters.push("alimiter=limit=0.95".to_string());
+    filters.join(",")
+}
+
+fn eq_band_filter(band: &EqBand) -> Option<String> {
+    let freq = clamp(band.freq, 20.0, 20_000.0);
+    let q = clamp(band.q, 0.1, 18.0);
+    let gain = clamp(band.gain, -24.0, 24.0);
+    match band.kind.as_str() {
+        "highpass" => Some(format!("highpass=f={freq}")),
+        "lowpass" => Some(format!("lowpass=f={freq}")),
+        "lowshelf" | "highshelf" | "peaking" => {
+            Some(format!("equalizer=f={freq}:t=q:w={q}:g={gain}"))
+        }
+        _ => None,
+    }
+}
+
+fn clamp(value: f32, min: f32, max: f32) -> f32 {
+    value.max(min).min(max)
 }
 
 fn display_name(path: &Path) -> String {
