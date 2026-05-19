@@ -1326,6 +1326,7 @@ const convertState = {
   outputDir: null,
   converting: false,
   libreofficeAvailable: false,
+  history: [], // [{ name, format, kind, date, folder }]
   video: { target_format: "mp4", codec: "auto", bitrate: "auto", resolution: "auto", fps: "auto" },
   audio: { target_format: "mp3", codec: "auto", bitrate: "auto", sample_rate: "auto", channels: "auto" },
   image: { target_format: "jpg", quality: "auto", resolution: "auto" },
@@ -1707,6 +1708,18 @@ async function initConvertModule() {
           if (progStage) progStage.textContent = "Termine";
           if (progMeta) progMeta.textContent = `${result.succeeded}/${result.total} converti${result.succeeded > 1 ? "s" : ""}`;
           convertToast(`Conversion terminee : ${result.succeeded}/${result.total}`, 3000);
+          // Save to history
+          try {
+            const folder = result.output_path || "";
+            valid.forEach((f) => {
+              let outFormat;
+              if (f.kind === "video") outFormat = convertState.video.target_format;
+              else if (f.kind === "audio") outFormat = convertState.audio.target_format;
+              else if (f.kind === "image") outFormat = convertState.image.target_format;
+              else if (f.kind === "document") outFormat = convertState.document.target_format;
+              addConvertHistoryEntry(f.name, outFormat || "?", f.kind, folder);
+            });
+          } catch (err) { console.error("History save error:", err); }
           setTimeout(() => {
             if (progSection) progSection.classList.add("hidden");
             clearConvertFiles();
@@ -1763,8 +1776,78 @@ async function initConvertModule() {
     convertState.libreofficeAvailable = false;
   }
 
+  loadConvertHistory();
   updateConvertUI();
   console.log("[convert] Module initialized");
+}
+
+
+function renderConvertHistory() {
+  const list = document.getElementById("convert-history-list");
+  const section = document.getElementById("convert-history-section");
+  if (!list || !section) return;
+  if (!convertState.history || convertState.history.length === 0) {
+    section.style.display = "none";
+    return;
+  }
+  section.style.display = "";
+  list.innerHTML = "";
+  convertState.history.slice(0, 10).forEach((item) => {
+    const el = document.createElement("div");
+    el.className = "history-item";
+    let svg;
+    if (item.kind === "video") {
+      svg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>';
+    } else if (item.kind === "audio") {
+      svg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+    } else if (item.kind === "image") {
+      svg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+    } else {
+      svg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+    }
+    const dateStr = new Date(item.date).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    el.innerHTML = '<div class="type-icon">' + svg + '</div><div class="history-info"><div class="history-name">' + item.name + '</div><div class="history-meta">' + item.format.toUpperCase() + ' - ' + dateStr + '</div></div>';
+    el.addEventListener("click", () => {
+      try {
+        const inv = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) || (typeof invoke === "function" ? invoke : null);
+        if (inv && item.folder) inv("open_folder", { path: item.folder });
+      } catch (err) {
+        console.error("Open folder error:", err);
+      }
+    });
+    list.appendChild(el);
+  });
+}
+
+function saveConvertHistory() {
+  try {
+    localStorage.setItem("convert-history", JSON.stringify(convertState.history.slice(0, 10)));
+  } catch (err) {
+    console.error("Save convert history error:", err);
+  }
+  renderConvertHistory();
+}
+
+function loadConvertHistory() {
+  try {
+    const raw = localStorage.getItem("convert-history");
+    if (raw) convertState.history = JSON.parse(raw);
+  } catch (err) {
+    convertState.history = [];
+  }
+  renderConvertHistory();
+}
+
+function addConvertHistoryEntry(name, format, kind, folder) {
+  if (!convertState.history) convertState.history = [];
+  convertState.history.unshift({
+    name,
+    format,
+    kind,
+    date: Date.now(),
+    folder,
+  });
+  saveConvertHistory();
 }
 
 // Call init - this is a single statement, no nested IIFE
