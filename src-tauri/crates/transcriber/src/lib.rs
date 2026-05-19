@@ -6,7 +6,8 @@
 // Outputs: TXT, SRT, VTT, JSON.
 
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
+use std::path::PathBuf;
+use tauri::{AppHandle, Manager};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TranscribeOptions {
@@ -37,6 +38,72 @@ pub struct TranscribeResult {
     pub error: Option<String>,
 }
 
+/// Locate the bundled Python embeddable interpreter.
+///
+/// Resolution order:
+/// 1. Production: <app_resources>/binaries/python/python.exe
+/// 2. Development: <project_root>/src-tauri/binaries/python/python.exe
+///
+/// Returns the first existing path, or an error message if neither is found.
+pub fn resolve_python_path(app: &AppHandle) -> Result<PathBuf, String> {
+    // Try production path first (resource_dir)
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let prod_path = resource_dir.join("binaries").join("python").join("python.exe");
+        if prod_path.exists() {
+            return Ok(prod_path);
+        }
+    }
+
+    // Fallback: development path relative to current working directory
+    // In `cargo run`, CWD is typically src-tauri/
+    let dev_path = std::env::current_dir()
+        .map_err(|e| format!("cannot get cwd: {}", e))?
+        .join("binaries")
+        .join("python")
+        .join("python.exe");
+    if dev_path.exists() {
+        return Ok(dev_path);
+    }
+
+    Err(format!(
+        "Python embeddable introuvable. Cherche dans :\n  - resource_dir/binaries/python/python.exe\n  - {}",
+        dev_path.display()
+    ))
+}
+
+/// Locate the whisper_runner.py script bundled alongside Python.
+///
+/// Resolution order:
+/// 1. Production: <app_resources>/binaries/python/scripts/whisper_runner.py
+/// 2. Development: <project_root>/src-tauri/binaries/python/scripts/whisper_runner.py
+pub fn resolve_runner_script(app: &AppHandle) -> Result<PathBuf, String> {
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let prod_path = resource_dir
+            .join("binaries")
+            .join("python")
+            .join("scripts")
+            .join("whisper_runner.py");
+        if prod_path.exists() {
+            return Ok(prod_path);
+        }
+    }
+
+    let dev_path = std::env::current_dir()
+        .map_err(|e| format!("cannot get cwd: {}", e))?
+        .join("binaries")
+        .join("python")
+        .join("scripts")
+        .join("whisper_runner.py");
+    if dev_path.exists() {
+        return Ok(dev_path);
+    }
+
+    Err(format!(
+        "whisper_runner.py introuvable. Cherche dans :\n  - resource_dir/binaries/python/scripts/whisper_runner.py\n  - {}",
+        dev_path.display()
+    ))
+}
+
 /// Run the transcription pipeline.
 ///
 /// Spawns the bundled Python (src-tauri/binaries/python/python.exe) and runs
@@ -52,5 +119,5 @@ pub async fn transcribe(
     _app: &AppHandle,
     _opts: TranscribeOptions,
 ) -> Result<TranscribeResult, String> {
-    Err("transcribe: not yet implemented (Phase 4 stub)".to_string())
+    Err("transcribe: not yet implemented (Phase 4 stub, step 1.3 next)".to_string())
 }
