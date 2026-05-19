@@ -1748,10 +1748,72 @@ function transcribeShowMedia() {
 function transcribeShowLegacy() {
   const empty = document.getElementById("transcribe-empty");
   const media = document.getElementById("transcribe-media");
+  const edit = document.getElementById("transcribe-edit");
   const legacy = document.getElementById("transcribe-legacy");
   if (empty) empty.classList.add("hidden");
   if (media) media.classList.add("hidden");
+  if (edit) edit.classList.add("hidden");
   if (legacy) legacy.classList.remove("hidden");
+}
+// Phase 4 : etat EDITION (media + srt charges)
+function transcribeShowEdit() {
+  const empty = document.getElementById("transcribe-empty");
+  const media = document.getElementById("transcribe-media");
+  const edit = document.getElementById("transcribe-edit");
+  const legacy = document.getElementById("transcribe-legacy");
+  if (empty) empty.classList.add("hidden");
+  if (media) media.classList.add("hidden");
+  if (legacy) legacy.classList.add("hidden");
+  if (edit) edit.classList.remove("hidden");
+}
+
+// Phase 4 : deplace une seule fois les elements du player legacy vers les slots edit.
+// Apres ce deplacement, les IDs (#player-media-wrap, #player-segments-wrap, etc.)
+// restent valides donc le JS du player continue a fonctionner sans modification.
+let _editDOMMounted = false;
+function transcribeMountEditFromLegacy() {
+  if (_editDOMMounted) return;
+  const moves = [
+    { src: "player-media-wrap", dst: "edit-media-slot" },
+    { src: "player-waveform-wrap", dst: "edit-waveform-slot" },
+    { src: "player-segments-wrap", dst: "edit-segments-slot" },
+  ];
+  for (const m of moves) {
+    const srcEl = document.getElementById(m.src);
+    const dstEl = document.getElementById(m.dst);
+    if (srcEl && dstEl && srcEl.parentElement !== dstEl) {
+      dstEl.appendChild(srcEl);
+    }
+  }
+  // Deplace aussi les boutons du header segments (compteur + edit + save)
+  const actionsSlot = document.getElementById("edit-segments-actions-slot");
+  if (actionsSlot) {
+    ["player-segments-count", "player-edit-btn", "player-save-btn"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el && el.parentElement !== actionsSlot) actionsSlot.appendChild(el);
+    });
+  }
+  // Deplace les controles du panneau Export (option-row police + bouton primary)
+  const exportSlot = document.getElementById("edit-export-slot");
+  if (exportSlot) {
+    ["export-font-row", "export-launch-btn"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el && el.parentElement !== exportSlot) exportSlot.appendChild(el);
+    });
+  }
+  _editDOMMounted = true;
+}
+
+// Phase 4 : met a jour le chip "media + srt" en haut de l'etat EDIT
+function transcribeUpdateEditChip(mediaPath, srtPath) {
+  const name = document.getElementById("transcribe-edit-chip-name");
+  if (!name) return;
+  const shortM = mediaPath ? mediaPath.split(/[\\/]/).pop() : null;
+  const shortS = srtPath ? srtPath.split(/[\\/]/).pop() : null;
+  if (shortM && shortS) name.textContent = shortM + "  +  " + shortS;
+  else if (shortM) name.textContent = shortM;
+  else if (shortS) name.textContent = shortS;
+  else name.textContent = "fichiers";
 }
 
 // Phase 2 : preview du media dans la zone main
@@ -1981,6 +2043,40 @@ async function initTranscribeModule() {
       // Vide aussi le preview
       const preview = document.getElementById("transcribe-media-preview");
       if (preview) preview.innerHTML = "";
+      transcribeShowEmpty();
+      transcribeUpdateUI();
+    });
+  }
+
+  // ===== Phase 4 : SIDEBAR EDIT - ONGLETS + CHIP CLEAR =====
+  const editTabs = document.querySelectorAll("#edit-sidebar-tabs .sidebar-tab");
+  editTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const target = tab.getAttribute("data-tab");
+      editTabs.forEach((t) => t.classList.toggle("active", t === tab));
+      const segPanel = document.getElementById("edit-tab-segments");
+      const expPanel = document.getElementById("edit-tab-export");
+      if (segPanel) segPanel.classList.toggle("hidden", target !== "segments");
+      if (expPanel) expPanel.classList.toggle("hidden", target !== "export");
+    });
+  });
+
+  // Chip clear EDIT : decharge media + srt, retour a l'etat VIDE
+  // Garde "modifs non enregistrees" : reutilise window.__playerCanLeave si dispo
+  const editChipClear = document.getElementById("transcribe-edit-chip-clear");
+  if (editChipClear) {
+    editChipClear.addEventListener("click", () => {
+      if (typeof window.__playerCanLeave === "function" && !window.__playerCanLeave()) return;
+      // Reuse les boutons clear legacy qui font deja le bon reset state
+      const clrM = document.getElementById("player-clear-media-btn");
+      const clrS = document.getElementById("player-clear-srt-btn");
+      // Force le reset sans re-confirmer (on a deja confirme via __playerCanLeave)
+      // -> on clique mais le handler legacy va re-prompter si dirty. On contourne en
+      //    mettant playerState.dirty a false avant (deja fait par canLeave si OK).
+      if (clrM) clrM.click();
+      if (clrS) clrS.click();
+      // Reset aussi la source transcribe
+      state.transcribeSource = null;
       transcribeShowEmpty();
       transcribeUpdateUI();
     });
@@ -2751,8 +2847,13 @@ async function initPlayerModule() {
     // Toujours rafraichir le resume du <details> "Charger" (auto-collapse inclus)
     updateLoadCardSummary();
     if (playerState.mediaPath || playerState.srtPath) {
-      // Phase 1 : bascule l'UI Transcrire vers legacy si on charge des fichiers
-      if (typeof transcribeShowLegacy === "function") transcribeShowLegacy();
+      // Phase 4 : monte les elements dans la nouvelle UI et bascule en EDIT
+      if (typeof transcribeMountEditFromLegacy === "function") transcribeMountEditFromLegacy();
+      if (typeof transcribeShowEdit === "function") transcribeShowEdit();
+      else if (typeof transcribeShowLegacy === "function") transcribeShowLegacy();
+      if (typeof transcribeUpdateEditChip === "function") {
+        transcribeUpdateEditChip(playerState.mediaPath, playerState.srtPath);
+      }
       playerZone().classList.remove("hidden");
       if (playerState.srtPath) await loadSRT();
       renderMedia();

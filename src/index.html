@@ -772,6 +772,46 @@
           </div>
         </div>
 
+        <!-- ====== PHASE 4 : ETAT EDITION (media + srt charges) ====== -->
+        <div class="transcribe-edit hidden" id="transcribe-edit">
+          <div class="transcribe-file-chip" id="transcribe-edit-chip">
+            <span class="chip-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </span>
+            <span class="chip-name" id="transcribe-edit-chip-name">fichiers</span>
+            <button type="button" class="chip-clear" id="transcribe-edit-chip-clear" title="Retirer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="transcribe-layout">
+            <main class="transcribe-edit-main">
+              <div class="edit-media-slot" id="edit-media-slot"></div>
+              <div class="edit-waveform-slot" id="edit-waveform-slot"></div>
+            </main>
+            <aside class="transcribe-edit-sidebar transcribe-sidebar">
+              <div class="sidebar-tabs" id="edit-sidebar-tabs">
+                <button type="button" class="sidebar-tab active" data-tab="segments">Segments</button>
+                <button type="button" class="sidebar-tab" data-tab="export">Export</button>
+              </div>
+              <div class="sidebar-tab-panel" id="edit-tab-segments">
+                <div class="segments-panel-header">
+                  <div class="segments-actions" id="edit-segments-actions-slot">
+                    <!-- #player-segments-count, #player-save-btn, #player-edit-btn viendront ici -->
+                  </div>
+                </div>
+                <div class="edit-segments-slot" id="edit-segments-slot">
+                  <!-- #player-segments-wrap viendra ici -->
+                </div>
+              </div>
+              <div class="sidebar-tab-panel hidden" id="edit-tab-export">
+                <div class="edit-export-slot" id="edit-export-slot">
+                  <!-- #export-font-row + #export-launch-btn viendront ici -->
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+
         <!-- ====== LEGACY UI (caché par défaut, montré quand un fichier est chargé) ====== -->
         <div class="transcribe-legacy hidden" id="transcribe-legacy">
 
