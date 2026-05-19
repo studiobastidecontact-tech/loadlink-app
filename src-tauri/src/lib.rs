@@ -631,6 +631,12 @@ async fn cleanup_old_jobs(state: State<'_, AppState>, days: i64) -> Result<usize
 async fn read_text_file(path: String) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|e| format!("Lecture impossible : {}", e))
 }
+
+/// Ecrit du contenu texte dans un fichier (utilise pour sauvegarder un SRT edite)
+#[tauri::command]
+async fn write_text_file(path: String, content: String) -> Result<(), String> {
+    std::fs::write(&path, content).map_err(|e| format!("Ecriture impossible : {}", e))
+}
 pub fn run() {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -683,6 +689,7 @@ pub fn run() {
             transcribe,
             // Phase 4.5 Lire (player)
             read_text_file,
+            write_text_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

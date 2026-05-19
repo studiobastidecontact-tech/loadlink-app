@@ -1886,6 +1886,14 @@ async function initTranscribeModule() {
             outputFile: result.output_files?.[0] || "",
             ts: Date.now(),
           });
+
+          // Phase 4.5 Etape 5 : auto-switch vers le module Lire
+          try {
+            const srtFile = (result.output_files || []).find(f => f.toLowerCase().endsWith(".srt"));
+            if (srtFile && input && typeof window.openInPlayer === "function") {
+              setTimeout(() => window.openInPlayer(input, srtFile), 600);
+            }
+          } catch (e) { console.error("[transcribe->player] auto-switch failed:", e); }
         } else {
           const err = result?.error || "Erreur inconnue";
           showToast("Echec : " + err.substring(0, 80), 5000);
@@ -1948,29 +1956,45 @@ initTranscribeModule();
 // Remplace l'ancien initPlayerModule du step 1
 
 
+// player-module-v3.js
+// Etape 4+5 : edition + sauvegarde + auto-switch depuis Transcribe
+// Remplace l'ancien initPlayerModule v2
+
+
 // ============================================
-// MODULE LIRE (player) - Phase 4.5 Etape 2
-// Lecteur HTML5 video/audio + transcription synchronisee
+// MODULE LIRE (player) - Phase 4.5 Etapes 4+5
+// Lecteur HTML5 + transcription synchronisee + edition + auto-switch
 // ============================================
+
+// Helper global expose pour auto-switch depuis Transcribe
+window.openInPlayer = function(mediaPath, srtPath) {
+  if (typeof openModule === "function") openModule("player");
+  // Petit delai pour laisser la page se rendre
+  setTimeout(() => {
+    if (typeof window.__playerLoad === "function") {
+      window.__playerLoad(mediaPath, srtPath);
+    }
+  }, 100);
+};
+
 async function initPlayerModule() {
   const getEl = (id) => document.getElementById(id);
-
-  // Helper pour acceder a convertFileSrc (pas dans le destructuring initial)
   const convertFileSrc = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.convertFileSrc) || ((p) => p);
 
   const playerState = {
     mediaPath: null,
     srtPath: null,
-    segments: [],         // [{start: number, end: number, text: string}]
-    activeSegmentIdx: -1, // index du segment courant
-    mediaEl: null,        // reference vers <video> ou <audio>
+    segments: [],
+    activeSegmentIdx: -1,
+    mediaEl: null,
+    editMode: false,
+    dirty: false,
   };
 
   const dropZone = () => getEl("player-drop-zone");
   const playerZone = () => getEl("player-zone");
   const mediaWrap = () => getEl("player-media-wrap");
   const segmentsWrap = () => getEl("player-segments-wrap");
-  const loadCard = () => getEl("player-load-card");
 
   // ===== Drag and drop =====
   try {
@@ -1999,8 +2023,6 @@ async function initPlayerModule() {
           refreshPlayerUI();
         }
       });
-    } else {
-      console.warn("[player] drag&drop indisponible");
     }
   } catch (err) {
     console.error("[player] onDragDropEvent setup failed:", err);
@@ -2036,9 +2058,7 @@ async function initPlayerModule() {
           if (label) label.textContent = selected.split(/[\\/]/).pop();
           refreshPlayerUI();
         }
-      } catch (e) {
-        console.error("[player] picker media error:", e);
-      }
+      } catch (e) { console.error("[player] picker media error:", e); }
     });
   }
 
@@ -2056,43 +2076,86 @@ async function initPlayerModule() {
           if (label) label.textContent = selected.split(/[\\/]/).pop();
           refreshPlayerUI();
         }
-      } catch (e) {
-        console.error("[player] picker srt error:", e);
+      } catch (e) { console.error("[player] picker srt error:", e); }
+    });
+  }
+
+  // ===== Bouton Modifier (toggle mode edition) =====
+  const btnEdit = getEl("player-edit-btn");
+  if (btnEdit) {
+    btnEdit.addEventListener("click", () => {
+      playerState.editMode = !playerState.editMode;
+      btnEdit.classList.toggle("active", playerState.editMode);
+      btnEdit.title = playerState.editMode ? "Quitter le mode édition" : "Modifier les sous-titres";
+      renderSegments();
+      updateSaveButton();
+    });
+  }
+
+  // ===== Bouton Enregistrer =====
+  const btnSave = getEl("player-save-btn");
+  if (btnSave) {
+    btnSave.addEventListener("click", async () => {
+      if (!playerState.dirty || !playerState.srtPath) return;
+      const srtContent = serializeToSRT(playerState.segments);
+      try {
+        await invoke("write_text_file", { path: playerState.srtPath, content: srtContent });
+        playerState.dirty = false;
+        updateSaveButton();
+        if (typeof showToast === "function") showToast("Sous-titres sauvegardés", 2500);
+      } catch (err) {
+        console.error("[player] save failed:", err);
+        if (typeof showToast === "function") showToast("Erreur sauvegarde : " + err, 4000);
       }
     });
+  }
+
+  function updateSaveButton() {
+    if (!btnSave) return;
+    // Save button visible quand on est en mode edition ET qu'il y a des modifs
+    const visible = playerState.editMode && playerState.dirty;
+    btnSave.classList.toggle("hidden", !visible);
   }
 
   // ===== Parser SRT =====
   function parseSRT(text) {
     const segments = [];
-    // Normaliser : on enleve les BOM eventuels et on splitte sur double saut de ligne
     const cleaned = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").trim();
     const blocks = cleaned.split(/\n\n+/);
-    
     for (const block of blocks) {
       const lines = block.split("\n");
       if (lines.length < 2) continue;
-      
-      // Premiere ligne est un index (qu'on ignore)
-      // Deuxieme ligne est le timestamp
       let timeLineIdx = 0;
-      // Si la premiere ligne est juste un numero, on prend la suivante
       if (/^\d+$/.test(lines[0].trim())) timeLineIdx = 1;
-      
       const timeLine = lines[timeLineIdx];
       const match = timeLine.match(/(\d+):(\d+):(\d+)[,.](\d+)\s*-->\s*(\d+):(\d+):(\d+)[,.](\d+)/);
       if (!match) continue;
-      
       const start = parseInt(match[1])*3600 + parseInt(match[2])*60 + parseInt(match[3]) + parseInt(match[4])/1000;
       const end = parseInt(match[5])*3600 + parseInt(match[6])*60 + parseInt(match[7]) + parseInt(match[8])/1000;
       const text = lines.slice(timeLineIdx + 1).join(" ").trim();
-      
       if (text) segments.push({ start, end, text });
     }
     return segments;
   }
 
-  // ===== Format temps : 1:23 ou 12:34:56 =====
+  // ===== Serialiser vers SRT =====
+  function formatSRTTime(seconds) {
+    const totalMs = Math.round(seconds * 1000);
+    const ms = totalMs % 1000;
+    const totalSec = Math.floor(totalMs / 1000);
+    const s = totalSec % 60;
+    const totalMin = Math.floor(totalSec / 60);
+    const m = totalMin % 60;
+    const h = Math.floor(totalMin / 60);
+    return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0") + "," + String(ms).padStart(3, "0");
+  }
+
+  function serializeToSRT(segments) {
+    return segments.map((seg, i) => {
+      return (i + 1) + "\n" + formatSRTTime(seg.start) + " --> " + formatSRTTime(seg.end) + "\n" + seg.text + "\n";
+    }).join("\n");
+  }
+
   function formatTime(seconds) {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
@@ -2101,12 +2164,13 @@ async function initPlayerModule() {
     return m + ":" + String(s).padStart(2, "0");
   }
 
-  // ===== Charger le SRT et le parser =====
+  // ===== Charger le SRT =====
   async function loadSRT() {
     if (!playerState.srtPath) return;
     try {
       const text = await invoke("read_text_file", { path: playerState.srtPath });
       playerState.segments = parseSRT(text);
+      playerState.dirty = false;
       console.log("[player] SRT charge :", playerState.segments.length, "segments");
     } catch (err) {
       console.error("[player] read_text_file failed:", err);
@@ -2115,7 +2179,6 @@ async function initPlayerModule() {
     }
   }
 
-  // ===== Trouver le segment courant en fonction du temps =====
   function findCurrentSegment(time) {
     for (let i = 0; i < playerState.segments.length; i++) {
       const seg = playerState.segments[i];
@@ -2124,22 +2187,18 @@ async function initPlayerModule() {
     return -1;
   }
 
-  // ===== Render le lecteur media =====
   function renderMedia() {
     const wrap = mediaWrap();
     if (!wrap) return;
     wrap.innerHTML = "";
-    
     if (!playerState.mediaPath) {
       wrap.innerHTML = '<div style="padding:40px; text-align:center; color:#888;">Aucun média chargé</div>';
       playerState.mediaEl = null;
       return;
     }
-    
     const ext = playerState.mediaPath.split(".").pop().toLowerCase();
     const isVideo = ["mp4","mov","mkv","webm","avi"].includes(ext);
     const src = convertFileSrc(playerState.mediaPath);
-    
     const tag = isVideo ? "video" : "audio";
     const el = document.createElement(tag);
     el.src = src;
@@ -2151,8 +2210,6 @@ async function initPlayerModule() {
     } else {
       el.style.padding = "20px";
     }
-    
-    // Sync avec les segments
     el.addEventListener("timeupdate", () => {
       const idx = findCurrentSegment(el.currentTime);
       if (idx !== playerState.activeSegmentIdx) {
@@ -2160,17 +2217,14 @@ async function initPlayerModule() {
         updateSegmentHighlight();
       }
     });
-    
     wrap.appendChild(el);
     playerState.mediaEl = el;
   }
 
-  // ===== Render le panel des segments =====
   function renderSegments() {
     const wrap = segmentsWrap();
     if (!wrap) return;
     wrap.innerHTML = "";
-    
     if (playerState.segments.length === 0) {
       if (playerState.srtPath) {
         wrap.innerHTML = '<div style="padding:12px; color:#aaa; font-size:13px;">Aucun segment dans le SRT</div>';
@@ -2179,46 +2233,58 @@ async function initPlayerModule() {
       }
       return;
     }
-    
     const list = document.createElement("div");
     list.className = "player-segments-list";
-    
+    if (playerState.editMode) list.classList.add("edit-mode");
+
     playerState.segments.forEach((seg, idx) => {
       const item = document.createElement("div");
       item.className = "player-segment";
       item.dataset.idx = idx;
-      
+
       const time = document.createElement("div");
       time.className = "player-segment-time";
       time.textContent = formatTime(seg.start);
-      
+
       const text = document.createElement("div");
       text.className = "player-segment-text";
       text.textContent = seg.text;
-      
+
+      if (playerState.editMode) {
+        text.contentEditable = "true";
+        text.spellcheck = true;
+        text.addEventListener("input", () => {
+          playerState.segments[idx].text = text.textContent.trim();
+          playerState.dirty = true;
+          updateSaveButton();
+        });
+        // Empecher le seek sur clic en mode edition
+        text.addEventListener("click", (e) => e.stopPropagation());
+      }
+
       item.appendChild(time);
       item.appendChild(text);
-      
-      item.addEventListener("click", () => {
+
+      // Le clic sur item (pas sur le texte editable) = seek
+      item.addEventListener("click", (e) => {
+        // En mode edition, seul le clic sur la zone temps fait seek
+        if (playerState.editMode && e.target.classList.contains("player-segment-text")) return;
         if (playerState.mediaEl) {
           playerState.mediaEl.currentTime = seg.start;
           playerState.mediaEl.play();
         }
       });
-      
+
       list.appendChild(item);
     });
-    
     wrap.appendChild(list);
   }
 
-  // ===== Mettre a jour le highlight du segment courant =====
   function updateSegmentHighlight() {
     const items = document.querySelectorAll(".player-segment");
     items.forEach((item, idx) => {
       if (idx === playerState.activeSegmentIdx) {
         item.classList.add("active");
-        // Scroll into view si pas visible
         const rect = item.getBoundingClientRect();
         const parentRect = item.parentElement.parentElement.getBoundingClientRect();
         if (rect.top < parentRect.top || rect.bottom > parentRect.bottom) {
@@ -2230,23 +2296,38 @@ async function initPlayerModule() {
     });
   }
 
-  // ===== Refresh complet UI =====
   async function refreshPlayerUI() {
     if (playerState.mediaPath || playerState.srtPath) {
       playerZone().classList.remove("hidden");
-      // Charger le SRT si present
-      if (playerState.srtPath) {
-        await loadSRT();
-      }
+      if (playerState.srtPath) await loadSRT();
       renderMedia();
       renderSegments();
-      // Activer le bouton export quand on a media + srt
+
+      // Activer les boutons selon ce qui est charge
       const exportBtn = getEl("player-export-btn");
-      if (exportBtn) {
-        exportBtn.disabled = !(playerState.mediaPath && playerState.srtPath);
-      }
+      const editBtn = getEl("player-edit-btn");
+      const hasMedia = !!playerState.mediaPath;
+      const hasSrt = !!playerState.srtPath;
+      if (exportBtn) exportBtn.disabled = !(hasMedia && hasSrt);
+      if (editBtn) editBtn.disabled = !hasSrt;
+      updateSaveButton();
     }
   }
+
+  // ===== API publique pour auto-switch depuis Transcribe =====
+  window.__playerLoad = function(mediaPath, srtPath) {
+    if (mediaPath) {
+      playerState.mediaPath = mediaPath;
+      const lblM = getEl("player-media-label");
+      if (lblM) lblM.textContent = mediaPath.split(/[\\/]/).pop();
+    }
+    if (srtPath) {
+      playerState.srtPath = srtPath;
+      const lblS = getEl("player-srt-label");
+      if (lblS) lblS.textContent = srtPath.split(/[\\/]/).pop();
+    }
+    refreshPlayerUI();
+  };
 }
 
 initPlayerModule();
