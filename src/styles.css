@@ -1429,6 +1429,11 @@ body.dark .libreoffice-warning {
   padding: 28px 48px 36px;
 }
 
+.audio-content:has(.audio-workspace:not(.hidden)) {
+  max-width: none;
+  padding: 0;
+}
+
 .audio-studio-placeholder {
   min-height: 460px;
   display: flex;
@@ -1651,9 +1656,225 @@ body.dark .libreoffice-warning {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 0;
   min-height: 0;
   animation: fadeUp .35s ease both;
+}
+
+.audio-studio-shell {
+  height: calc(100vh - 64px);
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 360px;
+  background: var(--bg);
+}
+
+.audio-tracks-sidebar,
+.audio-effects-sidebar {
+  min-width: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 18px 14px;
+  overflow: auto;
+}
+
+.audio-effects-sidebar {
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
+
+.audio-panel-heading {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+
+.audio-track-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.audio-track-top {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 10px;
+}
+
+.audio-track-color {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.audio-track-title-wrap { min-width: 0; }
+
+.audio-track-name,
+.audio-track-type {
+  outline: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audio-track-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.audio-track-type {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text2);
+}
+
+.audio-track-menu {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.audio-track-menu:hover {
+  background: var(--surface3);
+  color: var(--text);
+}
+
+.audio-track-controls {
+  display: grid;
+  grid-template-columns: 30px 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.audio-track-btn {
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.audio-track-btn:hover {
+  color: var(--text);
+  border-color: var(--text3);
+}
+
+.audio-track-gain-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text2);
+  font-size: 11px;
+}
+
+.audio-track-gain-wrap input {
+  min-width: 0;
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.audio-editor-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  overflow: auto;
+}
+
+.audio-tool-strip {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+}
+
+.audio-tool-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.audio-tool-btn:hover,
+.audio-tool-btn.active {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.audio-tool-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.audio-tool-spacer { flex: 1; }
+
+.audio-ruler {
+  height: 32px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: end;
+  padding: 0 8px 7px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text3);
+  font-family: 'DM Mono', 'DM Sans', monospace;
+  font-size: 11px;
+  background-image: repeating-linear-gradient(90deg, transparent 0, transparent calc(14.285% - 1px), var(--border) calc(14.285% - 1px), var(--border) 14.285%);
+}
+
+.audio-ruler span { white-space: nowrap; }
+
+.audio-editor-ab-row {
+  min-height: 34px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.audio-side-placeholder {
+  min-height: 160px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text2);
+  font-size: 13px;
+  padding: 18px;
 }
 
 .audio-wave-panel {
@@ -1808,7 +2029,7 @@ body.dark .audio-waveform {
 
 .audio-preset-card {
   position: relative;
-  min-height: 188px;
+  min-height: 136px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -1818,7 +2039,7 @@ body.dark .audio-waveform {
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
-  padding: 20px;
+  padding: 16px;
   text-align: left;
   font-family: 'DM Sans', sans-serif;
   overflow: hidden;
@@ -1852,9 +2073,9 @@ body.dark .audio-waveform {
 }
 
 .audio-preset-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
   background: var(--accent-light);
   color: var(--accent);
   display: flex;
@@ -1868,19 +2089,19 @@ body.dark .audio-waveform {
 }
 
 .audio-preset-icon svg {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
 }
 
 .audio-preset-title {
   font-family: 'Syne', sans-serif;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .audio-preset-desc {
   color: var(--text2);
-  font-size: 12.5px;
+  font-size: 11.5px;
   line-height: 1.45;
 }
 
@@ -2105,6 +2326,20 @@ body.dark .audio-waveform {
 @media (max-width: 900px) {
   .audio-content {
     padding: 24px 28px 32px;
+  }
+
+  .audio-content:has(.audio-workspace:not(.hidden)) {
+    padding: 16px;
+  }
+
+  .audio-studio-shell {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .audio-tracks-sidebar,
+  .audio-effects-sidebar {
+    border: 1px solid var(--border);
   }
 
   .audio-preset-grid {
