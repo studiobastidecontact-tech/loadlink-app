@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 whisper_runner.py - LoadLink Whisper transcription wrapper
 
@@ -245,6 +245,10 @@ def main():
                 out_dir = Path.home() / "Documents" / "LoadLink-Transcriptions"
             else:
                 out_dir = Path(args.input).parent
+            out_dir.mkdir(parents=True, exist_ok=True)
+
+            # 2.5. Create dedicated subfolder for this transcription
+            out_dir = out_dir / f"{base_name}-transcription"
             out_dir.mkdir(parents=True, exist_ok=True)
             
             # 3. Transcribe
