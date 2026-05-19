@@ -783,8 +783,10 @@
           </div>
           <div class="transcribe-layout">
             <main class="transcribe-edit-main">
-              <div class="edit-media-slot" id="edit-media-slot"></div>
-              <div class="edit-waveform-slot" id="edit-waveform-slot"></div>
+              <div id="player-media-wrap" class="player-media-frame"></div>
+              <div id="player-waveform-wrap" class="player-waveform-frame">
+                <div id="player-waveform"></div>
+              </div>
             </main>
             <aside class="transcribe-edit-sidebar transcribe-sidebar">
               <div class="sidebar-tabs" id="edit-sidebar-tabs">
@@ -793,17 +795,31 @@
               </div>
               <div class="sidebar-tab-panel" id="edit-tab-segments">
                 <div class="segments-panel-header">
-                  <div class="segments-actions" id="edit-segments-actions-slot">
-                    <!-- #player-segments-count, #player-save-btn, #player-edit-btn viendront ici -->
+                  <div class="segments-actions">
+                    <span class="player-segments-count" id="player-segments-count">—</span>
+                    <button class="icon-btn hidden" id="player-save-btn" title="Enregistrer les modifications">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    </button>
+                    <button class="icon-btn" id="player-edit-btn" title="Modifier les sous-titres" disabled>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
                   </div>
                 </div>
-                <div class="edit-segments-slot" id="edit-segments-slot">
-                  <!-- #player-segments-wrap viendra ici -->
-                </div>
+                <div id="player-segments-wrap" class="player-segments-scroll"></div>
               </div>
               <div class="sidebar-tab-panel hidden" id="edit-tab-export">
-                <div class="edit-export-slot" id="edit-export-slot">
-                  <!-- #export-font-row + #export-launch-btn viendront ici -->
+                <div class="edit-export-slot">
+                  <div class="option-row" id="export-font-row">
+                    <div class="option-row-left">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+                      <span id="export-font-label">Police : DM Sans</span>
+                    </div>
+                    <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+                  </div>
+                  <button class="btn-primary" id="export-launch-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span>Exporter la vidéo sous-titrée</span>
+                  </button>
                 </div>
               </div>
             </aside>
@@ -892,118 +908,10 @@
           <span id="transcribe-btn-label">Lancer la transcription</span>
         </button>
 
-        <!-- PROGRESS -->
-        <div class="progress-section hidden" id="transcribe-progress-section">
-          <div class="progress-bar">
-            <div class="progress-fill" id="transcribe-progress-fill"></div>
-          </div>
-          <div class="progress-info">
-            <span id="transcribe-progress-stage">Préparation...</span>
-            <span id="transcribe-progress-meta"></span>
-          </div>
-        </div>
-
-        <!-- RECENTS -->
-        <div class="history-section" id="transcribe-history-section" style="display:none;">
-          <p class="history-title">Récents</p>
-          <div id="transcribe-history-list"></div>
-        </div>
-
-        <!-- LECTEUR + EDITEUR DE TRANSCRIPTION -->
-
-        <!-- DROP ZONE (collapsible via JS) -->
-        <div class="card player-load-card" id="player-load-card">
-          <div class="player-load-summary" id="player-load-summary-btn">
-            <span class="summary-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            </span>
-            <span class="summary-text" id="player-load-summary-text">Charger un fichier</span>
-            <svg class="summary-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
-          <div class="player-load-body" id="player-load-body">
-          <div class="drop-zone" id="player-drop-zone" data-target="player">
-            <div class="drop-zone-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            </div>
-            <div>
-              <div class="drop-zone-title">Glisse un audio/vidéo ou un .srt</div>
-              <div class="drop-zone-subtitle">Ou glisse les deux ensemble pour les apparier</div>
-            </div>
-          </div>
-
-          <div class="drop-zone-or">ou</div>
-
-          <div class="option-row" id="player-select-media-btn">
-            <div class="option-row-left">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-              <span id="player-media-label">Choisir l'audio/vidéo</span>
-            </div>
-            <button class="option-clear hidden" id="player-clear-media-btn" title="Retirer le fichier" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-          </div>
-          <div class="option-row" id="player-select-srt-btn" style="margin-bottom: 0;">
-            <div class="option-row-left">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
-              <span id="player-srt-label">Choisir le fichier .srt</span>
-            </div>
-            <button class="option-clear hidden" id="player-clear-srt-btn" title="Retirer le fichier" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-          </div>
-          </div>
-        </div>
-
-        <!-- PLAYER ZONE (cachee tant que rien n'est charge) -->
-        <div class="card hidden" id="player-zone">
-          <div class="player-split">
-            <!-- COLONNE GAUCHE : video + waveform -->
-            <div class="player-left">
-              <div id="player-media-wrap" class="player-media-frame">
-                <!-- audio ou video injecte ici par JS -->
-              </div>
-              <div id="player-waveform-wrap" class="player-waveform-frame">
-                <div id="player-waveform"></div>
-              </div>
-            </div>
-            <!-- COLONNE DROITE : segments editables -->
-            <div class="player-right">
-              <div class="player-right-header">
-                <div class="player-right-title">Transcription</div>
-                <div class="player-right-actions">
-                  <span class="player-segments-count" id="player-segments-count">—</span>
-                  <button class="icon-btn hidden" id="player-save-btn" title="Enregistrer les modifications">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          </button>
-                  <button class="icon-btn" id="player-edit-btn" title="Modifier les sous-titres" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
-                </div>
-              </div>
-              <div id="player-segments-wrap" class="player-segments-scroll">
-                <!-- segments injectes ici par JS -->
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- EXPORT PANEL (cache tant que media + srt pas charges) -->
-        <div class="card hidden" id="player-export-card">
-          <label class="field-label">Export sous-titré</label>
-          <div class="option-row" id="export-font-row">
-            <div class="option-row-left">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-              <span id="export-font-label">Police : DM Sans</span>
-            </div>
-            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-          </div>
-          <button class="btn-primary" id="export-launch-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Exporter la vidéo sous-titrée</span>
-          </button>
-        </div>
+        <!-- Progress legacy + history-section + 3 cards player (load-card, player-zone,
+             export-card) supprimees en Phase 6 : remplacees par l'overlay, le drawer
+             et la zone .transcribe-edit qui contient maintenant les elements
+             #player-media-wrap, #player-waveform-wrap, #player-segments-wrap, etc. -->
 
         </div>
         <!-- ====== END LEGACY UI ====== -->

@@ -1699,24 +1699,7 @@ function transcribeReadRecents() {
 function transcribeRenderRecents() {
   const recents = transcribeReadRecents();
 
-  // Legacy history block (toujours alimente pour compat - sera supprime en Phase 6)
-  const section = document.getElementById("transcribe-history-section");
-  const list = document.getElementById("transcribe-history-list");
-  if (section && list) {
-    if (recents.length === 0) {
-      section.style.display = "none";
-    } else {
-      section.style.display = "";
-      list.innerHTML = recents.slice(0, 5).map((r) => `
-        <div class="history-item" data-path="${r.outputFile || ''}">
-          <div class="history-item-name">${r.name}</div>
-          <div class="history-item-meta">${r.model} - ${r.language || 'auto'} - ${r.formats.join(', ')}</div>
-        </div>
-      `).join("");
-    }
-  }
-
-  // Phase 5 : Drawer Recents
+  // Drawer Recents (Phase 5)
   const drawerList = document.getElementById("transcribe-recents-list");
   if (!drawerList) return;
   if (recents.length === 0) {
@@ -1814,43 +1797,6 @@ function transcribeShowEdit() {
   if (media) media.classList.add("hidden");
   if (legacy) legacy.classList.add("hidden");
   if (edit) edit.classList.remove("hidden");
-}
-
-// Phase 4 : deplace une seule fois les elements du player legacy vers les slots edit.
-// Apres ce deplacement, les IDs (#player-media-wrap, #player-segments-wrap, etc.)
-// restent valides donc le JS du player continue a fonctionner sans modification.
-let _editDOMMounted = false;
-function transcribeMountEditFromLegacy() {
-  if (_editDOMMounted) return;
-  const moves = [
-    { src: "player-media-wrap", dst: "edit-media-slot" },
-    { src: "player-waveform-wrap", dst: "edit-waveform-slot" },
-    { src: "player-segments-wrap", dst: "edit-segments-slot" },
-  ];
-  for (const m of moves) {
-    const srcEl = document.getElementById(m.src);
-    const dstEl = document.getElementById(m.dst);
-    if (srcEl && dstEl && srcEl.parentElement !== dstEl) {
-      dstEl.appendChild(srcEl);
-    }
-  }
-  // Deplace aussi les boutons du header segments (compteur + edit + save)
-  const actionsSlot = document.getElementById("edit-segments-actions-slot");
-  if (actionsSlot) {
-    ["player-segments-count", "player-edit-btn", "player-save-btn"].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el && el.parentElement !== actionsSlot) actionsSlot.appendChild(el);
-    });
-  }
-  // Deplace les controles du panneau Export (option-row police + bouton primary)
-  const exportSlot = document.getElementById("edit-export-slot");
-  if (exportSlot) {
-    ["export-font-row", "export-launch-btn"].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el && el.parentElement !== exportSlot) exportSlot.appendChild(el);
-    });
-  }
-  _editDOMMounted = true;
 }
 
 // Phase 4 : met a jour le chip "media + srt" en haut de l'etat EDIT
@@ -2150,20 +2096,12 @@ async function initTranscribeModule() {
   });
 
   // Chip clear EDIT : decharge media + srt, retour a l'etat VIDE
-  // Garde "modifs non enregistrees" : reutilise window.__playerCanLeave si dispo
+  // Garde "modifs non enregistrees" : __playerCanLeave + reset propre via __playerReset
   const editChipClear = document.getElementById("transcribe-edit-chip-clear");
   if (editChipClear) {
     editChipClear.addEventListener("click", () => {
       if (typeof window.__playerCanLeave === "function" && !window.__playerCanLeave()) return;
-      // Reuse les boutons clear legacy qui font deja le bon reset state
-      const clrM = document.getElementById("player-clear-media-btn");
-      const clrS = document.getElementById("player-clear-srt-btn");
-      // Force le reset sans re-confirmer (on a deja confirme via __playerCanLeave)
-      // -> on clique mais le handler legacy va re-prompter si dirty. On contourne en
-      //    mettant playerState.dirty a false avant (deja fait par canLeave si OK).
-      if (clrM) clrM.click();
-      if (clrS) clrS.click();
-      // Reset aussi la source transcribe
+      if (typeof window.__playerReset === "function") window.__playerReset();
       state.transcribeSource = null;
       transcribeShowEmpty();
       transcribeUpdateUI();
@@ -2505,8 +2443,6 @@ async function initPlayerModule() {
     console.error("[player] onCloseRequested setup failed:", err);
   }
 
-  const dropZone = () => getEl("player-drop-zone");
-  const playerZone = () => getEl("player-zone");
   const mediaWrap = () => getEl("player-media-wrap");
   const segmentsWrap = () => getEl("player-segments-wrap");
 
@@ -2521,86 +2457,28 @@ async function initPlayerModule() {
         if (typeof state === "undefined" || state.currentModule !== "transcribe") return;
         const p = event.payload;
         if (!p) return;
-        // Phase 1 : detecte si on est en etat VIDE (nouveau drop hero) ou LEGACY (ancien player drop zone)
+        // Route via la zone drop-hero (etat VIDE). Aux autres etats, le drag-drop
+        // n'a pas de zone visible : on ignore le highlight et on route directement.
         const empty = document.getElementById("transcribe-empty");
         const isEmptyState = empty && !empty.classList.contains("hidden");
         const hero = document.getElementById("transcribe-drop-hero");
-        const zone = dropZone();
-        const visibleZone = isEmptyState ? hero : zone;
         if (p.type === "enter" || p.type === "over") {
-          if (visibleZone) visibleZone.classList.add("drag-over");
+          if (isEmptyState && hero) hero.classList.add("drag-over");
         } else if (p.type === "leave") {
-          if (visibleZone) visibleZone.classList.remove("drag-over");
+          if (hero) hero.classList.remove("drag-over");
         } else if (p.type === "drop") {
-          if (visibleZone) visibleZone.classList.remove("drag-over");
+          if (hero) hero.classList.remove("drag-over");
           const paths = Array.isArray(p.paths) ? p.paths : [];
           if (paths.length === 0) {
-            if (typeof showToast === "function") showToast("Aucun élément détecté", 2500);
+            if (typeof showToast === "function") showToast("Aucun element detecte", 2500);
             return;
           }
-          if (isEmptyState && typeof transcribeRoutePaths === "function") {
-            transcribeRoutePaths(paths);
-          } else {
-            paths.forEach(autoAssignFile);
-            refreshPlayerUI();
-          }
+          if (typeof transcribeRoutePaths === "function") transcribeRoutePaths(paths);
         }
       });
     }
   } catch (err) {
     console.error("[player] onDragDropEvent setup failed:", err);
-  }
-
-  function autoAssignFile(path) {
-    const ext = path.split(".").pop().toLowerCase();
-    if (ext === "srt") {
-      playerState.srtPath = path;
-      const label = getEl("player-srt-label");
-      if (label) label.textContent = path.split(/[\\/]/).pop();
-    } else if (["mp3","wav","m4a","flac","ogg","mp4","mov","mkv","webm","avi"].includes(ext)) {
-      playerState.mediaPath = path;
-      const label = getEl("player-media-label");
-      if (label) label.textContent = path.split(/[\\/]/).pop();
-    } else {
-      if (typeof showToast === "function") showToast("Format non supporté : " + ext, 3000);
-    }
-  }
-
-  // ===== File pickers =====
-  const btnMedia = getEl("player-select-media-btn");
-  if (btnMedia) {
-    btnMedia.addEventListener("click", async () => {
-      try {
-        const selected = await open({
-          multiple: false,
-          filters: [{ name: "Audio/Vidéo", extensions: ["mp3","wav","m4a","flac","ogg","mp4","mov","mkv","webm","avi"] }],
-        });
-        if (selected) {
-          playerState.mediaPath = selected;
-          const label = getEl("player-media-label");
-          if (label) label.textContent = selected.split(/[\\/]/).pop();
-          refreshPlayerUI();
-        }
-      } catch (e) { console.error("[player] picker media error:", e); }
-    });
-  }
-
-  const btnSrt = getEl("player-select-srt-btn");
-  if (btnSrt) {
-    btnSrt.addEventListener("click", async () => {
-      try {
-        const selected = await open({
-          multiple: false,
-          filters: [{ name: "Sous-titres SRT", extensions: ["srt"] }],
-        });
-        if (selected) {
-          playerState.srtPath = selected;
-          const label = getEl("player-srt-label");
-          if (label) label.textContent = selected.split(/[\\/]/).pop();
-          refreshPlayerUI();
-        }
-      } catch (e) { console.error("[player] picker srt error:", e); }
-    });
   }
 
   // ===== Bouton Modifier (toggle mode edition) =====
@@ -2728,40 +2606,6 @@ async function initPlayerModule() {
       });
     });
     return vtt;
-  }
-
-  // Gestion de la carte "Charger un fichier" collapsible : resume + auto-collapse une fois
-  let _autoCollapsedOnce = false;
-  function updateLoadCardSummary() {
-    const summary = getEl("player-load-summary-text");
-    const card = getEl("player-load-card");
-    if (!summary) return;
-    const m = playerState.mediaPath ? playerState.mediaPath.split(/[\\/]/).pop() : null;
-    const s = playerState.srtPath ? playerState.srtPath.split(/[\\/]/).pop() : null;
-    if (m && s) {
-      summary.textContent = m + "  +  " + s;
-    } else if (m) {
-      summary.textContent = m;
-    } else if (s) {
-      summary.textContent = s;
-    } else {
-      summary.textContent = "Charger un fichier";
-      _autoCollapsedOnce = false;
-    }
-    // Auto-collapse une seule fois quand au moins un fichier est charge
-    if (card && (m || s) && !_autoCollapsedOnce) {
-      card.classList.add("collapsed");
-      _autoCollapsedOnce = true;
-    }
-  }
-
-  // Toggle manuel : clic sur le header de la carte "Charger"
-  const loadSummaryBtn = getEl("player-load-summary-btn");
-  const loadCard = getEl("player-load-card");
-  if (loadSummaryBtn && loadCard) {
-    loadSummaryBtn.addEventListener("click", () => {
-      loadCard.classList.toggle("collapsed");
-    });
   }
 
   // ===== Charger le SRT =====
@@ -2934,75 +2778,21 @@ async function initPlayerModule() {
   }
 
   async function refreshPlayerUI() {
-    // Toujours synchroniser les boutons clear (visibles si fichier charge)
-    updateClearButtons();
-    // Toujours rafraichir le resume du <details> "Charger" (auto-collapse inclus)
-    updateLoadCardSummary();
     if (playerState.mediaPath || playerState.srtPath) {
-      // Phase 4 : monte les elements dans la nouvelle UI et bascule en EDIT
-      if (typeof transcribeMountEditFromLegacy === "function") transcribeMountEditFromLegacy();
+      // Bascule en etat EDIT (sidebar onglets [Segments] [Export])
       if (typeof transcribeShowEdit === "function") transcribeShowEdit();
-      else if (typeof transcribeShowLegacy === "function") transcribeShowLegacy();
       if (typeof transcribeUpdateEditChip === "function") {
         transcribeUpdateEditChip(playerState.mediaPath, playerState.srtPath);
       }
-      playerZone().classList.remove("hidden");
       if (playerState.srtPath) await loadSRT();
       renderMedia();
       renderSegments();
 
-      // Activer les boutons selon ce qui est charge
-      const exportBtn = getEl("player-export-btn");
+      // Activer le bouton edit si SRT charge
       const editBtn = getEl("player-edit-btn");
-      const exportCard = getEl("player-export-card");
-      const hasMedia = !!playerState.mediaPath;
-      const hasSrt = !!playerState.srtPath;
-      if (exportBtn) exportBtn.disabled = !(hasMedia && hasSrt);
-      if (editBtn) editBtn.disabled = !hasSrt;
-      if (exportCard) exportCard.classList.toggle("hidden", !(hasMedia && hasSrt));
+      if (editBtn) editBtn.disabled = !playerState.srtPath;
       updateSaveButton();
-    } else {
-      // Tout est vide : cacher le panneau export
-      const exportCard = getEl("player-export-card");
-      if (exportCard) exportCard.classList.add("hidden");
     }
-  }
-
-  // ===== API publique pour auto-switch depuis Transcribe =====
-  // Handlers boutons clear (Patch E)
-  function updateClearButtons() {
-    const clrM = getEl("player-clear-media-btn");
-    const clrS = getEl("player-clear-srt-btn");
-    if (clrM) clrM.classList.toggle("hidden", !playerState.mediaPath);
-    if (clrS) clrS.classList.toggle("hidden", !playerState.srtPath);
-  }
-  const clearMediaBtn = getEl("player-clear-media-btn");
-  if (clearMediaBtn) {
-    clearMediaBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      playerState.mediaPath = null;
-      playerState.mediaEl = null;
-      const lbl = getEl("player-media-label");
-      if (lbl) lbl.textContent = "Choisir l'audio/video";
-      refreshPlayerUI();
-      updateClearButtons();
-    });
-  }
-  const clearSrtBtn = getEl("player-clear-srt-btn");
-  if (clearSrtBtn) {
-    clearSrtBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (playerState.dirty && !confirm("Modifications de sous-titres non enregistrees.\nAbandonner les modifications ?")) return;
-      playerState.srtPath = null;
-      playerState.segments = [];
-      playerState.dirty = false;
-      const lbl = getEl("player-srt-label");
-      if (lbl) lbl.textContent = "Choisir le fichier .srt";
-      refreshPlayerUI();
-      updateSegmentsCount();
-      updateClearButtons();
-      updateSaveButton();
-    });
   }
 
   // ===== EXPORT PANEL =====
@@ -3044,30 +2834,30 @@ async function initPlayerModule() {
     });
   }
 
-  // Bouton export du header : scroll vers le panneau si visible
-  const exportHeaderBtn = getEl("player-export-btn");
-  if (exportHeaderBtn) {
-    exportHeaderBtn.addEventListener("click", () => {
-      const card = getEl("player-export-card");
-      if (card && !card.classList.contains("hidden")) {
-        card.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-  }
-
-    window.__playerLoad = function(mediaPath, srtPath) {
-    if (mediaPath) {
-      playerState.mediaPath = mediaPath;
-      const lblM = getEl("player-media-label");
-      if (lblM) lblM.textContent = mediaPath.split(/[\\/]/).pop();
-    }
-    if (srtPath) {
-      playerState.srtPath = srtPath;
-      const lblS = getEl("player-srt-label");
-      if (lblS) lblS.textContent = srtPath.split(/[\\/]/).pop();
-    }
+  window.__playerLoad = function(mediaPath, srtPath) {
+    if (mediaPath) playerState.mediaPath = mediaPath;
+    if (srtPath) playerState.srtPath = srtPath;
     refreshPlayerUI();
-    updateClearButtons();
+  };
+
+  // Phase 6 : reset complet du player (utilise par le chip-clear edit)
+  window.__playerReset = function() {
+    playerState.mediaPath = null;
+    playerState.srtPath = null;
+    playerState.segments = [];
+    playerState.activeSegmentIdx = -1;
+    playerState.editMode = false;
+    playerState.dirty = false;
+    playerState.mediaEl = null;
+    const mw = getEl("player-media-wrap");
+    if (mw) mw.innerHTML = "";
+    const sw = getEl("player-segments-wrap");
+    if (sw) sw.innerHTML = "";
+    const editBtn = getEl("player-edit-btn");
+    if (editBtn) { editBtn.disabled = true; editBtn.classList.remove("active"); }
+    const saveBtn = getEl("player-save-btn");
+    if (saveBtn) saveBtn.classList.add("hidden");
+    if (typeof updateSegmentsCount === "function") updateSegmentsCount();
   };
 }
 
