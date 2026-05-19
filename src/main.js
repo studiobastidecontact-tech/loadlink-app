@@ -936,6 +936,52 @@ function createDefaultEffectChain() {
   };
 }
 
+function resetAudioEffectChainForPreset(presetKey) {
+  const chain = createDefaultEffectChain();
+  if (presetKey === "clear_voice") {
+    chain.eq.bands = [
+      { ...AUDIO_DEFAULT_EQ_BANDS[0], freq: 80 },
+      { ...AUDIO_DEFAULT_EQ_BANDS[1], freq: 250, gain: -1.5 },
+      { ...AUDIO_DEFAULT_EQ_BANDS[2], freq: 1200, gain: 0.5 },
+      { ...AUDIO_DEFAULT_EQ_BANDS[3], freq: 4500, gain: 3 },
+      { ...AUDIO_DEFAULT_EQ_BANDS[4], freq: 12000, gain: 1 },
+    ];
+    chain.compressor = { enabled: true, threshold: -18, ratio: 3, attack: 5, release: 80, makeup: 2 };
+    chain.denoise = { enabled: true, amount: 14 };
+    chain.loudnorm = { enabled: true, targetLufs: -16 };
+  }
+  if (presetKey === "voice_memo") {
+    chain.eq.bands = [
+      { ...AUDIO_DEFAULT_EQ_BANDS[0], freq: 100 },
+      { ...AUDIO_DEFAULT_EQ_BANDS[1], freq: 250, gain: -3 },
+      { ...AUDIO_DEFAULT_EQ_BANDS[2], freq: 1200, gain: 1 },
+      { ...AUDIO_DEFAULT_EQ_BANDS[3], freq: 3500, gain: 4 },
+      { ...AUDIO_DEFAULT_EQ_BANDS[4], freq: 10000, gain: 1.5 },
+    ];
+    chain.compressor = { enabled: true, threshold: -22, ratio: 4, attack: 3, release: 100, makeup: 3 };
+    chain.denoise = { enabled: true, amount: 22 };
+    chain.loudnorm = { enabled: true, targetLufs: -15 };
+  }
+  if (presetKey === "podcast_interview") {
+    chain.eq.bands = [
+      { ...AUDIO_DEFAULT_EQ_BANDS[0], freq: 75 },
+      { ...AUDIO_DEFAULT_EQ_BANDS[1], freq: 180, gain: -1.5 },
+      { ...AUDIO_DEFAULT_EQ_BANDS[2], freq: 1200, gain: 0 },
+      { ...AUDIO_DEFAULT_EQ_BANDS[3], freq: 4500, gain: 2 },
+      { ...AUDIO_DEFAULT_EQ_BANDS[4], freq: 12000, gain: 1 },
+    ];
+    chain.compressor = { enabled: true, threshold: -20, ratio: 3, attack: 8, release: 120, makeup: 2 };
+    chain.deesser = { enabled: true, intensity: 0.35 };
+    chain.denoise = { enabled: true, amount: 10 };
+    chain.loudnorm = { enabled: true, targetLufs: -16 };
+  }
+  audioState.effectChain = chain;
+  audioState.effects = AUDIO_DEFAULT_EFFECTS.map((effect) => ({
+    ...effect,
+    enabled: chain[effect.key] ? Boolean(chain[effect.key].enabled) : effect.enabled,
+  }));
+}
+
 const audioState = {
   mediaPath: null,
   mediaName: null,
@@ -1258,7 +1304,7 @@ function renderAudioEffectsSidebar() {
   const chain = document.getElementById("audio-effects-chain");
   if (!chain) return;
   chain.innerHTML = audioState.effects.map((effect) => `
-    <button type="button" class="audio-effect-row${effect.key === audioState.selectedEffect ? " selected" : ""}" data-effect="${effect.key}">
+    <button type="button" class="audio-effect-row${effect.key === audioState.selectedEffect ? " selected" : ""}${effect.enabled ? "" : " off"}" data-effect="${effect.key}">
       <span class="audio-effect-handle">⋮⋮</span>
       <span class="audio-effect-name">${effect.label}</span>
       <span class="audio-effect-switch${effect.enabled ? " on" : ""}" data-effect-toggle="${effect.key}" aria-hidden="true"><span></span></span>
@@ -1994,6 +2040,8 @@ async function runAudioPreset(presetKey, options = {}) {
     audioState.resultDuration = null;
     audioState.currentPreset = presetKey;
     audioState.lastErrorPreset = null;
+    resetAudioEffectChainForPreset(presetKey);
+    resetAudioRefineState(false);
     audioUpdateUI();
 
     const previousTime = Math.min(getAudioSourceCurrentTime("original"), getAudioSourceDuration("original") || Infinity);

@@ -2060,6 +2060,10 @@ body.dark .libreoffice-warning {
   border-color: var(--accent);
 }
 
+.audio-effect-row.off {
+  opacity: .48;
+}
+
 .audio-effect-handle {
   color: var(--text3);
   font-weight: 800;
