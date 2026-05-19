@@ -1294,3 +1294,16 @@ body.dark .libreoffice-warning {
 .lo-warning-text a:hover {
   opacity: 0.8;
 }
+
+
+/* Phase 3 - Convert page scroll fix */
+#page-convert {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+#page-convert.hidden {
+  display: none;
+}
