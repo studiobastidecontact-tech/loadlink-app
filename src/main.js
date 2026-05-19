@@ -917,6 +917,7 @@ const audioState = {
   lastErrorPreset: null,
   exportDir: null,
   exportProcessing: false,
+  studioTab: "edit",
 };
 
 let audioModuleInitialized = false;
@@ -952,7 +953,11 @@ function bindAudioModuleHandlers(appState) {
   const exportConfirmBtn = document.getElementById("audio-export-confirm");
   const exportFolderBtn = document.getElementById("audio-export-folder-btn");
   const exportModal = document.getElementById("audio-export-modal");
+  const backBtn = document.getElementById("audio-back-btn");
+  const helpBtn = document.getElementById("audio-help-btn");
 
+  backBtn?.addEventListener("click", goHome);
+  helpBtn?.addEventListener("click", () => showToast("Aide Audio Studio disponible bientot", 2500));
   importCard?.addEventListener("click", pickAudioFile);
   playBtn?.addEventListener("click", audioTogglePlayback);
   timeline?.addEventListener("click", audioSeekFromTimelineEvent);
@@ -990,6 +995,10 @@ function bindAudioModuleHandlers(appState) {
 
   document.querySelectorAll("#audio-ab-toggle [data-audio-source]").forEach((button) => {
     button.addEventListener("click", () => setActiveAudioSource(button.dataset.audioSource));
+  });
+
+  document.querySelectorAll("#audio-mode-tabs [data-audio-tab]").forEach((button) => {
+    button.addEventListener("click", () => setAudioStudioTab(button.dataset.audioTab));
   });
 
   bindAudioNativeDragDrop(appState);
@@ -1104,9 +1113,13 @@ function loadAudioFile(path) {
 
 function audioUpdateUI() {
   const hasMedia = Boolean(audioState.mediaPath);
-  document.getElementById("audio-empty")?.classList.toggle("hidden", hasMedia);
-  document.getElementById("audio-workspace")?.classList.toggle("hidden", !hasMedia);
+  const isEditTab = audioState.studioTab === "edit";
+  document.getElementById("audio-empty")?.classList.toggle("hidden", !isEditTab || hasMedia);
+  document.getElementById("audio-workspace")?.classList.toggle("hidden", !isEditTab || !hasMedia);
+  document.getElementById("audio-studio-placeholder")?.classList.toggle("hidden", isEditTab);
   document.getElementById("audio-file-chip")?.classList.toggle("hidden", !hasMedia);
+
+  renderAudioStudioHeader(hasMedia);
 
   const chipName = document.getElementById("audio-file-chip-name");
   if (chipName) {
@@ -1146,6 +1159,37 @@ function audioUpdateUI() {
     setAudioTransportEnabled(false);
     setAudioPlayButton(false);
   }
+}
+
+function setAudioStudioTab(tab) {
+  if (!["edit", "mix", "master"].includes(tab)) return;
+  audioState.studioTab = tab;
+  if (tab !== "edit") {
+    const label = tab === "mix" ? "Mixage" : "Mastering";
+    const title = document.getElementById("audio-studio-placeholder-title");
+    const text = document.getElementById("audio-studio-placeholder-text");
+    if (title) title.textContent = `${label} disponible bientot`;
+    if (text) text.textContent = "Cette vue arrive dans une prochaine phase.";
+  }
+  audioUpdateUI();
+}
+
+function renderAudioStudioHeader(hasMedia) {
+  const title = document.getElementById("audio-studio-title");
+  const subtitle = document.getElementById("audio-studio-subtitle");
+  if (title) title.textContent = hasMedia ? "Mon projet audio" : "Audio Studio";
+  if (subtitle) {
+    subtitle.textContent = hasMedia
+      ? "Modifie aujourd'hui"
+      : "Importe ou enregistre un fichier pour commencer";
+  }
+
+  document.querySelectorAll("#audio-mode-tabs [data-audio-tab]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.audioTab === audioState.studioTab);
+  });
+
+  const exportBtn = document.getElementById("audio-export-btn");
+  if (exportBtn) exportBtn.disabled = !audioState.resultPath || audioState.processing;
 }
 
 function audioTogglePlayback() {
@@ -1803,6 +1847,7 @@ function resetAudioState() {
   audioState.lastErrorPreset = null;
   audioState.exportDir = null;
   audioState.exportProcessing = false;
+  audioState.studioTab = "edit";
   document.getElementById("audio-export-modal")?.classList.add("hidden");
   audioUpdateUI();
 }
