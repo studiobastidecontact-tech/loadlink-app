@@ -41,8 +41,7 @@
         <div class="module-card-desc">Télécharger une vidéo ou un audio depuis une URL.</div>
       </div>
 
-      <div class="module-card soon" data-module="transcribe">
-        <div class="module-card-badge">Bientôt</div>
+      <div class="module-card" data-module="transcribe">
         <div class="module-card-icon mc-transcribe">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
         </div>
@@ -147,10 +146,9 @@
         <span class="nav-icon ni-capture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
         Capturer
       </div>
-      <div class="nav-item soon" data-module="transcribe">
+      <div class="nav-item" data-module="transcribe">
         <span class="nav-icon ni-transcribe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
         Transcrire
-        <span class="nav-soon-badge">Bientôt</span>
       </div>
       <div class="nav-item" data-module="compress">
         <span class="nav-icon ni-compress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="21" y2="3"/><line x1="3" y1="21" x2="14" y2="10"/></svg></span>
@@ -673,6 +671,118 @@
 </div>
 
 
+
+    <div class="module-page hidden" id="page-transcribe">
+
+      <!-- TOPBAR -->
+      <div class="module-topbar">
+        <div class="module-topbar-left">
+          <h2 class="module-title">Transcrire</h2>
+          <p class="module-subtitle">Audio/video en TXT, SRT, VTT, JSON</p>
+        </div>
+        <button class="icon-btn" id="transcribe-open-folder-btn" title="Ouvrir le dossier de sortie">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        </button>
+      </div>
+
+      <!-- SOURCE TABS -->
+      <div class="card">
+        <label class="field-label">SOURCE</label>
+        <div class="tabs" id="transcribe-tabs" style="display:flex; gap:8px; margin-bottom:12px;">
+          <button class="tab-btn active" data-tab="file" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; border-radius:8px; cursor:pointer;">Fichier local</button>
+          <button class="tab-btn" data-tab="youtube" style="flex:1; padding:10px; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#888; border-radius:8px; cursor:pointer;">URL YouTube</button>
+        </div>
+
+        <!-- TAB FILE -->
+        <div class="tab-content" id="transcribe-tab-file">
+          <div class="drop-zone" id="transcribe-drop-zone" data-target="transcribe">
+            <div class="drop-zone-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <p class="drop-zone-text">Glisse un fichier audio ou video</p>
+            <p class="drop-zone-subtext">mp3, wav, m4a, flac, ogg, mp4, mov, mkv, webm...</p>
+          </div>
+          <div class="option-row" id="transcribe-select-file-btn" style="margin-top: 12px; margin-bottom: 0;">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+              <span>Choisir un fichier</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="drop-zone-info hidden" id="transcribe-source-info" style="margin-top: 12px;">
+            <span class="drop-zone-info-text" id="transcribe-source-info-text">Aucune source</span>
+            <button class="drop-zone-clear" id="transcribe-source-clear" title="Retirer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB YOUTUBE -->
+        <div class="tab-content hidden" id="transcribe-tab-youtube">
+          <input type="text" id="transcribe-youtube-url" placeholder="https://youtube.com/watch?v=..." style="width:100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; border-radius:8px; font-size:14px; box-sizing:border-box;" />
+          <p style="font-size:12px; color:#888; margin-top:8px;">L'audio sera telecharge automatiquement avant transcription.</p>
+        </div>
+      </div>
+
+      <!-- OPTIONS -->
+      <div class="card">
+        <label class="field-label">OPTIONS</label>
+        <div style="padding: 0;">
+          <div class="option-row" id="transcribe-model-row">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              <span id="transcribe-model-label">Modele : Small (equilibre)</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="option-row" id="transcribe-language-row">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <span id="transcribe-language-label">Langue : Detection automatique</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="option-row" id="transcribe-formats-row">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+              <span id="transcribe-formats-label">Formats : TXT + SRT + VTT + JSON</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+          <div class="option-row" id="transcribe-output-row" style="margin-bottom: 0;">
+            <div class="option-row-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span id="transcribe-output-label">Sortie : Meme dossier que la source</span>
+            </div>
+            <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAUNCH BUTTON -->
+      <button class="btn-primary" id="transcribe-btn" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        <span id="transcribe-btn-label">Lancer la transcription</span>
+      </button>
+
+      <!-- RECENTS -->
+      <div class="history-section" id="transcribe-history-section" style="display:none;">
+        <p class="history-title">Recents</p>
+        <div id="transcribe-history-list"></div>
+      </div>
+
+      <!-- PROGRESS -->
+      <div class="progress-section hidden" id="transcribe-progress-section">
+        <div class="progress-bar">
+          <div class="progress-fill" id="transcribe-progress-fill"></div>
+        </div>
+        <div class="progress-info">
+          <span id="transcribe-progress-stage">Preparation...</span>
+          <span id="transcribe-progress-meta"></span>
+        </div>
+      </div>
+
+    </div>
 
     <div class="module-page hidden" id="page-placeholder">
       <div class="placeholder-page">
