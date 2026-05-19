@@ -1699,7 +1699,136 @@ function transcribeAddRecent(entry) {
   transcribeRenderRecents();
 }
 
+// ============================================
+// Phase 1 refacto : helpers state VIDE / LEGACY
+// ============================================
+function transcribeShowEmpty() {
+  const empty = document.getElementById("transcribe-empty");
+  const legacy = document.getElementById("transcribe-legacy");
+  if (empty) empty.classList.remove("hidden");
+  if (legacy) legacy.classList.add("hidden");
+}
+function transcribeShowLegacy() {
+  const empty = document.getElementById("transcribe-empty");
+  const legacy = document.getElementById("transcribe-legacy");
+  if (empty) empty.classList.add("hidden");
+  if (legacy) legacy.classList.remove("hidden");
+}
+
+// Routage d'un fichier deposé/choisi dans la zone hero
+function transcribeRouteFile(path) {
+  if (!path) return;
+  const ext = (path.split(".").pop() || "").toLowerCase();
+  if (ext === "srt") {
+    // SRT seul -> mode edition pure dans le player
+    if (typeof window.__playerLoad === "function") {
+      window.__playerLoad(null, path);
+    }
+    transcribeShowLegacy();
+  } else if (TRANSCRIBE_VIDEO_EXTS.has(ext) || TRANSCRIBE_AUDIO_EXTS.has(ext)) {
+    transcribeSetSourceFromPath(path);
+    transcribeShowLegacy();
+  } else {
+    if (typeof showToast === "function") showToast("Format non supporte : ." + ext, 3000);
+  }
+}
+
+// Routage multi-fichiers (drop ou picker)
+function transcribeRoutePaths(paths) {
+  if (!paths || paths.length === 0) return;
+  if (paths.length === 1) {
+    transcribeRouteFile(paths[0]);
+    return;
+  }
+  let media = null, srt = null;
+  for (const p of paths) {
+    const ext = (p.split(".").pop() || "").toLowerCase();
+    if (ext === "srt" && !srt) srt = p;
+    else if (!media && (TRANSCRIBE_VIDEO_EXTS.has(ext) || TRANSCRIBE_AUDIO_EXTS.has(ext))) media = p;
+  }
+  if (media && srt) {
+    if (typeof window.__playerLoad === "function") window.__playerLoad(media, srt);
+    transcribeShowLegacy();
+  } else if (media) {
+    transcribeSetSourceFromPath(media);
+    transcribeShowLegacy();
+  } else if (srt) {
+    if (typeof window.__playerLoad === "function") window.__playerLoad(null, srt);
+    transcribeShowLegacy();
+  } else {
+    if (typeof showToast === "function") showToast("Aucun fichier valide detecte", 2500);
+  }
+}
+
 async function initTranscribeModule() {
+  // ===== Phase 1 : NEW EMPTY STATE HANDLERS =====
+  const browseBtn = document.getElementById("transcribe-browse-btn");
+  if (browseBtn) {
+    browseBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      try {
+        const selected = await open({
+          multiple: true,
+          filters: [{
+            name: "Audio / Video / SRT",
+            extensions: ["mp3","wav","m4a","flac","ogg","aac","opus","mp4","mov","mkv","webm","avi","srt"]
+          }],
+        });
+        if (selected) {
+          const paths = Array.isArray(selected) ? selected : [selected];
+          transcribeRoutePaths(paths);
+        }
+      } catch (err) { console.error("[transcribe] browse error:", err); }
+    });
+  }
+
+  // Toggle UI : drop hero <-> mode URL YouTube
+  const ytToggle = document.getElementById("transcribe-yt-toggle");
+  const ytMode = document.getElementById("transcribe-yt-mode");
+  const ytBack = document.getElementById("transcribe-yt-back");
+  const ytUrlNew = document.getElementById("transcribe-yt-url-new");
+  const dropHero = document.getElementById("transcribe-drop-hero");
+
+  if (ytToggle && ytMode && dropHero) {
+    ytToggle.addEventListener("click", () => {
+      dropHero.classList.add("hidden");
+      ytToggle.classList.add("hidden");
+      ytMode.classList.remove("hidden");
+      if (ytUrlNew) ytUrlNew.focus();
+    });
+  }
+  if (ytBack && ytMode && dropHero && ytToggle) {
+    ytBack.addEventListener("click", () => {
+      ytMode.classList.add("hidden");
+      dropHero.classList.remove("hidden");
+      ytToggle.classList.remove("hidden");
+    });
+  }
+  if (ytUrlNew) {
+    ytUrlNew.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && ytUrlNew.value.trim()) {
+        // Bascule vers legacy avec mode YouTube actif (provisoire jusqu'a Phase 2)
+        const oldInput = document.getElementById("transcribe-youtube-url");
+        if (oldInput) oldInput.value = ytUrlNew.value;
+        state.transcribeYoutubeUrl = ytUrlNew.value;
+        state.transcribeSourceType = "youtube";
+        transcribeShowLegacy();
+        const ytTab = document.querySelector('#transcribe-tabs .tab-btn[data-tab="youtube"]');
+        if (ytTab) ytTab.click();
+        transcribeUpdateUI();
+      }
+    });
+  }
+
+  // Click sur la drop-hero (hors bouton Parcourir) ouvre aussi le picker
+  if (dropHero && browseBtn) {
+    dropHero.addEventListener("click", (e) => {
+      // Si on a cliqué sur le bouton, le handler du bouton gère
+      if (e.target.closest("#transcribe-browse-btn")) return;
+      browseBtn.click();
+    });
+  }
+
   // ===== TABS =====
   const tabBtns = document.querySelectorAll("#transcribe-tabs .tab-btn");
   tabBtns.forEach(btn => {
@@ -2042,20 +2171,29 @@ async function initPlayerModule() {
         if (typeof state === "undefined" || state.currentModule !== "transcribe") return;
         const p = event.payload;
         if (!p) return;
+        // Phase 1 : detecte si on est en etat VIDE (nouveau drop hero) ou LEGACY (ancien player drop zone)
+        const empty = document.getElementById("transcribe-empty");
+        const isEmptyState = empty && !empty.classList.contains("hidden");
+        const hero = document.getElementById("transcribe-drop-hero");
         const zone = dropZone();
+        const visibleZone = isEmptyState ? hero : zone;
         if (p.type === "enter" || p.type === "over") {
-          if (zone) zone.classList.add("drag-over");
+          if (visibleZone) visibleZone.classList.add("drag-over");
         } else if (p.type === "leave") {
-          if (zone) zone.classList.remove("drag-over");
+          if (visibleZone) visibleZone.classList.remove("drag-over");
         } else if (p.type === "drop") {
-          if (zone) zone.classList.remove("drag-over");
+          if (visibleZone) visibleZone.classList.remove("drag-over");
           const paths = Array.isArray(p.paths) ? p.paths : [];
           if (paths.length === 0) {
             if (typeof showToast === "function") showToast("Aucun élément détecté", 2500);
             return;
           }
-          paths.forEach(autoAssignFile);
-          refreshPlayerUI();
+          if (isEmptyState && typeof transcribeRoutePaths === "function") {
+            transcribeRoutePaths(paths);
+          } else {
+            paths.forEach(autoAssignFile);
+            refreshPlayerUI();
+          }
         }
       });
     }
@@ -2451,6 +2589,8 @@ async function initPlayerModule() {
     // Toujours rafraichir le resume du <details> "Charger" (auto-collapse inclus)
     updateLoadCardSummary();
     if (playerState.mediaPath || playerState.srtPath) {
+      // Phase 1 : bascule l'UI Transcrire vers legacy si on charge des fichiers
+      if (typeof transcribeShowLegacy === "function") transcribeShowLegacy();
       playerZone().classList.remove("hidden");
       if (playerState.srtPath) await loadSRT();
       renderMedia();

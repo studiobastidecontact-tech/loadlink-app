@@ -686,6 +686,35 @@
       </div>
       <div class="content">
 
+        <!-- ====== PHASE 1 : NEW EMPTY STATE ====== -->
+        <div class="transcribe-empty" id="transcribe-empty">
+          <div class="transcribe-drop-hero" id="transcribe-drop-hero">
+            <div class="drop-hero-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div class="drop-hero-titles">
+              <div class="drop-hero-title">Glisse un audio, une vidéo ou un .srt</div>
+              <div class="drop-hero-subtitle">Ou les deux ensemble pour éditer</div>
+            </div>
+            <button type="button" class="drop-hero-browse" id="transcribe-browse-btn">Parcourir des fichiers</button>
+          </div>
+          <button type="button" class="transcribe-yt-link" id="transcribe-yt-toggle">
+            <span>ou coller une URL YouTube</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <div class="transcribe-yt-mode hidden" id="transcribe-yt-mode">
+            <button type="button" class="transcribe-yt-back" id="transcribe-yt-back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Retour au fichier local</span>
+            </button>
+            <input type="text" id="transcribe-yt-url-new" placeholder="https://youtube.com/watch?v=..." autocomplete="off" />
+            <p class="transcribe-yt-hint">L'audio sera téléchargé automatiquement avant la transcription. Valide avec Entrée.</p>
+          </div>
+        </div>
+
+        <!-- ====== LEGACY UI (caché par défaut, montré quand un fichier est chargé) ====== -->
+        <div class="transcribe-legacy hidden" id="transcribe-legacy">
+
         <!-- SOURCE TABS -->
         <div class="card">
           <label class="field-label">Source</label>
@@ -877,6 +906,9 @@
             <span>Exporter la vidéo sous-titrée</span>
           </button>
         </div>
+
+        </div>
+        <!-- ====== END LEGACY UI ====== -->
 
       </div>
     </div>
