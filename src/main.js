@@ -68,7 +68,7 @@ const REENCODE_BITRATES = [
 
 const MODULE_INFO = {
   capture:    { title: "Capturer", sub: "Télécharge une vidéo ou un audio depuis une URL.", ready: true },
-  transcribe: { title: "Transcrire", sub: "Convertit un fichier audio ou vidéo en texte horodaté.", ready: false },
+  transcribe: { title: "Transcrire", sub: "Convertit un fichier audio ou vidéo en texte horodaté.", ready: true },
   compress:   { title: "Compresser", sub: "Archive en ZIP ou réencode des vidéos en H.265.", ready: true },
   convert:    { title: "Convertir", sub: "Change le format d'un fichier local sans perte de qualité.", ready: true },
   audio:      { title: "Audio", sub: "Édition audio multitrack, normalisation, mastering.", ready: false },
@@ -1524,3 +1524,416 @@ function addConvertHistoryEntry(name, format, kind, folder) {
 
 // Call init - this is a single statement, no nested IIFE
 initConvertModule();
+
+// ============================================
+// PHASE 4 - TRANSCRIRE MODULE
+// ============================================
+
+const TRANSCRIBE_MODELS = [
+  { key: "tiny",     label: "Tiny",     desc: "Tres rapide, qualite basique (~75 Mo)" },
+  { key: "base",     label: "Base",     desc: "Rapide, qualite correcte (~150 Mo)" },
+  { key: "small",    label: "Small",    desc: "Equilibre vitesse/qualite (~470 Mo)" },
+  { key: "medium",   label: "Medium",   desc: "Tres bonne qualite, plus lent (~1.5 Go)" },
+  { key: "large-v3", label: "Large v3", desc: "Meilleure qualite (~3 Go), lent en CPU" },
+];
+
+const TRANSCRIBE_LANGUAGES = [
+  { key: "auto", label: "Detection auto", desc: "Whisper detecte la langue" },
+  { key: "fr",   label: "Francais",       desc: "" },
+  { key: "en",   label: "Anglais",        desc: "" },
+  { key: "es",   label: "Espagnol",       desc: "" },
+  { key: "it",   label: "Italien",        desc: "" },
+  { key: "de",   label: "Allemand",       desc: "" },
+  { key: "pt",   label: "Portugais",      desc: "" },
+  { key: "ja",   label: "Japonais",       desc: "" },
+];
+
+const TRANSCRIBE_FORMATS_OPTIONS = [
+  { key: "all",         label: "Tous (TXT+SRT+VTT+JSON)", desc: "Texte + sous-titres + donnees brutes" },
+  { key: "txt",         label: "TXT uniquement",          desc: "Texte simple" },
+  { key: "srt",         label: "SRT uniquement",          desc: "Sous-titres SRT" },
+  { key: "vtt",         label: "VTT uniquement",          desc: "Sous-titres VTT (web)" },
+  { key: "txt-srt",     label: "TXT + SRT",                desc: "Texte + sous-titres SRT" },
+  { key: "txt-srt-vtt", label: "TXT + SRT + VTT",          desc: "Texte + sous-titres tous formats" },
+];
+
+const TRANSCRIBE_FORMATS_MAP = {
+  "all":         ["txt", "srt", "vtt", "json"],
+  "txt":         ["txt"],
+  "srt":         ["srt"],
+  "vtt":         ["vtt"],
+  "txt-srt":     ["txt", "srt"],
+  "txt-srt-vtt": ["txt", "srt", "vtt"],
+};
+
+// Extend state with transcribe fields (state object must exist already)
+if (typeof state !== "undefined") {
+  state.transcribeSource = null;
+  state.transcribeSourceType = "file"; // "file" or "youtube"
+  state.transcribeYoutubeUrl = "";
+  state.transcribeOutputDir = null;
+  state.transcribeModel = "small";
+  state.transcribeLanguage = "auto";
+  state.transcribeFormatsKey = "all";
+  state.transcribing = false;
+}
+
+const TRANSCRIBE_VIDEO_EXTS = new Set(["mp4", "mov", "mkv", "webm", "avi", "flv", "m4v", "wmv", "ts", "mpg", "mpeg"]);
+const TRANSCRIBE_AUDIO_EXTS = new Set(["mp3", "wav", "m4a", "flac", "ogg", "aac", "wma", "opus"]);
+
+function transcribeIsValidMedia(path) {
+  const ext = (path.split(".").pop() || "").toLowerCase();
+  return TRANSCRIBE_VIDEO_EXTS.has(ext) || TRANSCRIBE_AUDIO_EXTS.has(ext);
+}
+
+function transcribeShortPath(p) {
+  if (!p) return "";
+  const parts = p.split(/[\\/]/);
+  return parts[parts.length - 1] || p;
+}
+
+function transcribeUpdateUI() {
+  const btn = document.getElementById("transcribe-btn");
+  if (!btn) return;
+
+  // Update label
+  const modelOpt = TRANSCRIBE_MODELS.find(m => m.key === state.transcribeModel);
+  const langOpt = TRANSCRIBE_LANGUAGES.find(l => l.key === state.transcribeLanguage);
+  const formatsOpt = TRANSCRIBE_FORMATS_OPTIONS.find(f => f.key === state.transcribeFormatsKey);
+
+  const modelLabel = document.getElementById("transcribe-model-label");
+  if (modelLabel && modelOpt) modelLabel.textContent = "Modele : " + modelOpt.label;
+
+  const langLabel = document.getElementById("transcribe-language-label");
+  if (langLabel && langOpt) langLabel.textContent = "Langue : " + langOpt.label;
+
+  const formatsLabel = document.getElementById("transcribe-formats-label");
+  if (formatsLabel && formatsOpt) formatsLabel.textContent = "Formats : " + formatsOpt.label;
+
+  const outputLabel = document.getElementById("transcribe-output-label");
+  if (outputLabel) {
+    outputLabel.textContent = state.transcribeOutputDir
+      ? "Sortie : " + transcribeShortPath(state.transcribeOutputDir)
+      : "Sortie : Meme dossier que la source";
+  }
+
+  // Source info
+  const info = document.getElementById("transcribe-source-info");
+  const infoText = document.getElementById("transcribe-source-info-text");
+
+  let hasSource = false;
+  if (state.transcribeSourceType === "file" && state.transcribeSource) {
+    hasSource = true;
+    if (infoText) infoText.textContent = transcribeShortPath(state.transcribeSource);
+    if (info) info.classList.remove("hidden");
+  } else if (state.transcribeSourceType === "youtube" && state.transcribeYoutubeUrl.trim()) {
+    hasSource = true;
+    if (info) info.classList.add("hidden");
+  } else {
+    if (info) info.classList.add("hidden");
+  }
+
+  // Button enable/disable
+  btn.disabled = !hasSource || state.transcribing;
+  const btnLabel = document.getElementById("transcribe-btn-label");
+  if (btnLabel) {
+    btnLabel.textContent = state.transcribing ? "Transcription en cours..." : "Lancer la transcription";
+  }
+}
+
+function transcribeSetSourceFromPath(path) {
+  if (!path) return;
+  if (!transcribeIsValidMedia(path)) {
+    showToast("Format non supporte (audio/video uniquement)", 3000);
+    return;
+  }
+  state.transcribeSource = path;
+  state.transcribeSourceType = "file";
+  showToast("Source ajoutee", 1800);
+  transcribeUpdateUI();
+}
+
+function transcribeRenderRecents() {
+  const section = document.getElementById("transcribe-history-section");
+  const list = document.getElementById("transcribe-history-list");
+  if (!section || !list) return;
+
+  let recents = [];
+  try {
+    recents = JSON.parse(localStorage.getItem("transcribe-recents") || "[]");
+  } catch (e) {
+    recents = [];
+  }
+
+  if (recents.length === 0) {
+    section.style.display = "none";
+    return;
+  }
+  section.style.display = "";
+  list.innerHTML = recents.slice(0, 5).map(r => `
+    <div class="history-item" data-path="${r.outputFile || ''}">
+      <div class="history-item-name">${r.name}</div>
+      <div class="history-item-meta">${r.model} - ${r.language || 'auto'} - ${r.formats.join(', ')}</div>
+    </div>
+  `).join("");
+}
+
+function transcribeAddRecent(entry) {
+  let recents = [];
+  try {
+    recents = JSON.parse(localStorage.getItem("transcribe-recents") || "[]");
+  } catch (e) {
+    recents = [];
+  }
+  recents.unshift(entry);
+  recents = recents.slice(0, 10);
+  localStorage.setItem("transcribe-recents", JSON.stringify(recents));
+  transcribeRenderRecents();
+}
+
+async function initTranscribeModule() {
+  // ===== TABS =====
+  const tabBtns = document.querySelectorAll("#transcribe-tabs .tab-btn");
+  tabBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tab = btn.getAttribute("data-tab");
+      tabBtns.forEach(b => {
+        b.classList.toggle("active", b === btn);
+        b.style.background = (b === btn) ? "rgba(255,255,255,0.05)" : "transparent";
+        b.style.color = (b === btn) ? "#fff" : "#888";
+      });
+      document.getElementById("transcribe-tab-file").classList.toggle("hidden", tab !== "file");
+      document.getElementById("transcribe-tab-youtube").classList.toggle("hidden", tab !== "youtube");
+      state.transcribeSourceType = tab;
+      transcribeUpdateUI();
+    });
+  });
+
+  // ===== YOUTUBE URL INPUT =====
+  const ytInput = document.getElementById("transcribe-youtube-url");
+  if (ytInput) {
+    ytInput.addEventListener("input", () => {
+      state.transcribeYoutubeUrl = ytInput.value;
+      transcribeUpdateUI();
+    });
+  }
+
+  // ===== FILE PICKER =====
+  const pickBtn = document.getElementById("transcribe-select-file-btn");
+  if (pickBtn) {
+    pickBtn.addEventListener("click", async () => {
+      try {
+        const selected = await open({
+          multiple: false,
+          filters: [{
+            name: "Audio / Video",
+            extensions: ["mp3", "wav", "m4a", "flac", "ogg", "aac", "opus", "mp4", "mov", "mkv", "webm", "avi"]
+          }]
+        });
+        if (selected && typeof selected === "string") {
+          transcribeSetSourceFromPath(selected);
+        }
+      } catch (e) {
+        console.error("[transcribe] file picker error:", e);
+      }
+    });
+  }
+
+  // ===== SOURCE CLEAR =====
+  const clearBtn = document.getElementById("transcribe-source-clear");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      state.transcribeSource = null;
+      transcribeUpdateUI();
+    });
+  }
+
+  // ===== OPTIONS: MODEL =====
+  const modelRow = document.getElementById("transcribe-model-row");
+  if (modelRow) {
+    modelRow.addEventListener("click", () => {
+      showOptionsModal("Choisis le modele Whisper", TRANSCRIBE_MODELS, state.transcribeModel, (key) => {
+        state.transcribeModel = key;
+        transcribeUpdateUI();
+      });
+    });
+  }
+
+  // ===== OPTIONS: LANGUAGE =====
+  const langRow = document.getElementById("transcribe-language-row");
+  if (langRow) {
+    langRow.addEventListener("click", () => {
+      showOptionsModal("Choisis la langue", TRANSCRIBE_LANGUAGES, state.transcribeLanguage, (key) => {
+        state.transcribeLanguage = key;
+        transcribeUpdateUI();
+      });
+    });
+  }
+
+  // ===== OPTIONS: FORMATS =====
+  const formatsRow = document.getElementById("transcribe-formats-row");
+  if (formatsRow) {
+    formatsRow.addEventListener("click", () => {
+      showOptionsModal("Choisis les formats de sortie", TRANSCRIBE_FORMATS_OPTIONS, state.transcribeFormatsKey, (key) => {
+        state.transcribeFormatsKey = key;
+        transcribeUpdateUI();
+      });
+    });
+  }
+
+  // ===== OPTIONS: OUTPUT DIR =====
+  const outputRow = document.getElementById("transcribe-output-row");
+  if (outputRow) {
+    outputRow.addEventListener("click", async () => {
+      try {
+        const selected = await open({ directory: true, multiple: false });
+        if (selected && typeof selected === "string") {
+          state.transcribeOutputDir = selected;
+          transcribeUpdateUI();
+        }
+      } catch (e) {
+        console.error("[transcribe] folder picker error:", e);
+      }
+    });
+  }
+
+  // ===== DRAG & DROP =====
+  try {
+    const wv =
+      (window.__TAURI__ && window.__TAURI__.webview && window.__TAURI__.webview.getCurrentWebview)
+        ? window.__TAURI__.webview.getCurrentWebview()
+        : null;
+    if (wv && typeof wv.onDragDropEvent === "function") {
+      await wv.onDragDropEvent((event) => {
+        if (state.currentModule !== "transcribe") return;
+        const p = event.payload;
+        if (!p) return;
+        const zone = document.getElementById("transcribe-drop-zone");
+        if (p.type === "enter" || p.type === "over") {
+          zone?.classList.add("drag-over");
+        } else if (p.type === "leave") {
+          zone?.classList.remove("drag-over");
+        } else if (p.type === "drop") {
+          zone?.classList.remove("drag-over");
+          const paths = Array.isArray(p.paths) ? p.paths : [];
+          if (paths.length === 0) {
+            showToast("Aucun element detecte", 2500);
+            return;
+          }
+          if (paths.length > 1) {
+            showToast("Drag un seul fichier a la fois", 3000);
+            return;
+          }
+          transcribeSetSourceFromPath(paths[0]);
+        }
+      });
+    } else {
+      console.warn("[transcribe] Tauri webview.getCurrentWebview indisponible, drag&drop desactive");
+    }
+  } catch (err) {
+    console.error("[transcribe] onDragDropEvent setup failed:", err);
+  }
+
+  // ===== LAUNCH BUTTON =====
+  const btn = document.getElementById("transcribe-btn");
+  if (btn) {
+    btn.addEventListener("click", async () => {
+      if (state.transcribing) return;
+
+      const input = state.transcribeSourceType === "youtube"
+        ? state.transcribeYoutubeUrl.trim()
+        : state.transcribeSource;
+
+      if (!input) {
+        showToast("Aucune source", 2500);
+        return;
+      }
+
+      const formats = TRANSCRIBE_FORMATS_MAP[state.transcribeFormatsKey] || ["txt", "srt", "vtt", "json"];
+      const language = state.transcribeLanguage === "auto" ? null : state.transcribeLanguage;
+
+      state.transcribing = true;
+      transcribeUpdateUI();
+
+      const progressSection = document.getElementById("transcribe-progress-section");
+      const progressFill = document.getElementById("transcribe-progress-fill");
+      const progressStage = document.getElementById("transcribe-progress-stage");
+      const progressMeta = document.getElementById("transcribe-progress-meta");
+
+      if (progressSection) progressSection.classList.remove("hidden");
+      if (progressFill) progressFill.style.width = "0%";
+      if (progressStage) progressStage.textContent = "Preparation...";
+      if (progressMeta) progressMeta.textContent = "";
+
+      try {
+        const result = await invoke("transcribe", {
+          input,
+          outputDir: state.transcribeOutputDir,
+          model: state.transcribeModel,
+          language,
+          formats,
+          translateToEnglish: false,
+        });
+
+        if (result && result.success) {
+          showToast("Transcription terminee : " + (result.output_files?.length || 0) + " fichier(s)", 3500);
+          transcribeAddRecent({
+            name: transcribeShortPath(input),
+            model: state.transcribeModel,
+            language: result.language_detected || language || "auto",
+            formats: formats,
+            outputFile: result.output_files?.[0] || "",
+            ts: Date.now(),
+          });
+        } else {
+          const err = result?.error || "Erreur inconnue";
+          showToast("Echec : " + err.substring(0, 80), 5000);
+          console.error("[transcribe] failed:", err);
+        }
+      } catch (e) {
+        console.error("[transcribe] invoke error:", e);
+        showToast("Erreur : " + String(e).substring(0, 80), 5000);
+      } finally {
+        state.transcribing = false;
+        transcribeUpdateUI();
+        if (progressSection) {
+          setTimeout(() => progressSection.classList.add("hidden"), 2500);
+        }
+      }
+    });
+  }
+
+  // ===== EVENT LISTENERS =====
+  listen("transcribe-progress", (event) => {
+    const p = event.payload;
+    if (!p) return;
+    const progressFill = document.getElementById("transcribe-progress-fill");
+    const progressStage = document.getElementById("transcribe-progress-stage");
+    const progressMeta = document.getElementById("transcribe-progress-meta");
+
+    const pct = typeof p.pct === "number" ? p.pct : 0;
+    const stage = p.stage || "";
+    const stageLabels = {
+      "download_video":  "Telechargement YouTube...",
+      "extract_audio":   "Extraction audio...",
+      "load_model":      "Chargement du modele Whisper...",
+      "transcribe":      "Transcription...",
+    };
+    if (progressFill) progressFill.style.width = pct + "%";
+    if (progressStage) progressStage.textContent = stageLabels[stage] || stage;
+    if (progressMeta) progressMeta.textContent = Math.round(pct) + "%";
+  }).catch(e => console.error("[transcribe] listen progress failed:", e));
+
+  listen("transcribe-file", (event) => {
+    const p = event.payload;
+    if (!p || !p.path) return;
+    console.log("[transcribe] file written:", p.path);
+  }).catch(e => console.error("[transcribe] listen file failed:", e));
+
+  // Init UI state
+  transcribeUpdateUI();
+  transcribeRenderRecents();
+}
+
+// Auto-init at startup
+initTranscribeModule();
