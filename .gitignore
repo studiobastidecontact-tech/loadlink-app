@@ -55,3 +55,9 @@ src-tauri/binaries/*.mp4
 
 # Phase 1 migration backup
 src-tauri/src/lib.rs.OLD
+
+
+# Phase 4 - Python embeddable (use setup-python.ps1 to install)
+src-tauri/binaries/python/
+!src-tauri/binaries/python/scripts/
+!src-tauri/binaries/python/scripts/**
