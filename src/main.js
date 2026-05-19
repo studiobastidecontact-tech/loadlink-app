@@ -1299,9 +1299,9 @@ function renderAudioEffectDetail() {
     return;
   }
 
-  const body = effect.key === "eq"
-    ? renderAudioEqPanel()
-    : `<div class="audio-effect-detail-placeholder">Parametres - Disponibles en Phase D</div>`;
+  let body = `<div class="audio-effect-detail-placeholder">Parametres - Disponibles en Phase H</div>`;
+  if (effect.key === "eq") body = renderAudioEqPanel();
+  if (effect.key === "compressor") body = renderAudioCompressorPanel();
 
   detail.innerHTML = `
     <div class="audio-effect-detail-head">
@@ -1318,6 +1318,7 @@ function renderAudioEffectDetail() {
 
   detail.querySelector("#audio-effect-power")?.addEventListener("click", () => toggleAudioEffect(effect.key));
   bindAudioEqPanel(detail);
+  bindAudioCompressorPanel(detail);
 }
 
 function renderAudioEqPanel() {
@@ -1430,6 +1431,60 @@ function updateAudioEqVisuals() {
   });
   const active = points[audioEqDrag?.band || 0]?.band || eq.bands[0];
   if (readout && active) readout.textContent = `Freq ${Math.round(active.freq)} Hz / Gain ${active.gain.toFixed(1)} dB`;
+}
+
+function renderAudioCompressorPanel() {
+  const compressor = audioState.effectChain.compressor;
+  const controls = [
+    { key: "threshold", label: "Threshold", min: -60, max: 0, step: 1, unit: "dB" },
+    { key: "ratio", label: "Ratio", min: 1, max: 20, step: 0.1, unit: ":1" },
+    { key: "attack", label: "Attack", min: 1, max: 100, step: 1, unit: "ms" },
+    { key: "release", label: "Release", min: 10, max: 500, step: 5, unit: "ms" },
+    { key: "makeup", label: "Makeup", min: 0, max: 12, step: 0.5, unit: "dB" },
+  ];
+  return `
+    <div class="audio-compressor-panel${compressor.enabled ? "" : " disabled"}">
+      <div class="audio-compressor-controls">
+        ${controls.map((control) => {
+          const value = compressor[control.key];
+          return `
+            <label class="audio-compressor-control">
+              <span>${control.label}</span>
+              <input type="range" data-compressor-control="${control.key}" min="${control.min}" max="${control.max}" step="${control.step}" value="${value}" />
+              <strong data-compressor-value="${control.key}">${formatAudioCompressorValue(value, control.unit)}</strong>
+            </label>
+          `;
+        }).join("")}
+      </div>
+      <button type="button" class="audio-effect-reset" id="audio-compressor-reset">Reset Compresseur</button>
+    </div>
+  `;
+}
+
+function bindAudioCompressorPanel(root) {
+  root.querySelectorAll("[data-compressor-control]").forEach((input) => {
+    input.addEventListener("input", () => {
+      const key = input.dataset.compressorControl;
+      audioState.effectChain.compressor[key] = Number(input.value);
+      const unit = key === "ratio" ? ":1" : (key === "attack" || key === "release" ? "ms" : "dB");
+      const value = root.querySelector(`[data-compressor-value="${key}"]`);
+      if (value) value.textContent = formatAudioCompressorValue(audioState.effectChain.compressor[key], unit);
+      if (audioState.effectChain.compressor.enabled) scheduleAudioChainRender(500);
+    });
+  });
+  root.querySelector("#audio-compressor-reset")?.addEventListener("click", () => {
+    audioState.effectChain.compressor = {
+      enabled: audioState.effectChain.compressor.enabled,
+      ...AUDIO_DEFAULT_COMPRESSOR,
+    };
+    renderAudioEffectsSidebar();
+    if (audioState.effectChain.compressor.enabled) scheduleAudioChainRender(500);
+  });
+}
+
+function formatAudioCompressorValue(value, unit) {
+  const rounded = Number(value).toFixed(unit === ":1" || unit === "dB" ? 1 : 0);
+  return `${rounded}${unit}`;
 }
 
 function clampNumber(value, min, max) {
