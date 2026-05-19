@@ -460,24 +460,7 @@ const setCompressSourceFromPath = (path) => {
   updateCompressBtnState();
 };
 
-const setCompressSourceFromFiles = (fileList, rootName) => {
-  state.compressSource = fileList;
-  state.compressSourceType = "files";
-  state.compressSourceLabel = rootName || null;
-  const count = fileList.length;
-  const totalSize = fileList.reduce((sum, item) => sum + item.file.size, 0);
-  const mb = (totalSize / 1_048_576).toFixed(1);
-  let label;
-  if (rootName) {
-    label = `Dossier « ${rootName} » : ${count} fichier${count > 1 ? "s" : ""} (${mb} Mo)`;
-  } else {
-    label = count === 1
-      ? `${fileList[0].file.name} (${mb} Mo)`
-      : `${count} fichiers (${mb} Mo)`;
-  }
-  showCompressSourceInfo(label);
-  updateCompressBtnState();
-};
+
 
 // ============================================
 // HTML5 DRAG & DROP
@@ -527,247 +510,11 @@ const dropZone = () => $("compress-drop-zone");
 })();
 
 
-const onDragEnter = (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  if (state.currentModule !== "compress") return;
-  dropZone()?.classList.add("drag-over");
-};
 
-const onDragOver = (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  if (state.currentModule !== "compress") return;
-  e.dataTransfer.dropEffect = "copy";
-  dropZone()?.classList.add("drag-over");
-};
-
-const onDragLeave = (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  if (e.target === dropZone()) {
-    dropZone()?.classList.remove("drag-over");
-  }
-};
-
-const readDirectoryRecursive = (dirEntry, pathPrefix = "") => {
-  return new Promise((resolve, reject) => {
-    const reader = dirEntry.createReader();
-    const allEntries = [];
-
-    const readBatch = () => {
-      reader.readEntries(
-        (entries) => {
-          if (entries.length === 0) {
-            const promises = allEntries.map((entry) => {
-              const newPath = pathPrefix ? `${pathPrefix}/${entry.name}` : entry.name;
-              if (entry.isFile) {
-                return new Promise((res, rej) => {
-                  entry.file(
-                    (f) => res([{ file: f, relativePath: newPath }]),
-                    (err) => rej(err)
-                  );
-                });
-              } else if (entry.isDirectory) {
-                return readDirectoryRecursive(entry, newPath);
-              }
-              return Promise.resolve([]);
-            });
-            Promise.all(promises)
-              .then((results) => resolve(results.flat()))
-              .catch(reject);
-          } else {
-            allEntries.push(...entries);
-            readBatch();
-          }
-        },
-        (err) => reject(err)
-      );
-    };
-
-    readBatch();
-  });
-};
-
-const processEntry = (entry, pathPrefix = "") => {
-  return new Promise((resolve, reject) => {
-    if (entry.isFile) {
-      entry.file(
-        (f) => resolve([{ file: f, relativePath: pathPrefix ? `${pathPrefix}/${f.name}` : f.name }]),
-        (err) => reject(err)
-      );
-    } else if (entry.isDirectory) {
-      readDirectoryRecursive(entry, pathPrefix || entry.name)
-        .then(resolve)
-        .catch(reject);
-    } else {
-      resolve([]);
-    }
-  });
-};
-
-const onDrop = async (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  dropZone()?.classList.remove("drag-over");
-
-  if (state.currentModule !== "compress") {
-    showToast("Le drag & drop n'est dispo que sur Compresser pour l'instant", 2500);
-    return;
-  }
-
-  const dt = e.dataTransfer;
-  if (!dt) return;
-
-  const items = dt.items;
-  if (!items || items.length === 0) {
-    if (dt.files && dt.files.length > 0) {
-      const fileList = Array.from(dt.files).map((f) => ({ file: f, relativePath: f.name }));
-      setCompressSourceFromFiles(fileList, null);
-      showToast(`${fileList.length} fichier${fileList.length > 1 ? "s" : ""} ajouté${fileList.length > 1 ? "s" : ""}`, 1800);
-      return;
-    }
-    showToast("Aucun fichier détecté", 2500);
-    return;
-  }
-
-  const entries = [];
-  let rootName = null;
-  let hasDirectory = false;
-
-  for (let i = 0; i < items.length; i++) {
-    const entry = items[i].webkitGetAsEntry?.();
-    if (entry) {
-      entries.push(entry);
-      if (entry.isDirectory) {
-        hasDirectory = true;
-        if (items.length === 1) rootName = entry.name;
-      }
-    }
-  }
-
-  if (entries.length === 0) {
-    showToast("Impossible de lire les éléments dropés", 3000);
-    return;
-  }
-
-  showToast(hasDirectory ? "Lecture du contenu…" : "Préparation des fichiers…", 1500);
-
-  try {
-    const allFilesArrays = await Promise.all(
-      entries.map((entry) => processEntry(entry, ""))
-    );
-    const allFiles = allFilesArrays.flat();
-
-    if (allFiles.length === 0) {
-      showToast("Aucun fichier trouvé dans les éléments dropés", 3000);
-      return;
-    }
-
-    let finalFiles = allFiles;
-    if (rootName && items.length === 1) {
-      finalFiles = allFiles.map((item) => ({
-        file: item.file,
-        relativePath: `${rootName}/${item.relativePath}`,
-      }));
-    }
-
-    setCompressSourceFromFiles(finalFiles, rootName);
-
-    const fileCount = finalFiles.length;
-    if (rootName) {
-      showToast(`Dossier « ${rootName} » : ${fileCount} fichier${fileCount > 1 ? "s" : ""}`, 2200);
-    } else {
-      showToast(fileCount === 1 ? "Fichier ajouté" : `${fileCount} fichiers ajoutés`, 1800);
-    }
-  } catch (err) {
-    console.error("Drop processing error:", err);
-    showToast("Erreur lors de la lecture : " + err, 4000);
-  }
-};
-
-const attachDropListeners = () => {
-  const zone = dropZone();
-  if (!zone) return;
-  zone.addEventListener("dragenter", onDragEnter);
-  zone.addEventListener("dragover", onDragOver);
-  zone.addEventListener("dragleave", onDragLeave);
-  zone.addEventListener("drop", onDrop);
-};
 
 // ============================================
 // FILE → BASE64 (full file, for small files)
 // ============================================
-const fileToBase64 = (file) => new Promise((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onload = () => {
-    const result = reader.result;
-    const commaIdx = result.indexOf(",");
-    if (commaIdx < 0) {
-      reject(new Error("Impossible de lire le fichier"));
-      return;
-    }
-    resolve(result.substring(commaIdx + 1));
-  };
-  reader.onerror = () => reject(reader.error);
-  reader.readAsDataURL(file);
-});
-
-// ============================================
-// FILE BLOB → BASE64 (one chunk at a time, for large files)
-// ============================================
-const blobToBase64 = (blob) => new Promise((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onload = () => {
-    const result = reader.result;
-    const commaIdx = result.indexOf(",");
-    if (commaIdx < 0) {
-      reject(new Error("Impossible de lire le chunk"));
-      return;
-    }
-    resolve(result.substring(commaIdx + 1));
-  };
-  reader.onerror = () => reject(reader.error);
-  reader.readAsDataURL(blob);
-});
-
-// ============================================
-// STREAMING CHUNKED UPLOAD for large files (>= 100 MB)
-// ============================================
-
-/**
- * Stream a single large file to the Rust backend in chunks.
- * Returns the upload_id once complete.
- */
-const streamFileToBackend = async (file, relativePath, onProgress) => {
-  // Start a new upload session for this file
-  const uploadId = await invoke("chunked_upload_start", { relativePath });
-
-  const totalSize = file.size;
-  let bytesSent = 0;
-  let offset = 0;
-
-  while (offset < totalSize) {
-    const end = Math.min(offset + CHUNK_SIZE, totalSize);
-    const chunkBlob = file.slice(offset, end);
-    const chunkB64 = await blobToBase64(chunkBlob);
-
-    await invoke("chunked_upload_append", {
-      uploadId,
-      chunk: chunkB64,
-    });
-
-    bytesSent = end;
-    offset = end;
-
-    if (onProgress) {
-      onProgress(bytesSent, totalSize);
-    }
-  }
-
-  return uploadId;
-};
-
 // ============================================
 // EVENT BINDINGS
 // ============================================
@@ -1025,113 +772,7 @@ $("compress-btn").addEventListener("click", async () => {
   $("compress-progress-meta").textContent = "";
 
   try {
-    if (state.compressSourceType === "files") {
-      if (state.compressMode === "reencode") {
-        showToast("Réencodage par drag & drop non encore supporté. Utilise « Choisir un dossier ».", 4000);
-        $("compress-progress-section").classList.add("hidden");
-        state.compressing = false;
-        updateCompressBtnState();
-        return;
-      }
-
-      const items = state.compressSource;
-      const totalBytes = items.reduce((sum, it) => sum + it.file.size, 0);
-      const hasLargeFile = items.some((it) => it.file.size >= STREAMING_THRESHOLD);
-      const useStreaming = hasLargeFile || totalBytes >= STREAMING_THRESHOLD;
-
-      const archiveName = state.compressSourceLabel
-        || (items.length === 1
-          ? items[0].file.name.replace(/\.[^.]+$/, "") || "archive"
-          : `drop-${items.length}-fichiers`);
-
-      let result;
-
-      if (useStreaming) {
-        // ===== CHUNKED STREAMING PATH =====
-        const totalMB = (totalBytes / 1_048_576).toFixed(1);
-        $("compress-progress-stage").textContent = `Upload streaming (${totalMB} Mo)…`;
-
-        const uploadIds = [];
-        let globalBytesSent = 0;
-
-        try {
-          for (let i = 0; i < items.length; i++) {
-            const item = items[i];
-            const fileSizeMB = (item.file.size / 1_048_576).toFixed(1);
-            $("compress-progress-meta").textContent =
-              `Fichier ${i + 1}/${items.length} : ${item.relativePath} (${fileSizeMB} Mo)`;
-
-            const uploadId = await streamFileToBackend(
-              item.file,
-              item.relativePath,
-              (bytesInFile, fileTotal) => {
-                const filePct = bytesInFile / fileTotal;
-                const overallSent = globalBytesSent + bytesInFile;
-                const overallPct = (overallSent / totalBytes) * 100;
-                $("compress-progress-fill").style.width = Math.min(overallPct, 99) + "%";
-                $("compress-progress-stage").textContent =
-                  `Upload ${overallPct.toFixed(0)}% (fichier ${i + 1}/${items.length})`;
-              }
-            );
-
-            uploadIds.push(uploadId);
-            globalBytesSent += item.file.size;
-          }
-
-          // All files uploaded, launch compression
-          $("compress-progress-stage").textContent = "Compression en cours…";
-          $("compress-progress-meta").textContent = "";
-          $("compress-progress-fill").style.width = "0%";
-
-          result = await invoke("chunked_upload_compress", {
-            uploadIds,
-            outputDir: state.compressOutputDir,
-            level: parseInt(state.zipLevel),
-            archiveName,
-          });
-        } catch (uploadErr) {
-          // Cleanup on error
-          await invoke("chunked_upload_cancel").catch(() => {});
-          throw uploadErr;
-        }
-      } else {
-        // ===== BASE64 IN-MEMORY PATH (fast, small files) =====
-        $("compress-progress-stage").textContent = "Lecture des fichiers…";
-        const filesPayload = [];
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          $("compress-progress-meta").textContent = `${i + 1}/${items.length} : ${item.relativePath}`;
-          const data = await fileToBase64(item.file);
-          filesPayload.push({ filename: item.relativePath, data });
-        }
-
-        $("compress-progress-stage").textContent = "Envoi au moteur de compression…";
-        $("compress-progress-meta").textContent = "";
-
-        result = await invoke("compress_files_from_data", {
-          files: filesPayload,
-          outputDir: state.compressOutputDir,
-          level: parseInt(state.zipLevel),
-          archiveName,
-        });
-      }
-
-      // Handle result (same for both paths)
-      if (result.success) {
-        $("compress-progress-fill").style.width = "100%";
-        $("compress-progress-stage").textContent = "Terminé";
-        $("compress-progress-meta").textContent = result.output_info || "";
-        showToast("Compression terminée", 2500);
-        setTimeout(() => {
-          $("compress-progress-section").classList.add("hidden");
-          clearCompressSource();
-        }, 2500);
-      } else {
-        showToast("Erreur : " + (result.error || "inconnue"), 4000);
-        console.error(result.error);
-        $("compress-progress-section").classList.add("hidden");
-      }
-    } else {
+    
       // ===== EXISTING PATH: directory selected via dialog =====
       const command = state.compressMode === "zip" ? "compress_zip" : "reencode_videos";
       const args = state.compressMode === "zip"
@@ -1164,7 +805,7 @@ $("compress-btn").addEventListener("click", async () => {
         console.error(result.error);
         $("compress-progress-section").classList.add("hidden");
       }
-    }
+    
   } catch (err) {
     showToast("Erreur : " + err, 4000);
     console.error("Compress error:", err);
@@ -1220,7 +861,6 @@ $("welcome-ok").addEventListener("click", () => {
   renderHistory();
   updateBtnState();
   updateCompressBtnState();
-  attachDropListeners();
 
   if (!localStorage.getItem("welcome-seen-v3")) {
     $("welcome-modal").classList.remove("hidden");
