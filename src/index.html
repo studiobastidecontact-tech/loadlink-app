@@ -65,7 +65,7 @@
         <div class="module-card-title">Convertir</div>
         <div class="module-card-desc">Changer le format d'un fichier local.</div>
       </div>
-      <div class="module-card soon" data-module="audio">
+      <div class="module-card" data-module="audio">
         <div class="module-card-badge">Bientôt</div>
         <div class="module-card-icon mc-audio">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
@@ -158,7 +158,7 @@
         <span class="nav-icon ni-convert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg></span>
         Convertir
       </div>
-      <div class="nav-item soon" data-module="audio">
+      <div class="nav-item" data-module="audio">
         <span class="nav-icon ni-audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
         Audio
         <span class="nav-soon-badge">Bientôt</span>
@@ -953,6 +953,136 @@
       </div>
 
     </div>
+
+    <!-- ====== AUDIO PAGE ====== -->
+    <div class="module-page hidden" id="page-audio">
+      <div class="topbar">
+        <div class="topbar-info">
+          <div class="page-title">Audio</div>
+          <div class="page-sub">Mastering audio pour ton contenu.</div>
+        </div>
+        <div class="topbar-actions">
+          <button type="button" class="audio-file-chip hidden" id="audio-file-chip" title="Ouvrir le dossier source">
+            <span class="chip-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </span>
+            <span class="chip-name" id="audio-file-chip-name">fichier.audio</span>
+            <span class="chip-clear" id="audio-file-chip-clear" title="Retirer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div class="content audio-content">
+        <section class="audio-empty" id="audio-empty">
+          <div class="audio-entry-grid">
+            <button type="button" class="audio-entry-card disabled" id="audio-record-card" disabled title="Disponible en Phase F">
+              <span class="audio-entry-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+              </span>
+              <span class="audio-entry-title">Enregistrer</span>
+              <span class="audio-entry-subtitle">Disponible en Phase F</span>
+            </button>
+
+            <button type="button" class="audio-entry-card primary" id="audio-import-card">
+              <span class="audio-entry-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </span>
+              <span class="audio-entry-title">Importer</span>
+              <span class="audio-entry-subtitle">Choisir un fichier ou glisser ici</span>
+            </button>
+          </div>
+
+          <button type="button" class="audio-url-link" id="audio-url-link" disabled title="Disponible en Phase H">
+            <span>ou coller une URL audio</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </section>
+
+        <section class="audio-workspace hidden" id="audio-workspace">
+          <div class="audio-wave-panel">
+            <div class="audio-wave-header">
+              <div>
+                <div class="audio-wave-title">Original</div>
+                <div class="audio-wave-subtitle" id="audio-original-meta">Aucun fichier charge</div>
+              </div>
+            </div>
+            <div class="audio-waveform" id="audio-waveform-original"></div>
+          </div>
+
+          <div class="audio-transport">
+            <button type="button" class="audio-play-btn" id="audio-play-btn" disabled title="Lecture">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <span class="audio-time" id="audio-current-time">00:00</span>
+            <div class="audio-timeline" id="audio-timeline">
+              <div class="audio-timeline-fill" id="audio-timeline-fill"></div>
+            </div>
+            <span class="audio-time" id="audio-total-time">00:00</span>
+          </div>
+
+          <div class="audio-preset-grid" id="audio-preset-grid">
+            <button type="button" class="audio-preset-card" data-preset="clear_voice">
+              <span class="audio-preset-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+              </span>
+              <span class="audio-preset-title">Voix claire</span>
+              <span class="audio-preset-desc">Pour voix off, narration, podcast</span>
+              <span class="audio-preset-status">Appliquer</span>
+              <span class="audio-preset-progress"><span></span></span>
+            </button>
+
+            <button type="button" class="audio-preset-card" data-preset="voice_memo">
+              <span class="audio-preset-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 3.08 5.18 2 2 0 0 1 5.06 3h3a2 2 0 0 1 2 1.72c.12.91.32 1.79.59 2.64a2 2 0 0 1-.45 2.11L9 10.67a16 16 0 0 0 4.33 4.33l1.2-1.2a2 2 0 0 1 2.11-.45c.85.27 1.73.47 2.64.59A2 2 0 0 1 22 16.92z"/></svg>
+              </span>
+              <span class="audio-preset-title">Note vocale lisible</span>
+              <span class="audio-preset-desc">Pour memos vocaux smartphone bruyants</span>
+              <span class="audio-preset-status">Appliquer</span>
+              <span class="audio-preset-progress"><span></span></span>
+            </button>
+
+            <button type="button" class="audio-preset-card" data-preset="podcast_interview">
+              <span class="audio-preset-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h3l3-8v18l3-10h3"/><path d="M18 9v6"/><path d="M21 7v10"/></svg>
+              </span>
+              <span class="audio-preset-title">Podcast / Interview</span>
+              <span class="audio-preset-desc">Standard broadcast, niveau stable</span>
+              <span class="audio-preset-status">Appliquer</span>
+              <span class="audio-preset-progress"><span></span></span>
+            </button>
+          </div>
+
+          <div class="audio-result-panel hidden" id="audio-result-panel">
+            <div class="audio-wave-panel result">
+              <div class="audio-wave-header">
+                <div>
+                  <div class="audio-wave-title">Resultat</div>
+                  <div class="audio-wave-subtitle" id="audio-result-meta">Preset applique</div>
+                </div>
+              </div>
+              <div class="audio-waveform" id="audio-waveform-result"></div>
+            </div>
+
+            <div class="audio-ab-row">
+              <div class="audio-ab-toggle hidden" id="audio-ab-toggle">
+                <button type="button" class="active" data-audio-source="original">Ecouter l'original</button>
+                <button type="button" data-audio-source="result">Ecouter le resultat</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="audio-actions">
+            <button type="button" class="btn-secondary" id="audio-reset-btn">Recommencer</button>
+            <button type="button" class="btn-primary audio-export-btn" id="audio-export-btn" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Exporter</span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
     <!-- ====== PLACEHOLDER PAGE ====== -->
     <div class="module-page hidden" id="page-placeholder">
       <div class="placeholder-page">
@@ -1015,6 +1145,40 @@
     <div class="modal-actions">
       <button class="btn-secondary" id="segment-modal-cancel">Annuler</button>
       <button class="btn-primary" id="segment-modal-ok" style="width:auto; padding:10px 22px; margin-top:0;">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="audio-export-modal">
+  <div class="modal-card audio-export-modal-card">
+    <h2>Exporter l'audio</h2>
+    <div class="audio-export-section">
+      <label class="field-label">Format</label>
+      <div class="audio-export-options" id="audio-export-format-options">
+        <label class="audio-radio-option">
+          <input type="radio" name="audio-export-format" value="original" checked />
+          <span>Format d'origine</span>
+        </label>
+        <label class="audio-radio-option">
+          <input type="radio" name="audio-export-format" value="mp3" />
+          <span>MP3</span>
+        </label>
+        <label class="audio-radio-option">
+          <input type="radio" name="audio-export-format" value="wav" />
+          <span>WAV</span>
+        </label>
+      </div>
+    </div>
+    <div class="audio-export-section">
+      <label class="field-label">Dossier</label>
+      <button type="button" class="audio-folder-row" id="audio-export-folder-row">
+        <span class="audio-folder-label" id="audio-export-folder-label">LoadLink-Audio</span>
+        <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="audio-export-cancel">Annuler</button>
+      <button type="button" class="btn-primary" id="audio-export-confirm" style="width:auto;margin-top:0;padding:9px 18px;">Confirmer</button>
     </div>
   </div>
 </div>

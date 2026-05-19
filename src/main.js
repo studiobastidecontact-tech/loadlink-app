@@ -82,6 +82,9 @@ const MODULE_INFO = {
 const STREAMING_THRESHOLD = 100 * 1024 * 1024; // 100 MB
 const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB per chunk
 
+MODULE_INFO.audio.sub = "Mastering audio pour ton contenu.";
+MODULE_INFO.audio.ready = true;
+
 // ============================================
 // STATE
 // ============================================
