@@ -487,6 +487,46 @@ window.addEventListener("drop", (e) => { e.preventDefault(); e.stopPropagation()
 
 const dropZone = () => $("compress-drop-zone");
 
+// Tauri 2.x native drag & drop for Compresser (additive, alongside HTML5)
+// Works around WebView2 quirks where HTML5 receives lock cursor.
+(async () => {
+  try {
+    const wv =
+      (window.__TAURI__ && window.__TAURI__.webview && window.__TAURI__.webview.getCurrentWebview)
+        ? window.__TAURI__.webview.getCurrentWebview()
+        : null;
+    if (wv && typeof wv.onDragDropEvent === "function") {
+      await wv.onDragDropEvent((event) => {
+        if (state.currentModule !== "compress") return;
+        const p = event.payload;
+        if (!p) return;
+        const zone = dropZone();
+        if (p.type === "enter" || p.type === "over") {
+          zone?.classList.add("drag-over");
+        } else if (p.type === "leave") {
+          zone?.classList.remove("drag-over");
+        } else if (p.type === "drop") {
+          zone?.classList.remove("drag-over");
+          const paths = Array.isArray(p.paths) ? p.paths : [];
+          if (paths.length === 0) {
+            showToast("Aucun element detecte", 2500);
+            return;
+          }
+          if (paths.length > 1) {
+            showToast("Drag un seul element a la fois", 3000);
+            return;
+          }
+          setCompressSourceFromPath(paths[0]);
+          showToast("Source ajoutee", 1800);
+        }
+      });
+    }
+  } catch (err) {
+    console.error("[compress] onDragDropEvent setup failed:", err);
+  }
+})();
+
+
 const onDragEnter = (e) => {
   e.preventDefault();
   e.stopPropagation();
