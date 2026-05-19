@@ -1,5 +1,10 @@
 //! # LoadLink — Main Tauri orchestrator
 
+use loadlink_audio_master::{
+    analyze as audio_analyze_run, apply_preset as audio_apply_preset_run,
+    list_presets as audio_list_presets_run, AudioAnalysis, AudioPresetInfo, AudioPresetOptions,
+    AudioProcessResult,
+};
 use loadlink_compressor::{
     compress_chunked_session, compress_dropped_files as compressor_dropped,
     compress_zip as compressor_zip, ChunkedUploadState, DroppedFile, DroppedFilesOptions,
@@ -10,9 +15,7 @@ use loadlink_converter::{
     reencode_videos as converter_reencode, ConvertBatchOptions, ConvertFileEntry, ConvertResult,
     ReencodeOptions,
 };
-use loadlink_core::{
-    CompressResult, DownloadResult, ProgressUpdate, UpdateResult, VideoInfo,
-};
+use loadlink_core::{CompressResult, DownloadResult, UpdateResult, VideoInfo};
 use loadlink_importer::{
     download as importer_download, fetch_info as importer_fetch_info,
     update_ytdlp as importer_update_ytdlp, DownloadOptions,
@@ -535,15 +538,100 @@ async fn transcribe(
 
     result
 }
+
+// ============================================
+// Phase A Audio Master
+// ============================================
+
+#[tauri::command]
+async fn audio_list_presets() -> Result<Vec<AudioPresetInfo>, String> {
+    Ok(audio_list_presets_run())
+}
+
+#[tauri::command]
+async fn audio_analyze(app: AppHandle, input: String) -> Result<AudioAnalysis, String> {
+    audio_analyze_run(&app, input)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn audio_apply_preset(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    input: String,
+    output_dir: Option<String>,
+    preset: String,
+    format: Option<String>,
+) -> Result<AudioProcessResult, String> {
+    let display_name = std::path::Path::new(&input)
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| input.clone());
+    let title = format!("Audio -- {} ({})", display_name, preset);
+    let mut job = Job::new(JobKind::AudioProcess, title);
+    job.input_path = Some(input.clone());
+    job.metadata = serde_json::json!({
+        "preset": preset.clone(),
+        "format": format.clone(),
+    });
+    let job_id = job.id;
+
+    if let Err(e) = state.job_manager.insert(&job) {
+        tracing::warn!("Failed to insert audio job: {}", e);
+    }
+    let _ = state
+        .job_manager
+        .update_state(job_id, JobState::Running, 0.0, None, None);
+
+    let opts = AudioPresetOptions {
+        input,
+        output_dir,
+        preset,
+        format,
+    };
+    let result = audio_apply_preset_run(&app, opts).await;
+
+    match &result {
+        Ok(r) if r.success => {
+            let _ = state.job_manager.update_state(
+                job_id,
+                JobState::Completed,
+                100.0,
+                None,
+                Some(r.output_path.clone()),
+            );
+        }
+        Ok(r) => {
+            let _ = state.job_manager.update_state(
+                job_id,
+                JobState::Failed,
+                0.0,
+                r.error.clone(),
+                None,
+            );
+        }
+        Err(e) => {
+            let err = e.to_string();
+            let _ = state.job_manager.update_state(
+                job_id,
+                JobState::Failed,
+                0.0,
+                Some(err.clone()),
+                None,
+            );
+        }
+    }
+
+    result.map_err(|e| e.to_string())
+}
 // ============================================
 // Misc commands
 // ============================================
 
 #[tauri::command]
 async fn update_ytdlp(app: AppHandle) -> Result<UpdateResult, String> {
-    importer_update_ytdlp(&app)
-        .await
-        .map_err(|e| e.to_string())
+    importer_update_ytdlp(&app).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -566,6 +654,35 @@ async fn open_folder(path: String) -> Result<(), String> {
     {
         Command::new("xdg-open")
             .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn reveal_path(path: String) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        Command::new("explorer")
+            .arg(format!("/select,\"{}\"", path))
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg("-R")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let target = std::path::Path::new(&path);
+        let folder = target.parent().unwrap_or(target);
+        Command::new("xdg-open")
+            .arg(folder)
             .spawn()
             .map_err(|e| e.to_string())?;
     }
@@ -651,10 +768,8 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            let job_manager = Arc::new(
-                JobManager::new(&app.handle())
-                    .expect("Failed to initialize JobManager"),
-            );
+            let job_manager =
+                Arc::new(JobManager::new(&app.handle()).expect("Failed to initialize JobManager"));
             let _ = job_manager.cleanup_old(30);
             app.manage(AppState {
                 job_manager,
@@ -671,6 +786,7 @@ pub fn run() {
             reencode_videos,
             update_ytdlp,
             open_folder,
+            reveal_path,
             open_default_folder,
             list_recent_jobs,
             cleanup_old_jobs,
@@ -687,6 +803,10 @@ pub fn run() {
             open_converted_folder,
             // Phase 4 Transcrire
             transcribe,
+            // Phase A Audio Master
+            audio_list_presets,
+            audio_analyze,
+            audio_apply_preset,
             // Phase 4.5 Lire (player)
             read_text_file,
             write_text_file,

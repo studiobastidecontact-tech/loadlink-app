@@ -69,6 +69,7 @@ pub enum JobKind {
     Transcribe,
     /// Reserved for Phase 2
     Separate,
+    AudioProcess,
 }
 
 impl JobKind {
@@ -79,6 +80,7 @@ impl JobKind {
             JobKind::Reencode => "reencode",
             JobKind::Transcribe => "transcribe",
             JobKind::Separate => "separate",
+            JobKind::AudioProcess => "audio_process",
         }
     }
 
@@ -89,6 +91,7 @@ impl JobKind {
             "reencode" => Some(JobKind::Reencode),
             "transcribe" => Some(JobKind::Transcribe),
             "separate" => Some(JobKind::Separate),
+            "audio_process" => Some(JobKind::AudioProcess),
             _ => None,
         }
     }

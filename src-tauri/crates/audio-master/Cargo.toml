@@ -1,0 +1,13 @@
+[package]
+name = "loadlink-audio-master"
+version = "0.1.0"
+edition = "2021"
+description = "LoadLink - Audio mastering presets and analysis (FFmpeg)"
+
+[dependencies]
+loadlink-core = { workspace = true }
+loadlink-workers = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+regex = { workspace = true }
+tauri = { version = "2.0", features = [] }
