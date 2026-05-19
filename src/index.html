@@ -971,6 +971,27 @@
         <!-- ====== END LEGACY UI ====== -->
 
       </div>
+
+      <!-- ====== PHASE 3 : OVERLAY DE TRANSCRIPTION EN COURS ====== -->
+      <div class="transcribe-progress-overlay hidden" id="transcribe-progress-overlay">
+        <div class="progress-overlay-card">
+          <div class="progress-overlay-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </div>
+          <div class="progress-overlay-titles">
+            <div class="progress-overlay-title">Transcription en cours</div>
+            <div class="progress-overlay-sub" id="progress-overlay-sub">Patiente, Whisper analyse l'audio…</div>
+          </div>
+          <div class="progress-overlay-bar">
+            <div class="progress-overlay-fill" id="progress-overlay-fill"></div>
+          </div>
+          <div class="progress-overlay-meta">
+            <span id="progress-overlay-stage">Préparation</span>
+            <span id="progress-overlay-meta-text">0 %</span>
+          </div>
+        </div>
+      </div>
+
     </div>
     <!-- ====== PLACEHOLDER PAGE ====== -->
     <div class="module-page hidden" id="page-placeholder">

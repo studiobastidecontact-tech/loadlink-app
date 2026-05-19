@@ -1649,6 +1649,25 @@ function transcribeUpdateUI() {
   }
   // Phase 2 : synchronise aussi la sidebar (no-op si pas montee)
   if (typeof transcribeSidebarSync === "function") transcribeSidebarSync();
+  // Phase 3 : show/hide l'overlay de progress selon state.transcribing
+  if (typeof transcribeShowProgressOverlay === "function") transcribeShowProgressOverlay(state.transcribing);
+}
+
+// Phase 3 : toggle l'overlay de progress (fixed, flottant)
+function transcribeShowProgressOverlay(show) {
+  const overlay = document.getElementById("transcribe-progress-overlay");
+  if (!overlay) return;
+  overlay.classList.toggle("hidden", !show);
+}
+
+// Phase 3 : update visuel de la progress (overlay + legacy en miroir)
+function transcribeApplyProgress(pct, stage, metaText) {
+  const fillO = document.getElementById("progress-overlay-fill");
+  const stageO = document.getElementById("progress-overlay-stage");
+  const metaO = document.getElementById("progress-overlay-meta-text");
+  if (fillO) fillO.style.width = pct + "%";
+  if (stageO) stageO.textContent = stage;
+  if (metaO) metaO.textContent = metaText;
 }
 
 function transcribeSetSourceFromPath(path) {
@@ -1945,17 +1964,13 @@ async function initTranscribeModule() {
       } catch (e) { console.error("[transcribe] output dir picker error:", e); }
     });
   }
-  // Bouton Lancer dans la sidebar : bascule en legacy pour voir la progress + delegue
+  // Bouton Lancer dans la sidebar : delegue au pipeline legacy.
+  // Phase 3 : on reste dans l'UI moderne, l'overlay couvre l'ecran pendant Whisper
   const sbLaunchBtn = document.getElementById("transcribe-sb-launch-btn");
   if (sbLaunchBtn) {
     sbLaunchBtn.addEventListener("click", () => {
       const legacyBtn = document.getElementById("transcribe-btn");
-      if (legacyBtn && !legacyBtn.disabled) {
-        // Phase 2 transitoire : bascule vers la zone legacy qui affiche la progress
-        // Phase 3 fera un overlay dedie pour rester dans l'UI moderne
-        transcribeShowLegacy();
-        legacyBtn.click();
-      }
+      if (legacyBtn && !legacyBtn.disabled) legacyBtn.click();
     });
   }
   // Chip clear : retire le media et revient a l'etat VIDE
@@ -2206,9 +2221,14 @@ async function initTranscribeModule() {
       "load_model":      "Chargement du modele Whisper...",
       "transcribe":      "Transcription...",
     };
+    const stageLabel = stageLabels[stage] || stage;
+    const metaText = Math.round(pct) + " %";
+    // Legacy progress section
     if (progressFill) progressFill.style.width = pct + "%";
-    if (progressStage) progressStage.textContent = stageLabels[stage] || stage;
-    if (progressMeta) progressMeta.textContent = Math.round(pct) + "%";
+    if (progressStage) progressStage.textContent = stageLabel;
+    if (progressMeta) progressMeta.textContent = metaText;
+    // Phase 3 : miroir dans l'overlay
+    if (typeof transcribeApplyProgress === "function") transcribeApplyProgress(pct, stageLabel, metaText);
   }).catch(e => console.error("[transcribe] listen progress failed:", e));
 
   listen("transcribe-file", (event) => {

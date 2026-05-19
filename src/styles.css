@@ -2152,6 +2152,94 @@ body.dark .libreoffice-warning {
 }
 
 /* ============================================
+   Phase 3 - REFACTOR Transcrire : OVERLAY PROGRESS
+   ============================================ */
+.transcribe-progress-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn .2s ease;
+}
+.progress-overlay-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 32px 36px 28px;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  box-shadow: var(--shadow-lg);
+  animation: fadeUp .3s ease;
+}
+.progress-overlay-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulseScale 1.8s ease-in-out infinite;
+}
+.progress-overlay-icon svg {
+  width: 28px;
+  height: 28px;
+}
+@keyframes pulseScale {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.06); opacity: 0.85; }
+}
+.progress-overlay-titles {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.progress-overlay-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+.progress-overlay-sub {
+  font-size: 13px;
+  color: var(--text2);
+}
+.progress-overlay-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--surface3);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-overlay-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+  width: 0%;
+  transition: width .25s ease;
+}
+.progress-overlay-meta {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 12.5px;
+  color: var(--text2);
+  font-family: 'DM Mono', 'DM Sans', monospace;
+}
+
+/* ============================================
    Player : carte Export
    ============================================ */
 #player-export-card .option-row {
