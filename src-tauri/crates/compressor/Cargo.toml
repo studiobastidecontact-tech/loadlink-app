@@ -1,0 +1,19 @@
+[package]
+name = "loadlink-compressor"
+version = "0.1.0"
+edition = "2021"
+description = "LoadLink — File compression (ZIP archives)"
+
+[dependencies]
+loadlink-core = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+zip = { workspace = true }
+tauri = { version = "2.0", features = [] }
+
+# Phase 2: drag & drop support
+base64 = "0.22"
+uuid = { workspace = true }

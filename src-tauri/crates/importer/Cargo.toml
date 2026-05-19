@@ -1,0 +1,17 @@
+[package]
+name = "loadlink-importer"
+version = "0.1.0"
+edition = "2021"
+description = "LoadLink — Media import (local files, URLs via yt-dlp)"
+
+[dependencies]
+loadlink-core = { workspace = true }
+loadlink-workers = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+regex = { workspace = true }
+tauri = { version = "2.0", features = [] }

@@ -1,33 +1,121 @@
 [package]
-name = "downloader"
-version = "1.0.1"
-description = "YouTube downloader by @soleil_solal_"
-authors = ["Solal"]
+name = "loadlink"
+version = "2.0.0-alpha"
+description = "LoadLink — Outil local de capture, conversion et archivage multimédia"
+authors = ["Studio Bastide Production"]
 edition = "2021"
+publish = false
 
 [lib]
-name = "downloader_lib"
+name = "loadlink_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[workspace]
+members = [
+    "crates/core",
+    "crates/workers",
+    "crates/importer",
+    "crates/converter",
+    "crates/compressor",
+    "crates/job-manager",
+
+    "crates/transcriber",
+]
+
+# ============================================
+# Workspace-wide shared dependencies
+# (used via `dep.workspace = true` in each crate)
+# ============================================
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+anyhow = "1"
+thiserror = "1"
+
+# IDs and time
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+
+# Regex
+regex = "1"
+
+# HTTP (for future cloud fallbacks)
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# ZIP
+zip = "2.2"
+
+# SQLite
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# Internal crates
+loadlink-core = { path = "crates/core" }
+loadlink-workers = { path = "crates/workers" }
+loadlink-importer = { path = "crates/importer" }
+loadlink-converter = { path = "crates/converter" }
+loadlink-compressor = { path = "crates/compressor" }
+loadlink-job-manager = { path = "crates/job-manager" }
+loadlink-transcriber = { path = "crates/transcriber" }
+
+# ============================================
+# Build dependencies
+# ============================================
 [build-dependencies]
 tauri-build = { version = "2.0", features = [] }
 
+# ============================================
+# Main binary dependencies
+# ============================================
 [dependencies]
-tauri = { version = "2.0", features = [] }
+# Tauri
+tauri = { version = "2.0", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2.0"
 tauri-plugin-opener = "2.0"
 tauri-plugin-clipboard-manager = "2.0"
 tauri-plugin-shell = "2.0"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-tokio = { version = "1", features = ["full"] }
-regex = "1"
-reqwest = { version = "0.12", features = ["json"] }
-zip = "2.2"
 
+# Async + serialization
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid = { workspace = true }
+
+# Internal crates
+loadlink-core = { workspace = true }
+loadlink-workers = { workspace = true }
+loadlink-importer = { workspace = true }
+loadlink-converter = { workspace = true }
+loadlink-compressor = { workspace = true }
+loadlink-job-manager = { workspace = true }
+loadlink-transcriber = { workspace = true }
+
+# ============================================
+# Release profile (optimized binary size)
+# ============================================
 [profile.release]
 panic = "abort"
 codegen-units = 1
 lto = true
 opt-level = "s"
 strip = true
+
+# ============================================
+# Dev profile (faster compile, better debugging)
+# ============================================
+[profile.dev]
+opt-level = 0
+debug = true
+incremental = true

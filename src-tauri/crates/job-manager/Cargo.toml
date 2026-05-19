@@ -1,0 +1,18 @@
+[package]
+name = "loadlink-job-manager"
+version = "0.1.0"
+edition = "2021"
+description = "LoadLink — Job queue with SQLite persistence"
+
+[dependencies]
+loadlink-core = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+rusqlite = { workspace = true }
+tauri = { version = "2.0", features = [] }
