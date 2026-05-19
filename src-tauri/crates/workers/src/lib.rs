@@ -31,7 +31,6 @@ pub const CREATE_NO_WINDOW: u32 = 0x08000000;
 pub fn apply_no_window(cmd: &mut Command) {
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
     #[cfg(not(windows))]
@@ -177,7 +176,8 @@ pub fn translate_error(stderr: &str) -> String {
         || lower.contains("database is locked")
         || lower.contains("permission denied")
     {
-        return "Cookies verrouillés. Ferme Chrome/Brave/Edge et réessaie (ou installe Firefox).".to_string();
+        return "Cookies verrouillés. Ferme Chrome/Brave/Edge et réessaie (ou installe Firefox)."
+            .to_string();
     }
     if lower.contains("video unavailable") || lower.contains("private video") {
         return "Source indisponible ou privée.".to_string();
