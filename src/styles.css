@@ -1296,14 +1296,10 @@ body.dark .libreoffice-warning {
 }
 
 
-/* Phase 3 - Convert page scroll fix */
-#page-convert {
+/* Phase 3 - All visible module-pages need flex+full-height for content scroll */
+.module-page:not(.hidden) {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  height: 100%;
-}
-#page-convert.hidden {
-  display: none;
 }
