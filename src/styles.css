@@ -1985,6 +1985,173 @@ body.dark .libreoffice-warning {
 }
 
 /* ============================================
+   Phase 2 - REFACTOR Transcrire : ETAT MEDIA CHARGE
+   Layout 2 colonnes + sidebar Whisper
+   ============================================ */
+.transcribe-media {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  animation: fadeUp .4s ease both;
+}
+.transcribe-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 920px) {
+  .transcribe-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.transcribe-main-area {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* File chip dans la zone main */
+.transcribe-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 6px 6px 6px 14px;
+  font-size: 13px;
+  color: var(--text);
+  max-width: 100%;
+  transition: border-color .15s, background .15s;
+}
+.transcribe-file-chip:hover {
+  border-color: var(--text2);
+}
+.transcribe-file-chip .chip-icon {
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.transcribe-file-chip .chip-icon svg {
+  width: 14px;
+  height: 14px;
+}
+.transcribe-file-chip .chip-name {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  max-width: 320px;
+}
+.transcribe-file-chip .chip-clear {
+  background: transparent;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text2);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  flex-shrink: 0;
+}
+.transcribe-file-chip .chip-clear:hover {
+  background: var(--surface3);
+  color: var(--danger);
+}
+.transcribe-file-chip .chip-clear svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Preview media (gauche) */
+.transcribe-media-preview {
+  flex: 1;
+  background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  overflow: hidden;
+}
+.transcribe-media-preview audio {
+  width: calc(100% - 16px);
+  margin: 8px;
+}
+.transcribe-media-preview video {
+  width: 100%;
+  max-height: 480px;
+  background: #000;
+  border-radius: 8px;
+}
+.transcribe-media-preview .preview-empty {
+  color: #888;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Sidebar (droite) */
+.transcribe-sidebar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideInRight .3s ease both;
+}
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.transcribe-sidebar-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.sidebar-sub {
+  font-size: 12px;
+  color: var(--text2);
+}
+.transcribe-sidebar-body {
+  padding: 14px 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.transcribe-sidebar-body .option-row {
+  margin-bottom: 0;
+}
+.transcribe-sidebar-body .btn-primary {
+  margin-top: 14px;
+}
+
+/* ============================================
    Player : carte Export
    ============================================ */
 #player-export-card .option-row {

@@ -712,6 +712,66 @@
           </div>
         </div>
 
+        <!-- ====== PHASE 2 : ETAT MEDIA CHARGE (transcription pas encore lancee) ====== -->
+        <div class="transcribe-media hidden" id="transcribe-media">
+          <div class="transcribe-layout">
+            <main class="transcribe-main-area">
+              <div class="transcribe-file-chip" id="transcribe-file-chip">
+                <span class="chip-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+                </span>
+                <span class="chip-name" id="transcribe-file-chip-name">fichier</span>
+                <button type="button" class="chip-clear" id="transcribe-file-chip-clear" title="Retirer">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <div class="transcribe-media-preview" id="transcribe-media-preview">
+                <!-- audio/video preview injecte par JS -->
+              </div>
+            </main>
+            <aside class="transcribe-sidebar" id="transcribe-sidebar">
+              <div class="transcribe-sidebar-header">
+                <div class="sidebar-title">Transcrire</div>
+                <div class="sidebar-sub">Configure et lance Whisper</div>
+              </div>
+              <div class="transcribe-sidebar-body">
+                <div class="option-row" id="transcribe-sb-model-row">
+                  <div class="option-row-left">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <span id="transcribe-sb-model-label">Modèle : Small</span>
+                  </div>
+                  <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+                </div>
+                <div class="option-row" id="transcribe-sb-language-row">
+                  <div class="option-row-left">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span id="transcribe-sb-language-label">Langue : Détection auto</span>
+                  </div>
+                  <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+                </div>
+                <div class="option-row" id="transcribe-sb-formats-row">
+                  <div class="option-row-left">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <span id="transcribe-sb-formats-label">Formats : Tous</span>
+                  </div>
+                  <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+                </div>
+                <div class="option-row" id="transcribe-sb-output-row" style="margin-bottom: 0;">
+                  <div class="option-row-left">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                    <span id="transcribe-sb-output-label">Sortie : Auto</span>
+                  </div>
+                  <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+                </div>
+                <button class="btn-primary" id="transcribe-sb-launch-btn" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                  <span>Lancer la transcription</span>
+                </button>
+              </div>
+            </aside>
+          </div>
+        </div>
+
         <!-- ====== LEGACY UI (caché par défaut, montré quand un fichier est chargé) ====== -->
         <div class="transcribe-legacy hidden" id="transcribe-legacy">
 

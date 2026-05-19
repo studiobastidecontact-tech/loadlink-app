@@ -1647,6 +1647,8 @@ function transcribeUpdateUI() {
   if (btnLabel) {
     btnLabel.textContent = state.transcribing ? "Transcription en cours..." : "Lancer la transcription";
   }
+  // Phase 2 : synchronise aussi la sidebar (no-op si pas montee)
+  if (typeof transcribeSidebarSync === "function") transcribeSidebarSync();
 }
 
 function transcribeSetSourceFromPath(path) {
@@ -1658,6 +1660,12 @@ function transcribeSetSourceFromPath(path) {
   state.transcribeSource = path;
   state.transcribeSourceType = "file";
   showToast("Source ajoutee", 1800);
+  // Phase 2 : bascule vers la nouvelle UI media + sidebar
+  if (typeof transcribeShowMedia === "function") {
+    transcribeShowMedia();
+    transcribeRenderMediaPreview(path);
+    transcribeSidebarSync();
+  }
   transcribeUpdateUI();
 }
 
@@ -1700,19 +1708,84 @@ function transcribeAddRecent(entry) {
 }
 
 // ============================================
-// Phase 1 refacto : helpers state VIDE / LEGACY
+// Phase 1+2 refacto : helpers state VIDE / MEDIA / LEGACY
 // ============================================
 function transcribeShowEmpty() {
   const empty = document.getElementById("transcribe-empty");
+  const media = document.getElementById("transcribe-media");
   const legacy = document.getElementById("transcribe-legacy");
   if (empty) empty.classList.remove("hidden");
+  if (media) media.classList.add("hidden");
+  if (legacy) legacy.classList.add("hidden");
+}
+function transcribeShowMedia() {
+  const empty = document.getElementById("transcribe-empty");
+  const media = document.getElementById("transcribe-media");
+  const legacy = document.getElementById("transcribe-legacy");
+  if (empty) empty.classList.add("hidden");
+  if (media) media.classList.remove("hidden");
   if (legacy) legacy.classList.add("hidden");
 }
 function transcribeShowLegacy() {
   const empty = document.getElementById("transcribe-empty");
+  const media = document.getElementById("transcribe-media");
   const legacy = document.getElementById("transcribe-legacy");
   if (empty) empty.classList.add("hidden");
+  if (media) media.classList.add("hidden");
   if (legacy) legacy.classList.remove("hidden");
+}
+
+// Phase 2 : preview du media dans la zone main
+function transcribeRenderMediaPreview(path) {
+  const preview = document.getElementById("transcribe-media-preview");
+  if (!preview) return;
+  preview.innerHTML = "";
+  if (!path) {
+    preview.innerHTML = '<div class="preview-empty">Aucun media charge</div>';
+    return;
+  }
+  const ext = (path.split(".").pop() || "").toLowerCase();
+  const isVideo = TRANSCRIBE_VIDEO_EXTS.has(ext);
+  const tag = isVideo ? "video" : "audio";
+  const el = document.createElement(tag);
+  const convertFileSrc =
+    (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.convertFileSrc) ||
+    ((p) => p);
+  el.src = convertFileSrc(path);
+  el.controls = true;
+  preview.appendChild(el);
+}
+
+// Phase 2 : synchronise les labels et le bouton de la sidebar avec state.*
+function transcribeSidebarSync() {
+  const modelOpt = TRANSCRIBE_MODELS.find((m) => m.key === state.transcribeModel);
+  const langOpt = TRANSCRIBE_LANGUAGES.find((l) => l.key === state.transcribeLanguage);
+  const formatsOpt = TRANSCRIBE_FORMATS_OPTIONS.find((f) => f.key === state.transcribeFormatsKey);
+
+  const modelLbl = document.getElementById("transcribe-sb-model-label");
+  if (modelLbl && modelOpt) modelLbl.textContent = "Modele : " + modelOpt.label;
+  const langLbl = document.getElementById("transcribe-sb-language-label");
+  if (langLbl && langOpt) langLbl.textContent = "Langue : " + langOpt.label;
+  const formatsLbl = document.getElementById("transcribe-sb-formats-label");
+  if (formatsLbl && formatsOpt) formatsLbl.textContent = "Formats : " + formatsOpt.label;
+  const outputLbl = document.getElementById("transcribe-sb-output-label");
+  if (outputLbl) {
+    outputLbl.textContent = state.transcribeOutputDir
+      ? "Sortie : " + transcribeShortPath(state.transcribeOutputDir)
+      : "Sortie : Meme dossier que la source";
+  }
+
+  const btn = document.getElementById("transcribe-sb-launch-btn");
+  if (btn) {
+    btn.disabled = !state.transcribeSource || state.transcribing;
+    const lbl = btn.querySelector("span");
+    if (lbl) lbl.textContent = state.transcribing ? "Transcription en cours..." : "Lancer la transcription";
+  }
+
+  const chipName = document.getElementById("transcribe-file-chip-name");
+  if (chipName && state.transcribeSource) {
+    chipName.textContent = transcribeShortPath(state.transcribeSource);
+  }
 }
 
 // Routage d'un fichier deposé/choisi dans la zone hero
@@ -1826,6 +1899,75 @@ async function initTranscribeModule() {
       // Si on a cliqué sur le bouton, le handler du bouton gère
       if (e.target.closest("#transcribe-browse-btn")) return;
       browseBtn.click();
+    });
+  }
+
+  // ===== Phase 2 : SIDEBAR HANDLERS (model / language / formats / output / launch) =====
+  const sbModelRow = document.getElementById("transcribe-sb-model-row");
+  if (sbModelRow) {
+    sbModelRow.addEventListener("click", () => {
+      if (typeof showOptionsModal !== "function") return;
+      showOptionsModal("Choisis le modele Whisper", TRANSCRIBE_MODELS, state.transcribeModel, (key) => {
+        state.transcribeModel = key;
+        transcribeUpdateUI();
+      });
+    });
+  }
+  const sbLangRow = document.getElementById("transcribe-sb-language-row");
+  if (sbLangRow) {
+    sbLangRow.addEventListener("click", () => {
+      if (typeof showOptionsModal !== "function") return;
+      showOptionsModal("Choisis la langue", TRANSCRIBE_LANGUAGES, state.transcribeLanguage, (key) => {
+        state.transcribeLanguage = key;
+        transcribeUpdateUI();
+      });
+    });
+  }
+  const sbFormatsRow = document.getElementById("transcribe-sb-formats-row");
+  if (sbFormatsRow) {
+    sbFormatsRow.addEventListener("click", () => {
+      if (typeof showOptionsModal !== "function") return;
+      showOptionsModal("Choisis les formats de sortie", TRANSCRIBE_FORMATS_OPTIONS, state.transcribeFormatsKey, (key) => {
+        state.transcribeFormatsKey = key;
+        transcribeUpdateUI();
+      });
+    });
+  }
+  const sbOutputRow = document.getElementById("transcribe-sb-output-row");
+  if (sbOutputRow) {
+    sbOutputRow.addEventListener("click", async () => {
+      try {
+        const selected = await open({ directory: true, multiple: false });
+        if (selected && typeof selected === "string") {
+          state.transcribeOutputDir = selected;
+          transcribeUpdateUI();
+        }
+      } catch (e) { console.error("[transcribe] output dir picker error:", e); }
+    });
+  }
+  // Bouton Lancer dans la sidebar : bascule en legacy pour voir la progress + delegue
+  const sbLaunchBtn = document.getElementById("transcribe-sb-launch-btn");
+  if (sbLaunchBtn) {
+    sbLaunchBtn.addEventListener("click", () => {
+      const legacyBtn = document.getElementById("transcribe-btn");
+      if (legacyBtn && !legacyBtn.disabled) {
+        // Phase 2 transitoire : bascule vers la zone legacy qui affiche la progress
+        // Phase 3 fera un overlay dedie pour rester dans l'UI moderne
+        transcribeShowLegacy();
+        legacyBtn.click();
+      }
+    });
+  }
+  // Chip clear : retire le media et revient a l'etat VIDE
+  const chipClear = document.getElementById("transcribe-file-chip-clear");
+  if (chipClear) {
+    chipClear.addEventListener("click", () => {
+      state.transcribeSource = null;
+      // Vide aussi le preview
+      const preview = document.getElementById("transcribe-media-preview");
+      if (preview) preview.innerHTML = "";
+      transcribeShowEmpty();
+      transcribeUpdateUI();
     });
   }
 
