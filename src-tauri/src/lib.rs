@@ -18,6 +18,7 @@ use loadlink_importer::{
     update_ytdlp as importer_update_ytdlp, DownloadOptions,
 };
 use loadlink_job_manager::{Job, JobKind, JobManager, JobState};
+use loadlink_transcriber::{transcribe as transcriber_run, TranscribeOptions, TranscribeResult};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager, State};
@@ -461,6 +462,80 @@ async fn check_libreoffice() -> Result<bool, String> {
 }
 
 // ============================================
+// Phase 4 Transcrire
+// ============================================
+
+#[tauri::command]
+async fn transcribe(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    input: String,
+    output_dir: Option<String>,
+    model: String,
+    language: Option<String>,
+    formats: Vec<String>,
+    translate_to_english: Option<bool>,
+) -> Result<TranscribeResult, String> {
+    let opts = TranscribeOptions {
+        input: input.clone(),
+        output_dir,
+        model: model.clone(),
+        language,
+        formats,
+        translate_to_english: translate_to_english.unwrap_or(false),
+    };
+
+    let display_name = std::path::Path::new(&input)
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| input.clone());
+    let title = format!("Transcription -- {} ({})", display_name, model);
+    let mut job = Job::new(JobKind::Transcribe, title);
+    job.input_path = Some(input);
+    let job_id = job.id;
+
+    if let Err(e) = state.job_manager.insert(&job) {
+        tracing::warn!("Failed to insert transcribe job: {}", e);
+    }
+    let _ = state
+        .job_manager
+        .update_state(job_id, JobState::Running, 0.0, None, None);
+
+    let result = transcriber_run(&app, opts).await;
+
+    match &result {
+        Ok(r) if r.success => {
+            let _ = state.job_manager.update_state(
+                job_id,
+                JobState::Completed,
+                100.0,
+                None,
+                r.output_files.first().cloned(),
+            );
+        }
+        Ok(r) => {
+            let _ = state.job_manager.update_state(
+                job_id,
+                JobState::Failed,
+                0.0,
+                r.error.clone(),
+                None,
+            );
+        }
+        Err(e) => {
+            let _ = state.job_manager.update_state(
+                job_id,
+                JobState::Failed,
+                0.0,
+                Some(e.clone()),
+                None,
+            );
+        }
+    }
+
+    result
+}
+// ============================================
 // Misc commands
 // ============================================
 
@@ -595,6 +670,8 @@ pub fn run() {
             convert_files_batch,
             check_libreoffice,
             open_converted_folder,
+            // Phase 4 Transcrire
+            transcribe,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
