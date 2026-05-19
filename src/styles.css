@@ -1220,3 +1220,77 @@ label.field-label {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ============================================
+   PHASE 3 — Convert module styles
+   To append at the end of styles.css
+   ============================================ */
+
+.convert-type-card .card-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.convert-type-card .card-label .type-emoji {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* LibreOffice missing warning */
+.libreoffice-warning {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: rgba(232, 57, 12, 0.08);
+  border: 1px solid rgba(232, 57, 12, 0.25);
+  border-radius: 10px;
+}
+
+body.dark .libreoffice-warning {
+  background: rgba(232, 57, 12, 0.12);
+  border-color: rgba(232, 57, 12, 0.35);
+}
+
+.lo-warning-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: #E8390C;
+}
+
+.lo-warning-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.lo-warning-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.lo-warning-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #E8390C;
+  margin-bottom: 4px;
+}
+
+.lo-warning-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.lo-warning-text a {
+  color: #E8390C;
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.lo-warning-text a:hover {
+  opacity: 0.8;
+}
