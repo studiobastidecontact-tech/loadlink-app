@@ -1188,3 +1188,584 @@ $("welcome-ok").addEventListener("click", () => {
 
   checkYtdlpUpdate();
 })();
+
+;
+// ============================================
+// PHASE 3 - CONVERT MODULE
+// Leading semicolon to safely break from previous IIFE
+// All code defined here; init called at the very end (no nested IIFE)
+// ============================================
+
+// ===== OPTIONS LISTS =====
+const VIDEO_FORMATS_CONV = [
+  { key: "mp4", label: "MP4", desc: "Standard universel" },
+  { key: "webm", label: "WEBM", desc: "Web, plus leger" },
+  { key: "mov", label: "MOV", desc: "Apple ProRes-compatible" },
+  { key: "mkv", label: "MKV", desc: "Conteneur flexible" },
+  { key: "avi", label: "AVI", desc: "Ancien standard" },
+];
+
+const VIDEO_CODECS = [
+  { key: "auto", label: "Auto (conserver)", desc: "Selon le format de sortie" },
+  { key: "h264", label: "H.264 / AVC", desc: "Compatibilite maximale" },
+  { key: "h265", label: "H.265 / HEVC", desc: "50% plus petit que H.264" },
+  { key: "vp9", label: "VP9", desc: "Open source, qualite elevee" },
+  { key: "av1", label: "AV1", desc: "Tres efficace, encodage lent" },
+];
+
+const VIDEO_BITRATES = [
+  { key: "auto", label: "Auto", desc: "Conserve le bitrate source" },
+  { key: "1000", label: "1 Mbps", desc: "Tres leger" },
+  { key: "3000", label: "3 Mbps", desc: "Standard 720p" },
+  { key: "5000", label: "5 Mbps", desc: "Bonne qualite 1080p" },
+  { key: "10000", label: "10 Mbps", desc: "Haute qualite 1080p" },
+  { key: "20000", label: "20 Mbps", desc: "4K standard" },
+  { key: "50000", label: "50 Mbps", desc: "4K master" },
+];
+
+const VIDEO_RESOLUTIONS = [
+  { key: "auto", label: "Auto (conserver)", desc: "Resolution source" },
+  { key: "3840x2160", label: "4K (3840x2160)", desc: "Ultra HD" },
+  { key: "1920x1080", label: "1080p (1920x1080)", desc: "Full HD" },
+  { key: "1280x720", label: "720p (1280x720)", desc: "HD" },
+  { key: "854x480", label: "480p (854x480)", desc: "Standard" },
+];
+
+const VIDEO_FPS_LIST = [
+  { key: "auto", label: "Auto (conserver)", desc: "FPS source" },
+  { key: "24", label: "24 fps", desc: "Cinema" },
+  { key: "30", label: "30 fps", desc: "Standard" },
+  { key: "60", label: "60 fps", desc: "Fluide" },
+];
+
+const AUDIO_FORMATS_CONV = [
+  { key: "mp3", label: "MP3", desc: "Compatible partout" },
+  { key: "wav", label: "WAV", desc: "Sans perte" },
+  { key: "flac", label: "FLAC", desc: "Sans perte compresse" },
+  { key: "m4a", label: "M4A", desc: "Apple AAC" },
+  { key: "ogg", label: "OGG", desc: "Open source" },
+  { key: "aac", label: "AAC", desc: "Compact" },
+  { key: "opus", label: "OPUS", desc: "Tres efficace" },
+];
+
+const AUDIO_BITRATES = [
+  { key: "auto", label: "Auto", desc: "Conserve le bitrate source" },
+  { key: "320", label: "320 kbps", desc: "Maximum MP3" },
+  { key: "256", label: "256 kbps", desc: "Haute qualite" },
+  { key: "192", label: "192 kbps", desc: "Standard" },
+  { key: "128", label: "128 kbps", desc: "Compact" },
+];
+
+const AUDIO_SAMPLE_RATES = [
+  { key: "auto", label: "Auto (conserver)", desc: "Sample rate source" },
+  { key: "48000", label: "48 kHz", desc: "Studio / video" },
+  { key: "44100", label: "44.1 kHz", desc: "CD audio" },
+];
+
+const AUDIO_CHANNELS = [
+  { key: "auto", label: "Auto (conserver)", desc: "Canaux source" },
+  { key: "2", label: "Stereo (2)", desc: "Standard" },
+  { key: "1", label: "Mono (1)", desc: "Voix" },
+];
+
+const IMAGE_FORMATS_CONV = [
+  { key: "jpg", label: "JPG", desc: "Photo, compresse" },
+  { key: "png", label: "PNG", desc: "Sans perte, transparence" },
+  { key: "webp", label: "WEBP", desc: "Tres efficace, web" },
+  { key: "avif", label: "AVIF", desc: "Nouvelle generation" },
+];
+
+const IMAGE_QUALITIES = [
+  { key: "auto", label: "Auto", desc: "Qualite par defaut" },
+  { key: "100", label: "100 (Maximum)", desc: "Pas de perte visible" },
+  { key: "90", label: "90 (Excellente)", desc: "Quasi parfait" },
+  { key: "75", label: "75 (Bonne)", desc: "Standard web" },
+  { key: "50", label: "50 (Moyenne)", desc: "Compact" },
+];
+
+const IMAGE_RESOLUTIONS = [
+  { key: "auto", label: "Auto (conserver)", desc: "Taille source" },
+  { key: "3840", label: "Max 4K (3840px)", desc: "Largeur max 3840" },
+  { key: "1920", label: "Max 1920px", desc: "Web haute qualite" },
+  { key: "1280", label: "Max 1280px", desc: "Web standard" },
+];
+
+const DOC_FORMATS = [
+  { key: "pdf", label: "PDF", desc: "Universel, non editable" },
+  { key: "docx", label: "DOCX", desc: "Word moderne" },
+  { key: "odt", label: "ODT", desc: "OpenDocument" },
+  { key: "rtf", label: "RTF", desc: "Texte enrichi" },
+  { key: "txt", label: "TXT", desc: "Texte brut" },
+  { key: "html", label: "HTML", desc: "Page web" },
+];
+
+// ===== EXTENSION TO KIND MAP =====
+const EXT_TO_KIND = {
+  mp4: "video", mov: "video", mkv: "video", avi: "video", webm: "video",
+  m4v: "video", flv: "video", wmv: "video", mts: "video", ts: "video",
+  "3gp": "video", ogv: "video", mpg: "video", mpeg: "video",
+  mp3: "audio", wav: "audio", flac: "audio", m4a: "audio", ogg: "audio",
+  aac: "audio", opus: "audio", aiff: "audio", aif: "audio",
+  jpg: "image", jpeg: "image", png: "image", webp: "image", avif: "image",
+  heic: "image", heif: "image", tiff: "image", tif: "image", bmp: "image",
+  gif: "image",
+  docx: "document", doc: "document", odt: "document", rtf: "document",
+  pdf: "document", txt: "document", html: "document", htm: "document",
+  xlsx: "document", xls: "document", ods: "document", csv: "document",
+  pptx: "document", ppt: "document", odp: "document", md: "document",
+};
+
+function detectKindFromName(filename) {
+  const ext = (filename.split(".").pop() || "").toLowerCase();
+  return EXT_TO_KIND[ext] || "unknown";
+}
+
+// ===== STATE =====
+const convertState = {
+  files: [], // [{ path, name, kind }]
+  outputDir: null,
+  converting: false,
+  libreofficeAvailable: false,
+  video: { target_format: "mp4", codec: "auto", bitrate: "auto", resolution: "auto", fps: "auto" },
+  audio: { target_format: "mp3", codec: "auto", bitrate: "auto", sample_rate: "auto", channels: "auto" },
+  image: { target_format: "jpg", quality: "auto", resolution: "auto" },
+  document: { target_format: "pdf" },
+};
+
+// ===== UI UPDATER =====
+function updateConvertUI() {
+  const counts = { video: 0, audio: 0, image: 0, document: 0, unknown: 0 };
+  convertState.files.forEach((f) => { counts[f.kind] = (counts[f.kind] || 0) + 1; });
+
+  // Show/hide type cards
+  const videoCard = document.getElementById("convert-video-card");
+  const audioCard = document.getElementById("convert-audio-card");
+  const imageCard = document.getElementById("convert-image-card");
+  const docCard = document.getElementById("convert-doc-card");
+  if (videoCard) videoCard.classList.toggle("hidden", counts.video === 0);
+  if (audioCard) audioCard.classList.toggle("hidden", counts.audio === 0);
+  if (imageCard) imageCard.classList.toggle("hidden", counts.image === 0);
+  if (docCard) docCard.classList.toggle("hidden", counts.document === 0);
+
+  // Counts
+  const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  setText("convert-video-count", counts.video);
+  setText("convert-audio-count", counts.audio);
+  setText("convert-image-count", counts.image);
+  setText("convert-doc-count", counts.document);
+
+  // Labels
+  const findLabel = (list, key) => (list.find((x) => x.key === key) || { label: key }).label;
+  setText("convert-video-format-label", `Format : ${findLabel(VIDEO_FORMATS_CONV, convertState.video.target_format)}`);
+  setText("convert-video-codec-label", `Codec : ${findLabel(VIDEO_CODECS, convertState.video.codec)}`);
+  setText("convert-video-bitrate-label", `Bitrate : ${findLabel(VIDEO_BITRATES, convertState.video.bitrate)}`);
+  setText("convert-video-resolution-label", `Resolution : ${findLabel(VIDEO_RESOLUTIONS, convertState.video.resolution)}`);
+  setText("convert-video-fps-label", `FPS : ${findLabel(VIDEO_FPS_LIST, convertState.video.fps)}`);
+
+  setText("convert-audio-format-label", `Format : ${findLabel(AUDIO_FORMATS_CONV, convertState.audio.target_format)}`);
+  setText("convert-audio-bitrate-label", `Bitrate : ${findLabel(AUDIO_BITRATES, convertState.audio.bitrate)}`);
+  setText("convert-audio-samplerate-label", `Sample rate : ${findLabel(AUDIO_SAMPLE_RATES, convertState.audio.sample_rate)}`);
+  setText("convert-audio-channels-label", `Canaux : ${findLabel(AUDIO_CHANNELS, convertState.audio.channels)}`);
+
+  setText("convert-image-format-label", `Format : ${findLabel(IMAGE_FORMATS_CONV, convertState.image.target_format)}`);
+  setText("convert-image-quality-label", `Qualite : ${findLabel(IMAGE_QUALITIES, convertState.image.quality)}`);
+  setText("convert-image-resolution-label", `Taille : ${findLabel(IMAGE_RESOLUTIONS, convertState.image.resolution)}`);
+
+  setText("convert-doc-format-label", `Format : ${findLabel(DOC_FORMATS, convertState.document.target_format)}`);
+
+  // LibreOffice warning
+  const loWarn = document.getElementById("libreoffice-warning");
+  if (loWarn) {
+    if (counts.document > 0 && !convertState.libreofficeAvailable) loWarn.classList.remove("hidden");
+    else loWarn.classList.add("hidden");
+  }
+
+  // Source info
+  const srcInfo = document.getElementById("convert-source-info");
+  const srcInfoText = document.getElementById("convert-source-info-text");
+  if (srcInfo && srcInfoText) {
+    if (convertState.files.length > 0) {
+      const parts = [];
+      if (counts.video > 0) parts.push(`${counts.video} video${counts.video > 1 ? "s" : ""}`);
+      if (counts.audio > 0) parts.push(`${counts.audio} audio${counts.audio > 1 ? "s" : ""}`);
+      if (counts.image > 0) parts.push(`${counts.image} image${counts.image > 1 ? "s" : ""}`);
+      if (counts.document > 0) parts.push(`${counts.document} document${counts.document > 1 ? "s" : ""}`);
+      if (counts.unknown > 0) parts.push(`${counts.unknown} ignore${counts.unknown > 1 ? "s" : ""}`);
+      srcInfoText.textContent = parts.join(" - ");
+      srcInfo.classList.remove("hidden");
+    } else {
+      srcInfo.classList.add("hidden");
+    }
+  }
+
+  // Output label
+  const outLabel = document.getElementById("convert-output-label");
+  if (outLabel) {
+    if (convertState.outputDir) {
+      const name = convertState.outputDir.split(/[\\/]/).pop() || convertState.outputDir;
+      outLabel.textContent = `Sortie : ${name}`;
+    } else {
+      outLabel.textContent = "Sortie : Dossier par defaut";
+    }
+  }
+
+  // Button state
+  const btn = document.getElementById("convert-btn");
+  const btnLabel = document.getElementById("convert-btn-label");
+  if (btn && btnLabel) {
+    const usable = counts.video + counts.audio + counts.image + counts.document;
+    const blocked = counts.document > 0 && !convertState.libreofficeAvailable;
+    btn.disabled = (usable === 0) || convertState.converting || blocked;
+    if (convertState.converting) {
+      btnLabel.textContent = "Conversion en cours...";
+    } else if (usable > 0) {
+      btnLabel.textContent = `Convertir (${usable} fichier${usable > 1 ? "s" : ""})`;
+    } else {
+      btnLabel.textContent = "Convertir";
+    }
+  }
+}
+
+// ===== MODAL =====
+function showConvertModal(title, options, currentKey, onSelect) {
+  // Try to reuse the existing modal infrastructure (showOptionsModal from main.js)
+  if (typeof showOptionsModal === "function") {
+    showOptionsModal(title, options, currentKey, onSelect);
+    return;
+  }
+  // Fallback: build a simple modal
+  const items = options.map((opt) =>
+    `<div class="modal-option ${opt.key === currentKey ? 'selected' : ''}" data-key="${opt.key}">
+      <div class="modal-option-label">${opt.label}</div>
+      <div class="modal-option-desc">${opt.desc || ''}</div>
+    </div>`
+  ).join("");
+  const html = `
+    <div class="modal" id="convert-modal-temp">
+      <div class="modal-card">
+        <h2>${title}</h2>
+        <div class="modal-options">${items}</div>
+        <div class="modal-actions">
+          <button class="btn-secondary" id="convert-modal-close">Annuler</button>
+        </div>
+      </div>
+    </div>`;
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  const modalEl = container.firstElementChild;
+  document.body.appendChild(modalEl);
+  modalEl.querySelectorAll(".modal-option").forEach((opt) => {
+    opt.addEventListener("click", () => {
+      onSelect(opt.dataset.key);
+      modalEl.remove();
+    });
+  });
+  modalEl.querySelector("#convert-modal-close").addEventListener("click", () => modalEl.remove());
+}
+
+// ===== TOAST =====
+function convertToast(msg, duration) {
+  if (typeof showToast === "function") {
+    showToast(msg, duration || 2500);
+  } else {
+    console.log("[convert]", msg);
+  }
+}
+
+// ===== ADD FILES =====
+function addConvertFiles(paths) {
+  const newOnes = paths.map((p) => {
+    const name = p.split(/[\\/]/).pop() || p;
+    return { path: p, name, kind: detectKindFromName(name) };
+  });
+  convertState.files = convertState.files.concat(newOnes);
+  updateConvertUI();
+  convertToast(`${newOnes.length} fichier${newOnes.length > 1 ? "s" : ""} ajoute${newOnes.length > 1 ? "s" : ""}`, 1800);
+}
+
+function clearConvertFiles() {
+  convertState.files = [];
+  updateConvertUI();
+}
+
+// ===== INIT =====
+async function initConvertModule() {
+  // Wait a short tick to ensure DOM ready (called from main IIFE post-init)
+  await new Promise((r) => setTimeout(r, 50));
+
+  // Drag & drop
+  const dropZone = document.getElementById("convert-drop-zone");
+  if (dropZone) {
+    const onDragEnter = (e) => {
+      e.preventDefault();
+      if (typeof state !== "undefined" && state.currentModule !== "convert") return;
+      dropZone.classList.add("drag-over");
+    };
+    const onDragOver = (e) => {
+      e.preventDefault();
+      if (typeof state !== "undefined" && state.currentModule !== "convert") return;
+      e.dataTransfer.dropEffect = "copy";
+      dropZone.classList.add("drag-over");
+    };
+    const onDragLeave = (e) => {
+      e.preventDefault();
+      if (e.target === dropZone) dropZone.classList.remove("drag-over");
+    };
+    const onDrop = (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("drag-over");
+      if (typeof state !== "undefined" && state.currentModule !== "convert") return;
+      const files = e.dataTransfer.files;
+      if (!files || files.length === 0) {
+        convertToast("Aucun fichier detecte", 2500);
+        return;
+      }
+      const paths = [];
+      for (let i = 0; i < files.length; i++) {
+        if (files[i].path) paths.push(files[i].path);
+      }
+      if (paths.length === 0) {
+        convertToast("Le drag & drop ne fournit pas les chemins. Utilise 'Choisir des fichiers'.", 4000);
+        return;
+      }
+      addConvertFiles(paths);
+    };
+    dropZone.addEventListener("dragenter", onDragEnter);
+    dropZone.addEventListener("dragover", onDragOver);
+    dropZone.addEventListener("dragleave", onDragLeave);
+    dropZone.addEventListener("drop", onDrop);
+  }
+
+  // "Choisir des fichiers" button
+  const selectBtn = document.getElementById("convert-select-files-btn");
+  if (selectBtn) {
+    selectBtn.addEventListener("click", async () => {
+      try {
+        const tauriOpen = (window.__TAURI__ && window.__TAURI__.dialog && window.__TAURI__.dialog.open) || (typeof open === "function" ? open : null);
+        if (!tauriOpen) {
+          convertToast("Dialogue Tauri non disponible", 3000);
+          return;
+        }
+        const selected = await tauriOpen({
+          multiple: true,
+          filters: [{
+            name: "Fichiers convertibles",
+            extensions: Object.keys(EXT_TO_KIND),
+          }],
+        });
+        if (!selected) return;
+        const paths = Array.isArray(selected) ? selected : [selected];
+        addConvertFiles(paths);
+      } catch (err) {
+        console.error("Convert select files error:", err);
+        convertToast("Erreur : " + err, 3000);
+      }
+    });
+  }
+
+  // Clear source button
+  const clearBtn = document.getElementById("convert-source-clear");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      clearConvertFiles();
+    });
+  }
+
+  // Option rows
+  const bindOption = (rowId, title, list, getCurrent, setCurrent) => {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    row.addEventListener("click", () => {
+      showConvertModal(title, list, getCurrent(), (key) => {
+        setCurrent(key);
+        updateConvertUI();
+      });
+    });
+  };
+
+  bindOption("convert-video-format-row", "Format video", VIDEO_FORMATS_CONV,
+    () => convertState.video.target_format, (k) => convertState.video.target_format = k);
+  bindOption("convert-video-codec-row", "Codec video", VIDEO_CODECS,
+    () => convertState.video.codec, (k) => convertState.video.codec = k);
+  bindOption("convert-video-bitrate-row", "Bitrate video", VIDEO_BITRATES,
+    () => convertState.video.bitrate, (k) => convertState.video.bitrate = k);
+  bindOption("convert-video-resolution-row", "Resolution", VIDEO_RESOLUTIONS,
+    () => convertState.video.resolution, (k) => convertState.video.resolution = k);
+  bindOption("convert-video-fps-row", "FPS", VIDEO_FPS_LIST,
+    () => convertState.video.fps, (k) => convertState.video.fps = k);
+
+  bindOption("convert-audio-format-row", "Format audio", AUDIO_FORMATS_CONV,
+    () => convertState.audio.target_format, (k) => convertState.audio.target_format = k);
+  bindOption("convert-audio-bitrate-row", "Bitrate audio", AUDIO_BITRATES,
+    () => convertState.audio.bitrate, (k) => convertState.audio.bitrate = k);
+  bindOption("convert-audio-samplerate-row", "Sample rate", AUDIO_SAMPLE_RATES,
+    () => convertState.audio.sample_rate, (k) => convertState.audio.sample_rate = k);
+  bindOption("convert-audio-channels-row", "Canaux audio", AUDIO_CHANNELS,
+    () => convertState.audio.channels, (k) => convertState.audio.channels = k);
+
+  bindOption("convert-image-format-row", "Format image", IMAGE_FORMATS_CONV,
+    () => convertState.image.target_format, (k) => convertState.image.target_format = k);
+  bindOption("convert-image-quality-row", "Qualite image", IMAGE_QUALITIES,
+    () => convertState.image.quality, (k) => convertState.image.quality = k);
+  bindOption("convert-image-resolution-row", "Taille image", IMAGE_RESOLUTIONS,
+    () => convertState.image.resolution, (k) => convertState.image.resolution = k);
+
+  bindOption("convert-doc-format-row", "Format document", DOC_FORMATS,
+    () => convertState.document.target_format, (k) => convertState.document.target_format = k);
+
+  // Output folder picker
+  const outputRow = document.getElementById("convert-output-row");
+  if (outputRow) {
+    outputRow.addEventListener("click", async () => {
+      try {
+        const tauriOpen = (window.__TAURI__ && window.__TAURI__.dialog && window.__TAURI__.dialog.open) || (typeof open === "function" ? open : null);
+        if (!tauriOpen) return;
+        const selected = await tauriOpen({ directory: true, multiple: false });
+        if (selected) {
+          convertState.outputDir = selected;
+          updateConvertUI();
+        }
+      } catch (err) {
+        console.error("Convert output picker error:", err);
+      }
+    });
+  }
+
+  // Open folder button (topbar)
+  const openFolderBtn = document.getElementById("convert-open-folder-btn");
+  if (openFolderBtn) {
+    openFolderBtn.addEventListener("click", async () => {
+      try {
+        const inv = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) || (typeof invoke === "function" ? invoke : null);
+        if (inv) await inv("open_converted_folder");
+      } catch (err) {
+        console.error("Open converted folder error:", err);
+      }
+    });
+  }
+
+  // LibreOffice link
+  const loLink = document.getElementById("libreoffice-link");
+  if (loLink) {
+    loLink.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        const sh = (window.__TAURI__ && window.__TAURI__.shell);
+        if (sh && sh.open) await sh.open("https://www.libreoffice.org/download/");
+      } catch (err) {
+        console.error("Open LO link error:", err);
+      }
+    });
+  }
+
+  // Convert button
+  const convertBtn = document.getElementById("convert-btn");
+  if (convertBtn) {
+    convertBtn.addEventListener("click", async () => {
+      if (convertState.converting || convertState.files.length === 0) return;
+
+      const valid = convertState.files.filter((f) => f.kind !== "unknown");
+      if (valid.length === 0) {
+        convertToast("Aucun fichier convertible", 3000);
+        return;
+      }
+
+      convertState.converting = true;
+      updateConvertUI();
+
+      const progSection = document.getElementById("convert-progress-section");
+      const progFill = document.getElementById("convert-progress-fill");
+      const progStage = document.getElementById("convert-progress-stage");
+      const progMeta = document.getElementById("convert-progress-meta");
+      if (progSection) progSection.classList.remove("hidden");
+      if (progFill) progFill.style.width = "0%";
+      if (progStage) progStage.textContent = "Conversion en cours...";
+      if (progMeta) progMeta.textContent = "";
+
+      // Build payload
+      const filesPayload = valid.map((f) => {
+        let opts;
+        if (f.kind === "video") opts = { kind: "video", ...convertState.video };
+        else if (f.kind === "audio") opts = { kind: "audio", ...convertState.audio };
+        else if (f.kind === "image") opts = { kind: "image", ...convertState.image };
+        else if (f.kind === "document") opts = { kind: "document", ...convertState.document };
+        return { sourcePath: f.path, opts };
+      });
+
+      try {
+        const inv = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) || (typeof invoke === "function" ? invoke : null);
+        if (!inv) throw new Error("Tauri invoke non disponible");
+
+        const result = await inv("convert_files_batch", {
+          files: filesPayload,
+          outputDir: convertState.outputDir,
+        });
+
+        if (result && result.success) {
+          if (progFill) progFill.style.width = "100%";
+          if (progStage) progStage.textContent = "Termine";
+          if (progMeta) progMeta.textContent = `${result.succeeded}/${result.total} converti${result.succeeded > 1 ? "s" : ""}`;
+          convertToast(`Conversion terminee : ${result.succeeded}/${result.total}`, 3000);
+          setTimeout(() => {
+            if (progSection) progSection.classList.add("hidden");
+            clearConvertFiles();
+          }, 3500);
+        } else if (result && result.libreoffice_missing) {
+          convertToast("LibreOffice non installe", 4000);
+          if (progSection) progSection.classList.add("hidden");
+        } else {
+          const err = (result && result.error) || "Echec inconnu";
+          convertToast("Erreur : " + err, 4000);
+          if (progSection) progSection.classList.add("hidden");
+        }
+      } catch (err) {
+        console.error("Convert error:", err);
+        convertToast("Erreur : " + err, 4000);
+        if (progSection) progSection.classList.add("hidden");
+      }
+
+      convertState.converting = false;
+      updateConvertUI();
+    });
+  }
+
+  // Progress event listener
+  try {
+    const lst = (window.__TAURI__ && window.__TAURI__.event && window.__TAURI__.event.listen) || (typeof listen === "function" ? listen : null);
+    if (lst) {
+      lst("convert-progress", (event) => {
+        const p = event.payload || {};
+        const progFill = document.getElementById("convert-progress-fill");
+        const progStage = document.getElementById("convert-progress-stage");
+        const progMeta = document.getElementById("convert-progress-meta");
+        if (progFill) progFill.style.width = Math.min(p.percent || 0, 100) + "%";
+        if (progStage) {
+          let prefix = "";
+          if (p.total_files && p.total_files > 1) prefix = `(${p.file_index}/${p.total_files}) `;
+          if (p.stage === "converting") progStage.textContent = `${prefix}Conversion ${(p.percent || 0).toFixed(0)}%`;
+          else if (p.stage === "scanning") progStage.textContent = "Analyse...";
+        }
+        if (progMeta && p.current_file) progMeta.textContent = p.current_file;
+      });
+    }
+  } catch (err) {
+    console.error("Convert progress listener setup error:", err);
+  }
+
+  // Check LibreOffice availability
+  try {
+    const inv = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) || (typeof invoke === "function" ? invoke : null);
+    if (inv) {
+      convertState.libreofficeAvailable = await inv("check_libreoffice");
+    }
+  } catch (err) {
+    convertState.libreofficeAvailable = false;
+  }
+
+  updateConvertUI();
+  console.log("[convert] Module initialized");
+}
+
+// Call init - this is a single statement, no nested IIFE
+initConvertModule();
