@@ -939,6 +939,7 @@ let audioOriginalFallbackEl = null;
 let audioResultFallbackEl = null;
 let audioProgressUnlisten = null;
 let audioOperationToken = 0;
+let audioAnalyzeToken = 0;
 let audioLoadTokens = {
   original: 0,
   result: 0,
@@ -1914,12 +1915,15 @@ function normalizeAudioPath(path) {
 
 async function analyzeAudioFile(path) {
   if (!path) return;
+  const token = ++audioAnalyzeToken;
   try {
     const analysis = await invoke("audio_analyze", { input: path });
+    if (token !== audioAnalyzeToken) return;
     if (path !== audioState.mediaPath && path !== audioState.resultPath) return;
     audioState.analysis = analysis;
     renderAudioMeters();
   } catch (err) {
+    if (token !== audioAnalyzeToken) return;
     console.warn("[audio] analyze failed:", err);
     audioState.analysis = null;
     renderAudioMeters();
@@ -1968,6 +1972,7 @@ function resetAudioWithConfirm() {
 
 function resetAudioState() {
   audioOperationToken += 1;
+  audioAnalyzeToken += 1;
   stopAudioProgressListener();
   destroyAudioPlayer("original");
   destroyAudioPlayer("result");
