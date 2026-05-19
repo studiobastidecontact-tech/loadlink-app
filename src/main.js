@@ -1218,6 +1218,8 @@ function renderAudioEffectsSidebar() {
       renderAudioEffectsSidebar();
     });
   });
+
+  renderAudioEffectDetail();
 }
 
 function toggleAudioEffect(effectKey) {
@@ -1226,6 +1228,31 @@ function toggleAudioEffect(effectKey) {
   effect.enabled = !effect.enabled;
   audioState.selectedEffect = effectKey;
   renderAudioEffectsSidebar();
+}
+
+function renderAudioEffectDetail() {
+  const detail = document.getElementById("audio-effect-detail");
+  if (!detail) return;
+  const effect = audioState.effects.find((item) => item.key === audioState.selectedEffect) || audioState.effects[0];
+  if (!effect) {
+    detail.innerHTML = "";
+    return;
+  }
+
+  detail.innerHTML = `
+    <div class="audio-effect-detail-head">
+      <div>
+        <div class="audio-effect-detail-kicker">Effet selectionne</div>
+        <div class="audio-effect-detail-title">${effect.label}</div>
+      </div>
+      <button type="button" class="audio-effect-power${effect.enabled ? " on" : ""}" id="audio-effect-power" title="Activer / desactiver">
+        <span></span>
+      </button>
+    </div>
+    <div class="audio-effect-detail-placeholder">Parametres - Disponibles en Phase D</div>
+  `;
+
+  detail.querySelector("#audio-effect-power")?.addEventListener("click", () => toggleAudioEffect(effect.key));
 }
 
 function setAudioStudioTab(tab) {
