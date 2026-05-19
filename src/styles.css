@@ -1474,3 +1474,205 @@ body.dark .libreoffice-warning {
 .player-segments-list.edit-mode .player-segment-time:hover {
   color: #E8390C;
 }
+
+
+/* ============================================
+   Phase 4.5 Player REDESIGN v5 - Split layout
+   Tous les selecteurs sont strictement scopes
+   ============================================ */
+
+.player-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+  gap: 16px;
+  margin-top: 0;
+}
+
+@media (max-width: 920px) {
+  .player-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* COLONNE GAUCHE : video + waveform */
+.player-split .player-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.player-split .player-media-frame {
+  position: relative;
+  background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-split .player-media-frame video {
+  width: 100%;
+  max-height: 480px;
+  background: #000;
+  display: block;
+}
+
+.player-split .player-media-frame audio {
+  width: calc(100% - 32px);
+  margin: 24px 16px;
+  display: block;
+}
+
+.player-split .player-media-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+}
+
+.player-split .player-waveform-frame {
+  background: linear-gradient(180deg, #161616 0%, #0e0e0e 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 14px 16px;
+  min-height: 90px;
+  position: relative;
+}
+
+.player-split #player-waveform {
+  width: 100%;
+  min-height: 60px;
+}
+
+/* COLONNE DROITE : segments sur fond clair */
+.player-split .player-right {
+  display: flex;
+  flex-direction: column;
+  background: #f7f7f8;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 360px;
+  max-height: 600px;
+}
+
+.player-split .player-right-header {
+  padding: 14px 16px 10px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: #ffffff;
+}
+
+.player-split .player-right-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.player-split .player-right-sub {
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.player-split .player-segments-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.player-split .player-segments-scroll::-webkit-scrollbar { width: 8px; }
+.player-split .player-segments-scroll::-webkit-scrollbar-track { background: transparent; }
+.player-split .player-segments-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+}
+.player-split .player-segments-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.22);
+}
+
+/* Override des anciens styles segments pour fond clair */
+.player-split .player-segments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.player-split .player-segment {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  cursor: default;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  border-left: 3px solid transparent;
+  background: transparent;
+}
+
+.player-split .player-segment:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.player-split .player-segment.active {
+  background: rgba(232, 57, 12, 0.08);
+  border-left-color: #E8390C;
+}
+
+.player-split .player-segment-time {
+  flex-shrink: 0;
+  min-width: 52px;
+  font-family: 'Geist Mono', 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #888;
+  padding-top: 3px;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+
+.player-split .player-segment-time:hover {
+  color: #E8390C;
+}
+
+.player-split .player-segment.active .player-segment-time {
+  color: #E8390C;
+  font-weight: 700;
+}
+
+.player-split .player-segment-text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #1a1a1a;
+  font-weight: 400;
+  word-break: break-word;
+}
+
+.player-split .player-segment-text[contenteditable="true"] {
+  outline: none;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border-radius: 4px;
+  cursor: text;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.player-split .player-segment-text[contenteditable="true"]:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.player-split .player-segment-text[contenteditable="true"]:focus {
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(232, 57, 12, 0.25), 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.player-split .player-segment.active .player-segment-text {
+  color: #000000;
+  font-weight: 500;
+}

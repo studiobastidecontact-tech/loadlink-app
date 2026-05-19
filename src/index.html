@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://unpkg.com/wavesurfer.js@7.8.6/dist/wavesurfer.min.js" defer></script>
 </head>
 <body>
 
@@ -848,11 +849,26 @@
 
         <!-- PLAYER ZONE (cachee tant que rien n'est charge) -->
         <div class="card hidden" id="player-zone">
-          <div id="player-media-wrap" style="position:relative; background:#000; border-radius:8px; overflow:hidden;">
-            <!-- audio ou video injecte ici par JS -->
-          </div>
-          <div id="player-segments-wrap" style="margin-top:12px; max-height:300px; overflow-y:auto;">
-            <!-- segments injectes ici par JS -->
+          <div class="player-split">
+            <!-- COLONNE GAUCHE : video + waveform -->
+            <div class="player-left">
+              <div id="player-media-wrap" class="player-media-frame">
+                <!-- audio ou video injecte ici par JS -->
+              </div>
+              <div id="player-waveform-wrap" class="player-waveform-frame">
+                <div id="player-waveform"></div>
+              </div>
+            </div>
+            <!-- COLONNE DROITE : segments editables -->
+            <div class="player-right">
+              <div class="player-right-header">
+                <div class="player-right-title">Transcription</div>
+                <div class="player-right-sub" id="player-segments-count">0 segments</div>
+              </div>
+              <div id="player-segments-wrap" class="player-segments-scroll">
+                <!-- segments injectes ici par JS -->
+              </div>
+            </div>
           </div>
         </div>
 
