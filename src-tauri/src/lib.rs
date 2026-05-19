@@ -622,6 +622,15 @@ async fn cleanup_old_jobs(state: State<'_, AppState>, days: i64) -> Result<usize
 // ============================================
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+// ============================================
+// Phase 4.5 - Player (Lire)
+// ============================================
+
+/// Lit le contenu d'un fichier texte (utilise pour parser les SRT cote JS)
+#[tauri::command]
+async fn read_text_file(path: String) -> Result<String, String> {
+    std::fs::read_to_string(&path).map_err(|e| format!("Lecture impossible : {}", e))
+}
 pub fn run() {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -672,6 +681,8 @@ pub fn run() {
             open_converted_folder,
             // Phase 4 Transcrire
             transcribe,
+            // Phase 4.5 Lire (player)
+            read_text_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

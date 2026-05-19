@@ -1303,3 +1303,114 @@ body.dark .libreoffice-warning {
   flex: 1;
   min-height: 0;
 }
+
+
+/* ============================================
+   Phase 4.5 Player (Lire) - polish v2
+   ============================================ */
+
+/* Container du media (video/audio) */
+#player-media-wrap {
+  background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 16px;
+}
+
+/* Le <audio> natif : centre avec padding */
+#player-media-wrap audio {
+  width: calc(100% - 40px) !important;
+  margin: 20px auto !important;
+  display: block !important;
+}
+
+/* Le <video> natif : full width, sans padding */
+#player-media-wrap video {
+  width: 100% !important;
+  max-height: 500px !important;
+  background: #000;
+}
+
+/* Panel des segments - style "lecture editoriale" */
+#player-segments-wrap {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 4px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+#player-segments-wrap::-webkit-scrollbar { width: 8px; }
+#player-segments-wrap::-webkit-scrollbar-track { background: transparent; }
+#player-segments-wrap::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+#player-segments-wrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.player-segments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.player-segment {
+  display: flex;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  user-select: text;
+}
+
+.player-segment:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.player-segment.active {
+  background: rgba(232, 57, 12, 0.10);
+  border-left-color: #E8390C;
+  box-shadow: 0 1px 3px rgba(232, 57, 12, 0.15);
+}
+
+.player-segment-time {
+  flex-shrink: 0;
+  min-width: 56px;
+  font-family: 'Geist Mono', 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+  padding-top: 3px;
+  letter-spacing: -0.3px;
+}
+
+.player-segment.active .player-segment-time {
+  color: #E8390C;
+  font-weight: 700;
+}
+
+.player-segment-text {
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #c8c8c8;
+  font-weight: 400;
+}
+
+.player-segment.active .player-segment-text {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* Hint quand pas de segments */
+#player-segments-wrap > div:not(.player-segments-list) {
+  text-align: center;
+  padding: 32px 16px !important;
+  color: #777 !important;
+  font-size: 13px !important;
+  font-style: italic;
+}
