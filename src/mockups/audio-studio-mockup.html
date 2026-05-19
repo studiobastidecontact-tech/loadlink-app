@@ -1,0 +1,2249 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>LoadLink Audio Studio — Mockup statique</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================
+       DESIGN TOKENS — Inspiration maquette
+       ============================================ */
+    :root {
+      /* Backgrounds */
+      --bg-app: #0d1117;
+      --bg-panel: #141a23;
+      --bg-panel-2: #1a212c;
+      --bg-elev: #1f2733;
+      --bg-input: #1a212c;
+      --bg-hover: #232b38;
+
+      /* Borders */
+      --border: rgba(255, 255, 255, 0.06);
+      --border-strong: rgba(255, 255, 255, 0.12);
+      --border-active: rgba(59, 130, 246, 0.5);
+
+      /* Text */
+      --text-1: #e6edf3;
+      --text-2: #9ca3af;
+      --text-3: #6b7280;
+      --text-muted: #4b5563;
+
+      /* Brand */
+      --accent: #3b82f6;       /* bleu CTA principal */
+      --accent-hover: #2563eb;
+      --orange: #e8390c;       /* orange brand Studio Bastide */
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+
+      /* Track colors */
+      --track-voice: #3b82f6;
+      --track-ambient: #10b981;
+      --track-music: #a855f7;
+      --track-fx: #f59e0b;
+
+      /* Sizing */
+      --sidebar-w: 240px;
+      --right-w: 360px;
+      --header-h: 64px;
+      --footer-h: 110px;
+      --transport-h: 56px;
+      --radius: 8px;
+      --radius-sm: 6px;
+    }
+
+    /* ============================================
+       BASE
+       ============================================ */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg-app);
+      color: var(--text-1);
+      font-size: 13px;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    button {
+      font-family: inherit;
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    /* ============================================
+       LAYOUT GLOBAL
+       ============================================ */
+    .app {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      grid-template-rows: 100vh;
+      height: 100vh;
+    }
+
+    /* ============================================
+       SIDEBAR GAUCHE (modules)
+       ============================================ */
+    .sidebar {
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--orange));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-family: 'Syne';
+    }
+    .brand-name {
+      font-family: 'Syne';
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .brand-badge {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(59, 130, 246, 0.12);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 4px;
+    }
+
+    .nav {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 0 8px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 6px;
+      color: var(--text-2);
+      text-decoration: none;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-item:hover {
+      background: var(--bg-hover);
+      color: var(--text-1);
+    }
+    .nav-item.active {
+      background: rgba(59, 130, 246, 0.12);
+      color: var(--accent);
+    }
+    .nav-item.active .icon {
+      color: var(--accent);
+    }
+    .nav-item .nav-chevron {
+      margin-left: auto;
+      opacity: 0.5;
+    }
+
+    .nav-footer {
+      padding: 0 8px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .user-card {
+      margin: 12px 8px 0;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-elev);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #7c3aed, #ec4899);
+    }
+    .user-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .user-name {
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .user-plan {
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    /* ============================================
+       MAIN — colonne droite globale
+       ============================================ */
+    .main {
+      display: grid;
+      grid-template-rows: var(--header-h) 1fr var(--footer-h);
+      grid-template-columns: 1fr;
+      overflow: hidden;
+    }
+
+    /* ============================================
+       HEADER
+       ============================================ */
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      padding: 0 20px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .header-back {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      color: var(--text-2);
+      transition: background 0.15s;
+    }
+    .header-back:hover { background: var(--bg-hover); }
+
+    .project-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .project-title {
+      font-family: 'Syne';
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .project-subtitle {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 2px;
+    }
+
+    .header-tabs {
+      display: flex;
+      background: var(--bg-input);
+      border-radius: 8px;
+      padding: 4px;
+      gap: 2px;
+    }
+    .tab {
+      padding: 8px 22px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-2);
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+    .tab:hover { color: var(--text-1); }
+    .tab.active {
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      color: var(--text-2);
+      transition: background 0.15s;
+    }
+    .icon-btn:hover { background: var(--bg-hover); color: var(--text-1); }
+
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: var(--accent);
+      color: white;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    /* ============================================
+       CONTENT (zone centrale + sidebar effets)
+       ============================================ */
+    .content {
+      display: grid;
+      grid-template-columns: 1fr var(--right-w);
+      overflow: hidden;
+    }
+
+    /* ============================================
+       TIMELINE / ÉDITION
+       ============================================ */
+    .editor {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg-app);
+    }
+
+    .editor-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-panel);
+    }
+    .tool-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 5px;
+      color: var(--text-2);
+      transition: background 0.15s;
+    }
+    .tool-btn:hover { background: var(--bg-hover); color: var(--text-1); }
+    .tool-btn.active {
+      background: var(--bg-elev);
+      color: var(--text-1);
+      box-shadow: 0 0 0 1px var(--border-strong) inset;
+    }
+
+    .toolbar-divider {
+      width: 1px;
+      height: 18px;
+      background: var(--border);
+      margin: 0 6px;
+    }
+
+    .toolbar-spacer { flex: 1; }
+
+    .time-indicator {
+      background: var(--accent);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .zoom-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-2);
+    }
+    .zoom-slider {
+      width: 100px;
+      height: 4px;
+      background: var(--bg-elev);
+      border-radius: 2px;
+      position: relative;
+    }
+    .zoom-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 40%;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+    .zoom-thumb {
+      position: absolute;
+      left: 40%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    /* Timeline ruler */
+    .timeline-wrap {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+      background: var(--bg-app);
+    }
+
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 100%;
+    }
+
+    .tracks-header-spacer {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      left: 0;
+      z-index: 3;
+      height: 38px;
+    }
+
+    .ruler {
+      display: flex;
+      align-items: flex-end;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      height: 38px;
+    }
+    .ruler-tick {
+      flex: 1;
+      padding: 4px 6px 6px;
+      font-size: 10px;
+      color: var(--text-3);
+      border-left: 1px solid var(--border);
+      position: relative;
+      font-variant-numeric: tabular-nums;
+    }
+    .ruler-marker {
+      position: absolute;
+      bottom: 4px;
+      left: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      color: var(--text-2);
+    }
+    .ruler-marker::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--orange);
+      border-radius: 50%;
+    }
+
+    .playhead {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--orange);
+      z-index: 4;
+      pointer-events: none;
+    }
+    .playhead::before {
+      content: '00:32.18';
+      position: absolute;
+      top: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Tracks */
+    .track-row {
+      display: contents;
+    }
+
+    .track-info {
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 12px;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .track-info-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .track-color {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .track-name-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .track-name {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .track-type {
+      font-size: 10px;
+      color: var(--text-3);
+      margin-top: 1px;
+    }
+    .track-menu {
+      color: var(--text-3);
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .track-menu:hover { background: var(--bg-hover); color: var(--text-1); }
+
+    .track-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .track-btn {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-elev);
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-2);
+      transition: all 0.15s;
+    }
+    .track-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-1);
+    }
+    .track-btn.active-m {
+      background: var(--red);
+      color: white;
+    }
+    .track-btn.active-s {
+      background: var(--yellow);
+      color: var(--bg-app);
+    }
+
+    .track-pan-vol {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-3);
+      font-size: 11px;
+      margin-left: auto;
+    }
+
+    .track-content {
+      background: var(--bg-app);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 0;
+      position: relative;
+      min-height: 100px;
+    }
+
+    .clip {
+      position: absolute;
+      top: 12px;
+      height: calc(100% - 24px);
+      border-radius: 6px;
+      overflow: hidden;
+      cursor: grab;
+      border: 1px solid;
+    }
+
+    .clip-label {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      font-size: 10px;
+      color: var(--text-1);
+      font-weight: 500;
+      z-index: 2;
+      pointer-events: none;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .clip-waveform {
+      width: 100%;
+      height: 100%;
+      opacity: 0.85;
+    }
+
+    /* Track 1 - Voix (bleu) */
+    .clip-voice {
+      background: rgba(59, 130, 246, 0.18);
+      border-color: rgba(59, 130, 246, 0.6);
+    }
+    .clip-voice .clip-waveform { color: #60a5fa; }
+
+    /* Track 2 - Ambiance (vert) */
+    .clip-ambient {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.55);
+    }
+    .clip-ambient .clip-waveform { color: #34d399; }
+
+    /* Track 3 - Musique (violet) */
+    .clip-music {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: rgba(168, 85, 247, 0.55);
+    }
+    .clip-music .clip-waveform { color: #c084fc; }
+
+    /* Track 4 - FX (orange) */
+    .clip-fx {
+      background: rgba(245, 158, 11, 0.16);
+      border-color: rgba(245, 158, 11, 0.55);
+    }
+    .clip-fx .clip-waveform { color: #fbbf24; }
+
+    /* ============================================
+       TRANSPORT BAR
+       ============================================ */
+    .transport {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      padding: 0 20px;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      height: var(--transport-h);
+      flex-shrink: 0;
+    }
+
+    .transport-time {
+      display: flex;
+      flex-direction: column;
+    }
+    .time-current {
+      font-family: 'Syne';
+      font-size: 22px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0;
+      line-height: 1;
+    }
+    .time-total {
+      font-size: 11px;
+      color: var(--text-3);
+      font-variant-numeric: tabular-nums;
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .transport-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .transport-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      color: var(--text-2);
+      transition: all 0.15s;
+    }
+    .transport-btn:hover { background: var(--bg-hover); color: var(--text-1); }
+    .transport-play {
+      width: 44px;
+      height: 44px;
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      margin: 0 6px;
+    }
+    .transport-play:hover { background: var(--accent-hover); }
+
+    .transport-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .meta-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      background: var(--bg-input);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-2);
+      font-weight: 500;
+    }
+    .meta-chip svg { color: var(--text-3); }
+    .volume-slider {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-2);
+    }
+    .volume-track {
+      width: 100px;
+      height: 4px;
+      background: var(--bg-elev);
+      border-radius: 2px;
+      position: relative;
+    }
+    .volume-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 70%;
+      background: var(--text-2);
+      border-radius: 2px;
+    }
+    .volume-thumb {
+      position: absolute;
+      left: 70%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--text-1);
+    }
+
+    /* ============================================
+       LIBRARY DE SONS
+       ============================================ */
+    .library {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      background: var(--bg-app);
+      border-top: 1px solid var(--border);
+      overflow: hidden;
+      max-height: 280px;
+    }
+
+    .library-cats {
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .library-cats-header {
+      padding: 14px 16px 10px;
+      font-family: 'Syne';
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .library-search {
+      padding: 0 12px 10px;
+    }
+    .library-search input {
+      width: 100%;
+      padding: 7px 10px 7px 30px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-1);
+      font-family: inherit;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%239ca3af' stroke-width='2' viewBox='0 0 24 24'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+      background-repeat: no-repeat;
+      background-position: 10px center;
+    }
+    .library-search input::placeholder { color: var(--text-3); }
+    .library-search input:focus { outline: none; border-color: var(--accent); }
+
+    .library-cats-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 8px;
+    }
+    .cat {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-2);
+      transition: background 0.15s, color 0.15s;
+    }
+    .cat:hover { background: var(--bg-hover); color: var(--text-1); }
+    .cat.active {
+      background: rgba(59, 130, 246, 0.12);
+      color: var(--accent);
+    }
+    .cat-count {
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    .library-main {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .library-tabs {
+      display: flex;
+      gap: 18px;
+      padding: 14px 18px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .lib-tab {
+      padding: 8px 4px 12px;
+      color: var(--text-2);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      position: relative;
+    }
+    .lib-tab:hover { color: var(--text-1); }
+    .lib-tab.active {
+      color: var(--accent);
+    }
+    .lib-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    .library-filters {
+      display: flex;
+      gap: 8px;
+      padding: 10px 18px;
+      align-items: center;
+    }
+    .filter-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      font-size: 11px;
+      color: var(--text-2);
+      cursor: pointer;
+    }
+    .filter-chip:hover { background: var(--bg-hover); color: var(--text-1); }
+
+    .library-table {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 18px 12px;
+    }
+    .table-head {
+      display: grid;
+      grid-template-columns: 1fr 60px 50px 80px 80px;
+      gap: 12px;
+      padding: 8px 4px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .table-row {
+      display: grid;
+      grid-template-columns: 1fr 60px 50px 80px 80px;
+      gap: 12px;
+      padding: 8px 4px;
+      align-items: center;
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.1s;
+    }
+    .table-row:hover { background: var(--bg-hover); }
+
+    .row-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .row-play {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--bg-elev);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-1);
+      flex-shrink: 0;
+    }
+    .row-title-text {
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .row-mini-wave {
+      flex: 1;
+      height: 18px;
+      min-width: 0;
+      color: var(--text-3);
+    }
+
+    .row-duration, .row-bpm {
+      font-size: 11px;
+      color: var(--text-2);
+      font-variant-numeric: tabular-nums;
+    }
+    .row-type {
+      font-size: 11px;
+      color: var(--text-2);
+    }
+    .row-actions {
+      display: flex;
+      gap: 4px;
+      justify-content: flex-end;
+    }
+    .row-action {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      color: var(--text-3);
+    }
+    .row-action:hover { background: var(--bg-elev); color: var(--text-1); }
+
+    /* ============================================
+       SIDEBAR DROITE — EFFETS
+       ============================================ */
+    .right-panel {
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .right-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .right-tab {
+      padding: 14px 14px 12px;
+      color: var(--text-2);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      position: relative;
+    }
+    .right-tab:hover { color: var(--text-1); }
+    .right-tab.active { color: var(--text-1); }
+    .right-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 14px;
+      right: 14px;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    .effects-section {
+      padding: 16px 16px 12px;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Syne';
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .section-title-info {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--bg-elev);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: var(--text-3);
+    }
+
+    .effect-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .effect-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      background: var(--bg-elev);
+      border: 1px solid transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .effect-item:hover { border-color: var(--border-strong); }
+    .effect-item.active {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.08);
+    }
+    .effect-drag {
+      color: var(--text-3);
+      cursor: grab;
+    }
+    .effect-name {
+      flex: 1;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .effect-menu {
+      color: var(--text-3);
+      padding: 4px;
+    }
+
+    /* Toggle switch */
+    .toggle {
+      position: relative;
+      width: 30px;
+      height: 16px;
+      background: var(--bg-input);
+      border-radius: 9px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 12px;
+      height: 12px;
+      background: var(--text-2);
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+    .toggle.on { background: var(--accent); }
+    .toggle.on::after {
+      left: 16px;
+      background: white;
+    }
+
+    .btn-add {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px;
+      margin-top: 8px;
+      background: var(--bg-elev);
+      border: 1px dashed var(--border-strong);
+      border-radius: 6px;
+      color: var(--text-2);
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .btn-add:hover {
+      background: var(--bg-hover);
+      color: var(--text-1);
+      border-color: var(--accent);
+    }
+
+    /* EQ Panel */
+    .eq-panel {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .eq-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .eq-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Syne';
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .eq-power {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent);
+      border-radius: 5px;
+      color: white;
+    }
+
+    .eq-curve {
+      position: relative;
+      width: 100%;
+      height: 170px;
+      background: var(--bg-app);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .eq-grid {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .eq-grid-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--border);
+    }
+    .eq-grid-vline {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: var(--border);
+    }
+    .eq-axis-y {
+      position: absolute;
+      left: 4px;
+      font-size: 9px;
+      color: var(--text-3);
+    }
+
+    .eq-spectrum {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.55;
+    }
+
+    .eq-points {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .eq-point {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.15);
+    }
+
+    .eq-bottom-axis {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 4px;
+      font-size: 10px;
+      color: var(--text-3);
+      margin-bottom: 8px;
+    }
+
+    .eq-band-pills {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .band-pill {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .eq-params-table {
+      display: grid;
+      grid-template-columns: 60px repeat(5, 1fr);
+      gap: 6px;
+      font-size: 10px;
+      align-items: center;
+    }
+    .eq-params-table .eq-label {
+      color: var(--text-3);
+      font-weight: 500;
+    }
+    .eq-params-table .eq-cell {
+      text-align: center;
+      padding: 4px 2px;
+      color: var(--text-1);
+      background: var(--bg-elev);
+      border-radius: 3px;
+      font-variant-numeric: tabular-nums;
+    }
+    .eq-icon-row .eq-cell {
+      background: transparent;
+    }
+
+    /* ============================================
+       FOOTER — METERING
+       ============================================ */
+    .footer {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 24px;
+      padding: 14px 24px;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      align-items: center;
+    }
+
+    .meter-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    .meters {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-width: 540px;
+    }
+    .meter-row {
+      display: grid;
+      grid-template-columns: 14px 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+    .meter-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+    .meter-bar {
+      height: 12px;
+      background: var(--bg-app);
+      border-radius: 2px;
+      position: relative;
+      overflow: hidden;
+    }
+    .meter-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      background: linear-gradient(90deg,
+        #10b981 0%,
+        #10b981 60%,
+        #facc15 75%,
+        #ef4444 90%,
+        #ef4444 100%
+      );
+      border-radius: 2px;
+    }
+    .meter-peak {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 2px;
+      background: white;
+    }
+
+    .meter-scale {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+      font-size: 9px;
+      color: var(--text-3);
+      font-variant-numeric: tabular-nums;
+      margin-top: 2px;
+    }
+
+    .lufs-box {
+      text-align: center;
+    }
+    .lufs-value {
+      font-family: 'Syne';
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .lufs-unit {
+      font-size: 10px;
+      color: var(--text-3);
+      margin-top: 4px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+    }
+    .lufs-secondary {
+      font-size: 11px;
+      color: var(--text-2);
+      margin-top: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============================================
+       SIDEBAR GAUCHE
+       ============================================ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">L</div>
+      <div class="brand-name">LoadLink</div>
+      <div class="brand-badge">Studio</div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Accueil
+        <svg class="icon nav-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Capture
+      </div>
+      <div class="nav-item active">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        Audio
+      </div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        Transcription
+      </div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        Vidéo
+      </div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Convertisseur
+      </div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M21 8v13H3V8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+        Compression
+      </div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        Assets
+      </div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        IA / Automation
+      </div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Historique
+      </div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Plugins
+      </div>
+    </nav>
+
+    <div class="nav-footer">
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Réglages
+      </div>
+      <div class="nav-item">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Aide & Support
+      </div>
+    </div>
+
+    <div class="user-card">
+      <div class="user-avatar"></div>
+      <div class="user-info">
+        <div class="user-name">Solal</div>
+        <div class="user-plan">Pro Plan</div>
+      </div>
+      <svg class="icon" viewBox="0 0 24 24" style="color: var(--text-3);"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+  </aside>
+
+  <!-- ============================================
+       MAIN
+       ============================================ -->
+  <main class="main">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-left">
+        <div class="header-back">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <div class="project-info">
+          <div class="project-title">Mon projet audio</div>
+          <div class="project-subtitle">Modifié aujourd'hui à 14:42</div>
+        </div>
+      </div>
+
+      <div class="header-tabs">
+        <div class="tab active">Édition</div>
+        <div class="tab">Mixage</div>
+        <div class="tab">Mastering</div>
+      </div>
+
+      <div class="header-right">
+        <button class="icon-btn" title="Annuler">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        </button>
+        <button class="icon-btn" title="Refaire">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15A9 9 0 1 1 18.36 5.64L23 10"/></svg>
+        </button>
+        <button class="icon-btn" title="Aide">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </button>
+        <button class="btn-primary">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exporter
+          <svg class="icon" viewBox="0 0 24 24" style="width:12px;height:12px;"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENT (centre + droite) -->
+    <div class="content">
+
+      <!-- EDITOR -->
+      <section class="editor">
+
+        <!-- TOOLBAR -->
+        <div class="editor-toolbar">
+          <button class="tool-btn active" title="Sélection">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+          </button>
+          <button class="tool-btn" title="Recadrer">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
+          </button>
+          <button class="tool-btn" title="Déplacer">
+            <svg class="icon" viewBox="0 0 24 24"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+          </button>
+          <div class="toolbar-divider"></div>
+          <button class="tool-btn" title="Ciseaux">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+          </button>
+          <button class="tool-btn" title="Étendre">
+            <svg class="icon" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+          </button>
+          <div class="toolbar-divider"></div>
+          <button class="tool-btn" title="Marqueur">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <button class="tool-btn" title="Loop">
+            <svg class="icon" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          </button>
+
+          <div class="toolbar-spacer"></div>
+
+          <div class="zoom-control">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            <div class="zoom-slider">
+              <div class="zoom-fill"></div>
+              <div class="zoom-thumb"></div>
+            </div>
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </div>
+
+          <div class="toolbar-divider"></div>
+          <button class="tool-btn" title="Spectrogramme">
+            <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+          </button>
+          <button class="tool-btn" title="Forme d'onde">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M2 12h2l2-7 4 14 4-10 4 7h4"/></svg>
+          </button>
+          <button class="tool-btn" title="Couper / Coller">
+            <svg class="icon" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </button>
+        </div>
+
+        <!-- TIMELINE + TRACKS -->
+        <div class="timeline-wrap">
+          <div class="timeline-grid">
+
+            <!-- Header ruler row -->
+            <div class="tracks-header-spacer"></div>
+            <div class="ruler" style="position: relative;">
+              <div class="ruler-tick">00:00</div>
+              <div class="ruler-tick">00:10</div>
+              <div class="ruler-tick">00:20</div>
+              <div class="ruler-tick">00:30
+                <div class="ruler-marker">Intro</div>
+              </div>
+              <div class="ruler-tick">00:40
+                <div class="ruler-marker">Interview</div>
+              </div>
+              <div class="ruler-tick">00:50</div>
+              <div class="ruler-tick">01:00</div>
+              <div class="ruler-tick">01:10
+                <div class="ruler-marker">Ambiance pluie</div>
+              </div>
+              <div class="ruler-tick">01:20</div>
+              <div class="ruler-tick">01:30
+                <div class="ruler-marker">Transition</div>
+              </div>
+              <div class="ruler-tick">01:40
+                <div class="ruler-marker">Outro</div>
+              </div>
+              <div class="playhead" style="left: 42%;"></div>
+            </div>
+
+            <!-- TRACK 1 - VOIX -->
+            <div class="track-info">
+              <div class="track-info-top">
+                <div class="track-color" style="background: var(--track-voice);">V</div>
+                <div class="track-name-wrap">
+                  <div class="track-name">Piste 1</div>
+                  <div class="track-type">Voix principale</div>
+                </div>
+                <button class="track-menu">
+                  <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                </button>
+              </div>
+              <div class="track-controls">
+                <button class="track-btn" title="Mute">M</button>
+                <button class="track-btn" title="Solo">S</button>
+                <div class="track-pan-vol">
+                  <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><polyline points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+                  <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="track-content" style="position: relative;">
+              <div class="clip clip-voice" style="left: 4%; right: 16%;">
+                <div class="clip-label">interview_voix.wav</div>
+                <svg class="clip-waveform" viewBox="0 0 600 80" preserveAspectRatio="none">
+                  <g fill="currentColor">
+                    <!-- Waveform stylisée voix -->
+                    <path d="M0,40 Q5,38 10,40 Q15,30 20,40 Q25,18 30,40 Q35,12 40,40 Q45,20 50,40 Q55,28 60,40 Q65,15 70,40 Q75,22 80,40 Q85,10 90,40 Q95,32 100,40 Q105,25 110,40 Q115,38 120,40 Q125,18 130,40 Q135,28 140,40 Q145,12 150,40 Q155,30 160,40 Q165,20 170,40 Q175,15 180,40 Q185,32 190,40 Q195,8 200,40 Q205,28 210,40 Q215,18 220,40 Q225,35 230,40 Q235,12 240,40 Q245,24 250,40 Q255,16 260,40 Q265,30 270,40 Q275,20 280,40 Q285,25 290,40 Q295,10 300,40 Q305,32 310,40 Q315,22 320,40 Q325,28 330,40 Q335,15 340,40 Q345,30 350,40 Q355,18 360,40 Q365,25 370,40 Q375,12 380,40 Q385,32 390,40 Q395,20 400,40 Q405,28 410,40 Q415,16 420,40 Q425,30 430,40 Q435,22 440,40 Q445,18 450,40 Q455,35 460,40 Q465,15 470,40 Q475,25 480,40 Q485,8 490,40 Q495,32 500,40 Q505,20 510,40 Q515,28 520,40 Q525,12 530,40 Q535,24 540,40 Q545,18 550,40 Q555,30 560,40 Q565,22 570,40 Q575,10 580,40 Q585,32 590,40 Q595,25 600,40 L600,80 L0,80 Z"/>
+                    <path d="M0,40 Q5,42 10,40 Q15,50 20,40 Q25,62 30,40 Q35,68 40,40 Q45,60 50,40 Q55,52 60,40 Q65,65 70,40 Q75,58 80,40 Q85,70 90,40 Q95,48 100,40 Q105,55 110,40 Q115,42 120,40 Q125,62 130,40 Q135,52 140,40 Q145,68 150,40 Q155,50 160,40 Q165,60 170,40 Q175,65 180,40 Q185,48 190,40 Q195,72 200,40 Q205,52 210,40 Q215,62 220,40 Q225,45 230,40 Q235,68 240,40 Q245,56 250,40 Q255,64 260,40 Q265,50 270,40 Q275,60 280,40 Q285,55 290,40 Q295,70 300,40 Q305,48 310,40 Q315,58 320,40 Q325,52 330,40 Q335,65 340,40 Q345,50 350,40 Q355,62 360,40 Q365,55 370,40 Q375,68 380,40 Q385,48 390,40 Q395,60 400,40 Q405,52 410,40 Q415,64 420,40 Q425,50 430,40 Q435,58 440,40 Q445,62 450,40 Q455,45 460,40 Q465,65 470,40 Q475,55 480,40 Q485,72 490,40 Q495,48 500,40 Q505,60 510,40 Q515,52 520,40 Q525,68 530,40 Q535,56 540,40 Q545,62 550,40 Q555,50 560,40 Q565,58 570,40 Q575,70 580,40 Q585,48 590,40 Q595,55 600,40 L600,0 L0,0 Z"/>
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+            <!-- TRACK 2 - AMBIANCE -->
+            <div class="track-info">
+              <div class="track-info-top">
+                <div class="track-color" style="background: var(--track-ambient);">A</div>
+                <div class="track-name-wrap">
+                  <div class="track-name">Piste 2</div>
+                  <div class="track-type">Ambiance</div>
+                </div>
+                <button class="track-menu">
+                  <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                </button>
+              </div>
+              <div class="track-controls">
+                <button class="track-btn" title="Mute">M</button>
+                <button class="track-btn" title="Solo">S</button>
+                <div class="track-pan-vol">
+                  <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><polyline points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+                  <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="track-content">
+              <div class="clip clip-ambient" style="left: 32%; right: 22%;">
+                <div class="clip-label">rain_ambience.wav</div>
+                <svg class="clip-waveform" viewBox="0 0 400 80" preserveAspectRatio="none">
+                  <g fill="currentColor">
+                    <path d="M0,40 L0,55 L10,52 L20,58 L30,50 L40,56 L50,52 L60,58 L70,54 L80,60 L90,55 L100,62 L110,58 L120,62 L130,60 L140,64 L150,62 L160,66 L170,64 L180,68 L190,66 L200,70 L210,68 L220,70 L230,68 L240,70 L250,68 L260,68 L270,66 L280,66 L290,64 L300,62 L310,60 L320,58 L330,56 L340,52 L350,50 L360,48 L370,44 L380,42 L390,42 L400,40 L400,80 L0,80 Z"/>
+                    <path d="M0,40 L0,25 L10,28 L20,22 L30,30 L40,24 L50,28 L60,22 L70,26 L80,20 L90,25 L100,18 L110,22 L120,18 L130,20 L140,16 L150,18 L160,14 L170,16 L180,12 L190,14 L200,10 L210,12 L220,10 L230,12 L240,10 L250,12 L260,12 L270,14 L280,14 L290,16 L300,18 L310,20 L320,22 L330,24 L340,28 L350,30 L360,32 L370,36 L380,38 L390,38 L400,40 L400,0 L0,0 Z"/>
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+            <!-- TRACK 3 - MUSIQUE -->
+            <div class="track-info">
+              <div class="track-info-top">
+                <div class="track-color" style="background: var(--track-music);">M</div>
+                <div class="track-name-wrap">
+                  <div class="track-name">Piste 3</div>
+                  <div class="track-type">Musique</div>
+                </div>
+                <button class="track-menu">
+                  <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                </button>
+              </div>
+              <div class="track-controls">
+                <button class="track-btn" title="Mute">M</button>
+                <button class="track-btn" title="Solo">S</button>
+                <div class="track-pan-vol">
+                  <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><polyline points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+                  <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="track-content">
+              <div class="clip clip-music" style="left: 6%; right: 4%;">
+                <div class="clip-label">background_soft_piano.wav</div>
+                <svg class="clip-waveform" viewBox="0 0 800 80" preserveAspectRatio="none">
+                  <g fill="currentColor">
+                    <path d="M0,40 Q8,32 16,40 Q24,28 32,40 Q40,30 48,40 Q56,26 64,40 Q72,32 80,40 Q88,24 96,40 Q104,30 112,40 Q120,28 128,40 Q136,32 144,40 Q152,26 160,40 Q168,30 176,40 Q184,28 192,40 Q200,32 208,40 Q216,26 224,40 Q232,30 240,40 Q248,28 256,40 Q264,32 272,40 Q280,26 288,40 Q296,30 304,40 Q312,28 320,40 Q328,32 336,40 Q344,26 352,40 Q360,30 368,40 Q376,28 384,40 Q392,32 400,40 Q408,26 416,40 Q424,30 432,40 Q440,28 448,40 Q456,32 464,40 Q472,26 480,40 Q488,30 496,40 Q504,28 512,40 Q520,32 528,40 Q536,26 544,40 Q552,30 560,40 Q568,28 576,40 Q584,32 592,40 Q600,26 608,40 Q616,30 624,40 Q632,28 640,40 Q648,32 656,40 Q664,26 672,40 Q680,30 688,40 Q696,28 704,40 Q712,32 720,40 Q728,26 736,40 Q744,30 752,40 Q760,28 768,40 Q776,32 784,40 Q792,26 800,40 L800,80 L0,80 Z"/>
+                    <path d="M0,40 Q8,48 16,40 Q24,52 32,40 Q40,50 48,40 Q56,54 64,40 Q72,48 80,40 Q88,56 96,40 Q104,50 112,40 Q120,52 128,40 Q136,48 144,40 Q152,54 160,40 Q168,50 176,40 Q184,52 192,40 Q200,48 208,40 Q216,54 224,40 Q232,50 240,40 Q248,52 256,40 Q264,48 272,40 Q280,54 288,40 Q296,50 304,40 Q312,52 320,40 Q328,48 336,40 Q344,54 352,40 Q360,50 368,40 Q376,52 384,40 Q392,48 400,40 Q408,54 416,40 Q424,50 432,40 Q440,52 448,40 Q456,48 464,40 Q472,54 480,40 Q488,50 496,40 Q504,52 512,40 Q520,48 528,40 Q536,54 544,40 Q552,50 560,40 Q568,52 576,40 Q584,48 592,40 Q600,54 608,40 Q616,50 624,40 Q632,52 640,40 Q648,48 656,40 Q664,54 672,40 Q680,50 688,40 Q696,52 704,40 Q712,48 720,40 Q728,54 736,40 Q744,50 752,40 Q760,52 768,40 Q776,48 784,40 Q792,54 800,40 L800,0 L0,0 Z"/>
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+            <!-- TRACK 4 - EFFETS -->
+            <div class="track-info">
+              <div class="track-info-top">
+                <div class="track-color" style="background: var(--track-fx);">F</div>
+                <div class="track-name-wrap">
+                  <div class="track-name">Piste 4</div>
+                  <div class="track-type">Effets</div>
+                </div>
+                <button class="track-menu">
+                  <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                </button>
+              </div>
+              <div class="track-controls">
+                <button class="track-btn" title="Mute">M</button>
+                <button class="track-btn" title="Solo">S</button>
+                <div class="track-pan-vol">
+                  <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><polyline points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+                  <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="track-content">
+              <div class="clip clip-fx" style="left: 5%; width: 10%;">
+                <div class="clip-label">whoosh.wav</div>
+                <svg class="clip-waveform" viewBox="0 0 100 80" preserveAspectRatio="none">
+                  <g fill="currentColor">
+                    <path d="M0,40 L0,55 Q25,50 50,42 Q75,38 100,40 L100,80 L0,80 Z"/>
+                    <path d="M0,40 L0,25 Q25,30 50,38 Q75,42 100,40 L100,0 L0,0 Z"/>
+                  </g>
+                </svg>
+              </div>
+              <div class="clip clip-fx" style="left: 28%; width: 7%;">
+                <div class="clip-label">ris...</div>
+                <svg class="clip-waveform" viewBox="0 0 70 80" preserveAspectRatio="none">
+                  <g fill="currentColor">
+                    <path d="M0,40 L0,45 Q15,40 35,30 Q50,25 70,40 L70,80 L0,80 Z"/>
+                    <path d="M0,40 L0,35 Q15,40 35,50 Q50,55 70,40 L70,0 L0,0 Z"/>
+                  </g>
+                </svg>
+              </div>
+              <div class="clip clip-fx" style="left: 41%; width: 11%;">
+                <div class="clip-label">impact.wav</div>
+                <svg class="clip-waveform" viewBox="0 0 110 80" preserveAspectRatio="none">
+                  <g fill="currentColor">
+                    <path d="M0,40 L20,40 L30,8 L40,55 L50,30 L60,42 L70,38 L80,40 L110,40 L110,80 L0,80 Z"/>
+                    <path d="M0,40 L20,40 L30,72 L40,25 L50,50 L60,38 L70,42 L80,40 L110,40 L110,0 L0,0 Z"/>
+                  </g>
+                </svg>
+              </div>
+              <div class="clip clip-fx" style="left: 78%; right: 4%;">
+                <div class="clip-label">whoosh.wav</div>
+                <svg class="clip-waveform" viewBox="0 0 100 80" preserveAspectRatio="none">
+                  <g fill="currentColor">
+                    <path d="M0,40 L0,55 Q25,50 50,42 Q75,38 100,40 L100,80 L0,80 Z"/>
+                    <path d="M0,40 L0,25 Q25,30 50,38 Q75,42 100,40 L100,0 L0,0 Z"/>
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- TRANSPORT -->
+        <div class="transport">
+          <div class="transport-time">
+            <div class="time-current">00:00:32<span style="font-size:14px;color:var(--text-2);">.18</span></div>
+            <div class="time-total">
+              <svg class="icon" viewBox="0 0 24 24" style="width:11px;height:11px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              00:02:15.43
+            </div>
+          </div>
+
+          <div class="transport-controls">
+            <button class="transport-btn" title="Loop">
+              <svg class="icon" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            </button>
+            <button class="transport-btn" title="Précédent">
+              <svg class="icon" viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+            </button>
+            <button class="transport-play" title="Lecture">
+              <svg class="icon" viewBox="0 0 24 24" style="width:18px;height:18px;fill:white;stroke:white;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+            <button class="transport-btn" title="Suivant">
+              <svg class="icon" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+            </button>
+            <button class="transport-btn" title="Stop">
+              <svg class="icon" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12"/></svg>
+            </button>
+            <button class="transport-btn" title="Rec">
+              <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg>
+            </button>
+          </div>
+
+          <div class="transport-meta">
+            <div class="meta-chip">
+              <svg class="icon" viewBox="0 0 24 24" style="width:12px;height:12px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              120 BPM
+            </div>
+            <div class="meta-chip">4/4</div>
+            <div class="meta-chip">C maj
+              <svg class="icon" viewBox="0 0 24 24" style="width:11px;height:11px;"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <button class="icon-btn">
+              <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </button>
+            <div class="volume-slider">
+              <svg class="icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              <div class="volume-track">
+                <div class="volume-fill"></div>
+                <div class="volume-thumb"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIBRARY -->
+        <div class="library">
+          <div class="library-cats">
+            <div class="library-cats-header">Bibliothèque de sons</div>
+            <div class="library-search">
+              <input type="text" placeholder="Rechercher un son, une ambiance..."/>
+            </div>
+            <div class="library-cats-list">
+              <div class="cat active">
+                <span>Toutes les catégories</span>
+                <span class="cat-count">12 458</span>
+              </div>
+              <div class="cat">
+                <span>Ambiance</span>
+                <span class="cat-count">2 342</span>
+              </div>
+              <div class="cat">
+                <span>Cinéma</span>
+                <span class="cat-count">1 234</span>
+              </div>
+              <div class="cat">
+                <span>Whoosh</span>
+                <span class="cat-count">834</span>
+              </div>
+              <div class="cat">
+                <span>Impacts</span>
+                <span class="cat-count">1 201</span>
+              </div>
+              <div class="cat">
+                <span>Nature</span>
+                <span class="cat-count">2 156</span>
+              </div>
+              <div class="cat">
+                <span>Ville</span>
+                <span class="cat-count">1 098</span>
+              </div>
+              <div class="cat">
+                <span>Glitch / UI</span>
+                <span class="cat-count">543</span>
+              </div>
+              <div class="cat">
+                <span>Risers</span>
+                <span class="cat-count">321</span>
+              </div>
+              <div class="cat">
+                <span>Textures</span>
+                <span class="cat-count">1 129</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="library-main">
+            <div class="library-tabs">
+              <div class="lib-tab active">Sons</div>
+              <div class="lib-tab">Musique</div>
+              <div class="lib-tab">Favoris</div>
+            </div>
+            <div class="library-filters">
+              <div class="filter-chip">Durée <svg class="icon" viewBox="0 0 24 24" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"/></svg></div>
+              <div class="filter-chip">Tempo <svg class="icon" viewBox="0 0 24 24" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"/></svg></div>
+              <div class="filter-chip">Ambiance <svg class="icon" viewBox="0 0 24 24" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"/></svg></div>
+              <div class="filter-chip">Plus de filtres <svg class="icon" viewBox="0 0 24 24" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"/></svg></div>
+            </div>
+
+            <div class="library-table">
+              <div class="table-head">
+                <div>Titre</div>
+                <div>Durée</div>
+                <div>BPM</div>
+                <div>Type</div>
+                <div></div>
+              </div>
+
+              <!-- Rows -->
+              <div class="table-row">
+                <div class="row-title">
+                  <div class="row-play">
+                    <svg class="icon" viewBox="0 0 24 24" style="width:11px;height:11px;fill:currentColor;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </div>
+                  <div class="row-title-text">Rain — Heavy</div>
+                  <svg class="row-mini-wave" viewBox="0 0 100 18" preserveAspectRatio="none">
+                    <path d="M0,9 L5,7 L10,11 L15,5 L20,13 L25,8 L30,10 L35,6 L40,12 L45,7 L50,11 L55,5 L60,13 L65,8 L70,10 L75,6 L80,12 L85,7 L90,11 L95,9 L100,9" stroke="currentColor" stroke-width="1" fill="none"/>
+                  </svg>
+                </div>
+                <div class="row-duration">2:14</div>
+                <div class="row-bpm">—</div>
+                <div class="row-type">Ambiance</div>
+                <div class="row-actions">
+                  <div class="row-action"><svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                  <div class="row-action"><svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                </div>
+              </div>
+
+              <div class="table-row">
+                <div class="row-title">
+                  <div class="row-play">
+                    <svg class="icon" viewBox="0 0 24 24" style="width:11px;height:11px;fill:currentColor;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </div>
+                  <div class="row-title-text">City — Distant Traffic</div>
+                  <svg class="row-mini-wave" viewBox="0 0 100 18" preserveAspectRatio="none">
+                    <path d="M0,9 L5,8 L10,10 L15,7 L20,11 L25,9 L30,9 L35,7 L40,11 L45,8 L50,10 L55,6 L60,12 L65,9 L70,9 L75,7 L80,11 L85,8 L90,10 L95,9 L100,9" stroke="currentColor" stroke-width="1" fill="none"/>
+                  </svg>
+                </div>
+                <div class="row-duration">1:45</div>
+                <div class="row-bpm">—</div>
+                <div class="row-type">Ambiance</div>
+                <div class="row-actions">
+                  <div class="row-action"><svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                  <div class="row-action"><svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                </div>
+              </div>
+
+              <div class="table-row">
+                <div class="row-title">
+                  <div class="row-play">
+                    <svg class="icon" viewBox="0 0 24 24" style="width:11px;height:11px;fill:currentColor;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </div>
+                  <div class="row-title-text">Forest — Birds</div>
+                  <svg class="row-mini-wave" viewBox="0 0 100 18" preserveAspectRatio="none">
+                    <path d="M0,9 L5,6 L10,12 L15,4 L20,14 L25,7 L30,11 L35,5 L40,13 L45,6 L50,12 L55,4 L60,14 L65,7 L70,11 L75,5 L80,13 L85,6 L90,12 L95,9 L100,9" stroke="currentColor" stroke-width="1" fill="none"/>
+                  </svg>
+                </div>
+                <div class="row-duration">2:03</div>
+                <div class="row-bpm">—</div>
+                <div class="row-type">Nature</div>
+                <div class="row-actions">
+                  <div class="row-action"><svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                  <div class="row-action"><svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                </div>
+              </div>
+
+              <div class="table-row">
+                <div class="row-title">
+                  <div class="row-play">
+                    <svg class="icon" viewBox="0 0 24 24" style="width:11px;height:11px;fill:currentColor;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </div>
+                  <div class="row-title-text">Whoosh — Cinematic 01</div>
+                  <svg class="row-mini-wave" viewBox="0 0 100 18" preserveAspectRatio="none">
+                    <path d="M0,9 L10,9 L20,7 L30,4 L40,2 L50,4 L60,7 L70,9 L80,9 L100,9" stroke="currentColor" stroke-width="1" fill="none"/>
+                  </svg>
+                </div>
+                <div class="row-duration">0:03</div>
+                <div class="row-bpm">—</div>
+                <div class="row-type">Whoosh</div>
+                <div class="row-actions">
+                  <div class="row-action"><svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                  <div class="row-action"><svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                </div>
+              </div>
+
+              <div class="table-row">
+                <div class="row-title">
+                  <div class="row-play">
+                    <svg class="icon" viewBox="0 0 24 24" style="width:11px;height:11px;fill:currentColor;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </div>
+                  <div class="row-title-text">Impact — Metal Hit</div>
+                  <svg class="row-mini-wave" viewBox="0 0 100 18" preserveAspectRatio="none">
+                    <path d="M0,9 L20,9 L25,1 L30,17 L35,5 L40,11 L45,9 L100,9" stroke="currentColor" stroke-width="1" fill="none"/>
+                  </svg>
+                </div>
+                <div class="row-duration">0:02</div>
+                <div class="row-bpm">—</div>
+                <div class="row-type">Impact</div>
+                <div class="row-actions">
+                  <div class="row-action"><svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                  <div class="row-action"><svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                </div>
+              </div>
+
+              <div class="table-row">
+                <div class="row-title">
+                  <div class="row-play">
+                    <svg class="icon" viewBox="0 0 24 24" style="width:11px;height:11px;fill:currentColor;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </div>
+                  <div class="row-title-text">Riser — Tension</div>
+                  <svg class="row-mini-wave" viewBox="0 0 100 18" preserveAspectRatio="none">
+                    <path d="M0,9 L10,9 L20,9 L30,9 L40,8 L50,7 L60,6 L70,4 L80,2 L90,1 L100,9" stroke="currentColor" stroke-width="1" fill="none"/>
+                  </svg>
+                </div>
+                <div class="row-duration">0:04</div>
+                <div class="row-bpm">—</div>
+                <div class="row-type">Riser</div>
+                <div class="row-actions">
+                  <div class="row-action"><svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                  <div class="row-action"><svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ============================================
+           RIGHT PANEL — EFFETS
+           ============================================ -->
+      <aside class="right-panel">
+
+        <div class="right-tabs">
+          <div class="right-tab active">Effets</div>
+          <div class="right-tab">Réglages</div>
+          <div class="right-tab">Analyse</div>
+        </div>
+
+        <div class="effects-section">
+          <div class="section-title">
+            Chaîne d'effets
+            <span class="section-title-info">?</span>
+          </div>
+
+          <div class="effect-list">
+            <div class="effect-item active">
+              <span class="effect-drag">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>
+              </span>
+              <span class="effect-name">EQ Paramétrique</span>
+              <div class="toggle on"></div>
+              <span class="effect-menu">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </span>
+            </div>
+            <div class="effect-item">
+              <span class="effect-drag">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>
+              </span>
+              <span class="effect-name">Compresseur</span>
+              <div class="toggle on"></div>
+              <span class="effect-menu">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </span>
+            </div>
+            <div class="effect-item">
+              <span class="effect-drag">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>
+              </span>
+              <span class="effect-name">De-esser</span>
+              <div class="toggle on"></div>
+              <span class="effect-menu">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </span>
+            </div>
+            <div class="effect-item">
+              <span class="effect-drag">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>
+              </span>
+              <span class="effect-name">Denoise</span>
+              <div class="toggle on"></div>
+              <span class="effect-menu">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </span>
+            </div>
+            <div class="effect-item">
+              <span class="effect-drag">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>
+              </span>
+              <span class="effect-name">Réverbération</span>
+              <div class="toggle on"></div>
+              <span class="effect-menu">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </span>
+            </div>
+            <div class="effect-item">
+              <span class="effect-drag">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>
+              </span>
+              <span class="effect-name">Limiter</span>
+              <div class="toggle on"></div>
+              <span class="effect-menu">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <button class="btn-add">
+            <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Ajouter un effet
+          </button>
+        </div>
+
+        <!-- EQ PANEL -->
+        <div class="eq-panel">
+          <div class="eq-header">
+            <div class="eq-title">
+              EQ Paramétrique
+              <span class="section-title-info">?</span>
+            </div>
+            <div class="eq-power">
+              <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+            </div>
+          </div>
+
+          <div class="eq-curve">
+            <!-- Grid -->
+            <div class="eq-grid">
+              <div class="eq-grid-line" style="top: 16.66%;"></div>
+              <div class="eq-grid-line" style="top: 33.33%;"></div>
+              <div class="eq-grid-line" style="top: 50%; background: var(--border-strong);"></div>
+              <div class="eq-grid-line" style="top: 66.66%;"></div>
+              <div class="eq-grid-line" style="top: 83.33%;"></div>
+              <div class="eq-grid-vline" style="left: 12%;"></div>
+              <div class="eq-grid-vline" style="left: 32%;"></div>
+              <div class="eq-grid-vline" style="left: 52%;"></div>
+              <div class="eq-grid-vline" style="left: 72%;"></div>
+              <div class="eq-grid-vline" style="left: 90%;"></div>
+
+              <div class="eq-axis-y" style="top: 4px;">+12</div>
+              <div class="eq-axis-y" style="top: 28%;">+6</div>
+              <div class="eq-axis-y" style="top: 48%;">0</div>
+              <div class="eq-axis-y" style="top: 70%;">-6</div>
+              <div class="eq-axis-y" style="bottom: 4px;">-18</div>
+            </div>
+
+            <!-- Spectrum analyzer background -->
+            <svg class="eq-spectrum" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="spectrumGrad" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#a855f7" stop-opacity="0.6"/>
+                  <stop offset="50%" stop-color="#3b82f6" stop-opacity="0.4"/>
+                  <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.1"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,100 L0,70 L3,65 L6,55 L9,40 L12,30 L15,35 L18,45 L21,50 L24,40 L27,35 L30,45 L33,40 L36,30 L39,25 L42,20 L45,30 L48,40 L51,50 L54,45 L57,40 L60,50 L63,55 L66,60 L69,65 L72,70 L75,75 L78,80 L81,82 L84,85 L87,88 L90,90 L93,92 L96,94 L100,98 L100,100 Z" fill="url(#spectrumGrad)"/>
+            </svg>
+
+            <!-- EQ Curve -->
+            <svg class="eq-spectrum" viewBox="0 0 100 100" preserveAspectRatio="none" style="opacity: 1;">
+              <path d="M0,55 Q6,48 12,40 Q22,30 32,42 Q42,38 52,30 Q62,42 72,52 Q82,55 90,60 L100,65" stroke="#3b82f6" stroke-width="0.5" fill="none"/>
+              <path d="M0,55 Q6,48 12,40 Q22,30 32,42 Q42,38 52,30 Q62,42 72,52 Q82,55 90,60 L100,65 L100,100 L0,100 Z" fill="rgba(59, 130, 246, 0.15)"/>
+            </svg>
+
+            <!-- EQ Points -->
+            <div class="eq-points">
+              <div class="eq-point" style="left: 12%; top: 40%; background: #10b981;"></div>
+              <div class="eq-point" style="left: 32%; top: 25%; background: #3b82f6;"></div>
+              <div class="eq-point" style="left: 52%; top: 30%; background: #a855f7;"></div>
+              <div class="eq-point" style="left: 72%; top: 50%; background: #f59e0b;"></div>
+              <div class="eq-point" style="left: 90%; top: 60%; background: #ef4444;"></div>
+            </div>
+          </div>
+
+          <div class="eq-bottom-axis">
+            <span>20</span><span>50</span><span>100</span><span>200</span><span>500</span><span>1k</span><span>2k</span><span>5k</span><span>10k</span><span>20k</span>
+          </div>
+
+          <div class="eq-band-pills">
+            <div class="band-pill" style="background: #10b981;">⊥</div>
+            <div class="band-pill" style="background: #3b82f6;">∩</div>
+            <div class="band-pill" style="background: #a855f7;">⊤</div>
+            <div class="band-pill" style="background: #f59e0b;">⊥</div>
+            <div class="band-pill" style="background: #ef4444;">⊤</div>
+          </div>
+
+          <div class="eq-params-table">
+            <div class="eq-label">Type</div>
+            <div class="eq-cell">⌐</div>
+            <div class="eq-cell">∩</div>
+            <div class="eq-cell">⌐</div>
+            <div class="eq-cell">⌐</div>
+            <div class="eq-cell">⌐</div>
+
+            <div class="eq-label">Fréquence</div>
+            <div class="eq-cell">80 Hz</div>
+            <div class="eq-cell">250 Hz</div>
+            <div class="eq-cell">1.2 kHz</div>
+            <div class="eq-cell">4.5 kHz</div>
+            <div class="eq-cell">12.0 kHz</div>
+
+            <div class="eq-label">Gain</div>
+            <div class="eq-cell">-2.5 dB</div>
+            <div class="eq-cell">+1.8 dB</div>
+            <div class="eq-cell">+3.2 dB</div>
+            <div class="eq-cell">-1.2 dB</div>
+            <div class="eq-cell">-4.0 dB</div>
+
+            <div class="eq-label">Q</div>
+            <div class="eq-cell">1.0</div>
+            <div class="eq-cell">1.2</div>
+            <div class="eq-cell">2.0</div>
+            <div class="eq-cell">1.0</div>
+            <div class="eq-cell">0.7</div>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+
+    <!-- ============================================
+         FOOTER METERING
+         ============================================ -->
+    <footer class="footer">
+      <div class="meters">
+        <div class="meter-section-title">Niveaux</div>
+        <div class="meter-row">
+          <span class="meter-label">L</span>
+          <div class="meter-bar">
+            <div class="meter-fill" style="width: 78%;"></div>
+            <div class="meter-peak" style="left: 82%;"></div>
+          </div>
+        </div>
+        <div class="meter-row">
+          <span class="meter-label">R</span>
+          <div class="meter-bar">
+            <div class="meter-fill" style="width: 72%;"></div>
+            <div class="meter-peak" style="left: 76%;"></div>
+          </div>
+        </div>
+        <div class="meter-scale">
+          <span>-60</span>
+          <span>-48</span>
+          <span>-36</span>
+          <span>-24</span>
+          <span>-12</span>
+          <span>-6</span>
+          <span>-3</span>
+          <span>0</span>
+        </div>
+      </div>
+
+      <div class="lufs-box">
+        <div class="meter-section-title">Loudness (LUFS)</div>
+        <div class="lufs-value">-16.2</div>
+        <div class="lufs-unit">INT</div>
+        <div class="lufs-secondary">-15.8 Short Term</div>
+      </div>
+
+      <div class="lufs-box">
+        <div class="meter-section-title">True Peak</div>
+        <div class="lufs-value">-1.2</div>
+        <div class="lufs-unit">dBTP</div>
+      </div>
+    </footer>
+
+  </main>
+</div>
+
+</body>
+</html>
