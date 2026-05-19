@@ -1690,7 +1690,7 @@ async function initConvertModule() {
         else if (f.kind === "audio") opts = { kind: "audio", ...convertState.audio };
         else if (f.kind === "image") opts = { kind: "image", ...convertState.image };
         else if (f.kind === "document") opts = { kind: "document", ...convertState.document };
-        return { sourcePath: f.path, opts };
+        return { source_path: f.path, opts };
       });
 
       try {
