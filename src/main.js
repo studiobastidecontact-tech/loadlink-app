@@ -1688,29 +1688,78 @@ function transcribeSetSourceFromPath(path) {
   transcribeUpdateUI();
 }
 
+function transcribeReadRecents() {
+  try {
+    return JSON.parse(localStorage.getItem("transcribe-recents") || "[]");
+  } catch (e) {
+    return [];
+  }
+}
+
 function transcribeRenderRecents() {
+  const recents = transcribeReadRecents();
+
+  // Legacy history block (toujours alimente pour compat - sera supprime en Phase 6)
   const section = document.getElementById("transcribe-history-section");
   const list = document.getElementById("transcribe-history-list");
-  if (!section || !list) return;
-
-  let recents = [];
-  try {
-    recents = JSON.parse(localStorage.getItem("transcribe-recents") || "[]");
-  } catch (e) {
-    recents = [];
+  if (section && list) {
+    if (recents.length === 0) {
+      section.style.display = "none";
+    } else {
+      section.style.display = "";
+      list.innerHTML = recents.slice(0, 5).map((r) => `
+        <div class="history-item" data-path="${r.outputFile || ''}">
+          <div class="history-item-name">${r.name}</div>
+          <div class="history-item-meta">${r.model} - ${r.language || 'auto'} - ${r.formats.join(', ')}</div>
+        </div>
+      `).join("");
+    }
   }
 
+  // Phase 5 : Drawer Recents
+  const drawerList = document.getElementById("transcribe-recents-list");
+  if (!drawerList) return;
   if (recents.length === 0) {
-    section.style.display = "none";
+    drawerList.innerHTML = '<div class="recents-empty">Aucune transcription pour le moment.<br>Lance ta première transcription pour la voir ici.</div>';
     return;
   }
-  section.style.display = "";
-  list.innerHTML = recents.slice(0, 5).map(r => `
-    <div class="history-item" data-path="${r.outputFile || ''}">
-      <div class="history-item-name">${r.name}</div>
-      <div class="history-item-meta">${r.model} - ${r.language || 'auto'} - ${r.formats.join(', ')}</div>
-    </div>
-  `).join("");
+  drawerList.innerHTML = recents.map((r, i) => {
+    const hasLoad = r.mediaPath && r.srtPath;
+    const meta = [r.model, (r.language || "auto"), (r.formats || []).join("+")].filter(Boolean).join(" · ");
+    const warn = hasLoad ? "" : '<span class="recents-item-warn">(ancienne entree — non chargeable)</span>';
+    return `
+      <button type="button" class="recents-item" data-idx="${i}" ${hasLoad ? '' : 'disabled style="opacity:0.5;cursor:not-allowed;"'}>
+        <span class="recents-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+        </span>
+        <span class="recents-item-info">
+          <span class="recents-item-name">${r.name || "(sans nom)"}</span>
+          <span class="recents-item-meta">${meta}${warn ? " " + warn : ""}</span>
+        </span>
+      </button>
+    `;
+  }).join("");
+}
+
+// Phase 5 : open/close du drawer Recents
+function transcribeOpenRecentsDrawer() {
+  transcribeRenderRecents();
+  const drawer = document.getElementById("transcribe-recents-drawer");
+  const backdrop = document.getElementById("transcribe-recents-backdrop");
+  if (drawer) {
+    drawer.classList.add("open");
+    drawer.setAttribute("aria-hidden", "false");
+  }
+  if (backdrop) backdrop.classList.remove("hidden");
+}
+function transcribeCloseRecentsDrawer() {
+  const drawer = document.getElementById("transcribe-recents-drawer");
+  const backdrop = document.getElementById("transcribe-recents-backdrop");
+  if (drawer) {
+    drawer.classList.remove("open");
+    drawer.setAttribute("aria-hidden", "true");
+  }
+  if (backdrop) backdrop.classList.add("hidden");
 }
 
 function transcribeAddRecent(entry) {
@@ -2048,6 +2097,45 @@ async function initTranscribeModule() {
     });
   }
 
+  // ===== Phase 5 : DRAWER RECENTS - OPEN/CLOSE + CLICK ITEM =====
+  const recentsBtn = document.getElementById("transcribe-recents-btn");
+  if (recentsBtn) {
+    recentsBtn.addEventListener("click", () => transcribeOpenRecentsDrawer());
+  }
+  const recentsClose = document.getElementById("transcribe-recents-close");
+  if (recentsClose) {
+    recentsClose.addEventListener("click", () => transcribeCloseRecentsDrawer());
+  }
+  const recentsBackdrop = document.getElementById("transcribe-recents-backdrop");
+  if (recentsBackdrop) {
+    recentsBackdrop.addEventListener("click", () => transcribeCloseRecentsDrawer());
+  }
+  // Escape pour fermer le drawer
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const drawer = document.getElementById("transcribe-recents-drawer");
+      if (drawer && drawer.classList.contains("open")) transcribeCloseRecentsDrawer();
+    }
+  });
+  // Click sur un item recent : charge media + SRT dans le player, ferme drawer
+  const recentsList = document.getElementById("transcribe-recents-list");
+  if (recentsList) {
+    recentsList.addEventListener("click", (e) => {
+      const btn = e.target.closest(".recents-item");
+      if (!btn || btn.disabled) return;
+      const idx = parseInt(btn.getAttribute("data-idx"), 10);
+      const recents = transcribeReadRecents();
+      const r = recents[idx];
+      if (!r || !r.mediaPath || !r.srtPath) return;
+      // Garde dirty avant de charger un nouveau contenu
+      if (typeof window.__playerCanLeave === "function" && !window.__playerCanLeave()) return;
+      if (typeof window.__playerLoad === "function") {
+        window.__playerLoad(r.mediaPath, r.srtPath);
+      }
+      transcribeCloseRecentsDrawer();
+    });
+  }
+
   // ===== Phase 4 : SIDEBAR EDIT - ONGLETS + CHIP CLEAR =====
   const editTabs = document.querySelectorAll("#edit-sidebar-tabs .sidebar-tab");
   editTabs.forEach((tab) => {
@@ -2267,12 +2355,16 @@ async function initTranscribeModule() {
 
         if (result && result.success) {
           showToast("Transcription terminee : " + (result.output_files?.length || 0) + " fichier(s)", 3500);
+          // Phase 5 : enrichi avec mediaPath + srtPath pour le drawer Recents
+          const srtFromResult = (result.output_files || []).find(f => f.toLowerCase().endsWith(".srt")) || "";
           transcribeAddRecent({
             name: transcribeShortPath(input),
             model: state.transcribeModel,
             language: result.language_detected || language || "auto",
             formats: formats,
             outputFile: result.output_files?.[0] || "",
+            mediaPath: input || "",
+            srtPath: srtFromResult,
             ts: Date.now(),
           });
 

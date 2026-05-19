@@ -2389,6 +2389,165 @@ body.dark .libreoffice-warning {
 .edit-export-slot #export-launch-btn { margin-top: 4px; }
 
 /* ============================================
+   Phase 5 - REFACTOR Transcrire : DRAWER RECENTS
+   ============================================ */
+.transcribe-recents-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.transcribe-recents-btn:hover {
+  background: var(--surface3);
+  border-color: var(--text2);
+  color: var(--accent);
+}
+.transcribe-recents-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.transcribe-recents-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 150;
+  animation: fadeIn .2s ease;
+}
+
+.transcribe-recents-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 360px;
+  max-width: 92vw;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  z-index: 160;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform .28s cubic-bezier(.22, .61, .36, 1);
+}
+.transcribe-recents-drawer.open {
+  transform: translateX(0);
+}
+
+.recents-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.recents-drawer-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--text);
+}
+.recents-drawer-close {
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text2);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.recents-drawer-close:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+.recents-drawer-close svg { width: 16px; height: 16px; }
+
+.recents-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+.recents-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text2);
+  font-size: 13px;
+}
+
+.recents-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  font-family: 'DM Sans', sans-serif;
+  transition: background .15s, border-color .15s;
+  margin-bottom: 4px;
+}
+.recents-item:hover {
+  background: var(--surface2);
+  border-color: var(--border);
+}
+.recents-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--accent-light);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.recents-item-icon svg { width: 17px; height: 17px; }
+.recents-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.recents-item-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recents-item-meta {
+  font-size: 11.5px;
+  color: var(--text2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recents-item-warn {
+  font-size: 11px;
+  color: var(--warning, #f59e0b);
+  font-style: italic;
+}
+
+/* ============================================
    Player : carte Export
    ============================================ */
 #player-export-card .option-row {

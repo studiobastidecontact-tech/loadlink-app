@@ -676,11 +676,9 @@
           <div class="page-sub">Extrait le texte de tes fichiers audio ou vidéo.</div>
         </div>
         <div class="topbar-actions">
-          <button class="icon-btn" id="player-export-btn" title="Exporter en vidéo sous-titrée" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          </button>
-          <button class="icon-btn" id="transcribe-open-folder-btn" title="Ouvrir le dossier de sortie">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <button class="transcribe-recents-btn" id="transcribe-recents-btn" title="Voir les transcriptions récentes" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            <span>Récents</span>
           </button>
         </div>
       </div>
@@ -1011,6 +1009,20 @@
         <!-- ====== END LEGACY UI ====== -->
 
       </div>
+
+      <!-- ====== PHASE 5 : DRAWER RECENTS (slide-in from right) ====== -->
+      <div class="transcribe-recents-backdrop hidden" id="transcribe-recents-backdrop"></div>
+      <aside class="transcribe-recents-drawer" id="transcribe-recents-drawer" aria-hidden="true">
+        <div class="recents-drawer-header">
+          <div class="recents-drawer-title">Récents</div>
+          <button type="button" class="recents-drawer-close" id="transcribe-recents-close" title="Fermer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="recents-drawer-body" id="transcribe-recents-list">
+          <!-- items injectes par JS -->
+        </div>
+      </aside>
 
       <!-- ====== PHASE 3 : OVERLAY DE TRANSCRIPTION EN COURS ====== -->
       <div class="transcribe-progress-overlay hidden" id="transcribe-progress-overlay">
