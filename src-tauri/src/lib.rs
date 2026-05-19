@@ -661,6 +661,35 @@ async fn open_folder(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn reveal_path(path: String) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        Command::new("explorer")
+            .arg(format!("/select,\"{}\"", path))
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg("-R")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let target = std::path::Path::new(&path);
+        let folder = target.parent().unwrap_or(target);
+        Command::new("xdg-open")
+            .arg(folder)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 async fn open_default_folder(is_audio: bool) -> Result<(), String> {
     let user_profile = std::env::var("USERPROFILE").unwrap_or_default();
     let folder = if is_audio {
@@ -757,6 +786,7 @@ pub fn run() {
             reencode_videos,
             update_ytdlp,
             open_folder,
+            reveal_path,
             open_default_folder,
             list_recent_jobs,
             cleanup_old_jobs,

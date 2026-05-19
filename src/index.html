@@ -1171,10 +1171,12 @@
     </div>
     <div class="audio-export-section">
       <label class="field-label">Dossier</label>
-      <button type="button" class="audio-folder-row" id="audio-export-folder-row">
-        <span class="audio-folder-label" id="audio-export-folder-label">LoadLink-Audio</span>
-        <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-      </button>
+      <div class="audio-folder-picker">
+        <input type="text" id="audio-export-folder-input" value="LoadLink-Audio" readonly />
+        <button type="button" class="audio-folder-btn" id="audio-export-folder-btn">
+          <span id="audio-export-folder-label">Choisir un dossier</span>
+        </button>
+      </div>
     </div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" id="audio-export-cancel">Annuler</button>

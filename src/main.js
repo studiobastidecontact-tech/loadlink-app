@@ -159,6 +159,9 @@ const goHome = () => {
   if (state.currentModule === "transcribe") {
     if (typeof window.__playerCanLeave === "function" && !window.__playerCanLeave()) return;
   }
+  if (state.currentModule === "audio" && typeof audioStopTransientListeners === "function") {
+    audioStopTransientListeners();
+  }
   state.currentModule = "home";
   appPage().classList.add("hidden");
   homePage().classList.remove("hidden");
@@ -181,6 +184,9 @@ const openModule = (moduleKey) => {
   // Garde "modifs non enregistrees" si on quitte le module Transcrire
   if (state.currentModule === "transcribe" && moduleKey !== "transcribe") {
     if (typeof window.__playerCanLeave === "function" && !window.__playerCanLeave()) return;
+  }
+  if (state.currentModule === "audio" && moduleKey !== "audio" && typeof audioStopTransientListeners === "function") {
+    audioStopTransientListeners();
   }
   state.currentModule = moduleKey;
   homePage().classList.add("hidden");
@@ -888,22 +894,42 @@ $("welcome-ok").addEventListener("click", () => {
 // PHASE B - AUDIO MODULE (Level 1 shell)
 // ============================================
 const AUDIO_SUPPORTED_EXTENSIONS = ["wav", "mp3", "m4a", "flac", "ogg", "opus", "aac", "wma", "aiff", "aif"];
+const AUDIO_PRESET_LABELS = {
+  clear_voice: "Voix claire",
+  voice_memo: "Note vocale lisible",
+  podcast_interview: "Podcast / Interview",
+};
 
 const audioState = {
   mediaPath: null,
   mediaName: null,
   mediaSize: null,
   mediaDuration: null,
+  resultDuration: null,
   currentPreset: null,
   processing: false,
+  processingPreset: null,
+  processingProgress: 0,
   resultPath: null,
+  resultFormat: null,
+  resultOutputDir: null,
   currentSrc: "original",
+  lastErrorPreset: null,
+  exportDir: null,
+  exportProcessing: false,
 };
 
 let audioModuleInitialized = false;
 let audioOriginalWave = null;
-let audioFallbackEl = null;
-let audioLoadToken = 0;
+let audioResultWave = null;
+let audioOriginalFallbackEl = null;
+let audioResultFallbackEl = null;
+let audioProgressUnlisten = null;
+let audioOperationToken = 0;
+let audioLoadTokens = {
+  original: 0,
+  result: 0,
+};
 
 function initAudioModule(appState = state) {
   if (!audioModuleInitialized) {
@@ -921,10 +947,22 @@ function bindAudioModuleHandlers(appState) {
   const resetBtn = document.getElementById("audio-reset-btn");
   const playBtn = document.getElementById("audio-play-btn");
   const timeline = document.getElementById("audio-timeline");
+  const exportBtn = document.getElementById("audio-export-btn");
+  const exportCancelBtn = document.getElementById("audio-export-cancel");
+  const exportConfirmBtn = document.getElementById("audio-export-confirm");
+  const exportFolderBtn = document.getElementById("audio-export-folder-btn");
+  const exportModal = document.getElementById("audio-export-modal");
 
   importCard?.addEventListener("click", pickAudioFile);
   playBtn?.addEventListener("click", audioTogglePlayback);
   timeline?.addEventListener("click", audioSeekFromTimelineEvent);
+  exportBtn?.addEventListener("click", openAudioExportModal);
+  exportCancelBtn?.addEventListener("click", closeAudioExportModal);
+  exportConfirmBtn?.addEventListener("click", confirmAudioExport);
+  exportFolderBtn?.addEventListener("click", chooseAudioExportDir);
+  exportModal?.addEventListener("click", (event) => {
+    if (event.target === exportModal && !audioState.exportProcessing) closeAudioExportModal();
+  });
 
   recordCard?.addEventListener("click", () => {
     showToast("Enregistrement disponible en Phase F", 2500);
@@ -947,10 +985,11 @@ function bindAudioModuleHandlers(appState) {
   resetBtn?.addEventListener("click", resetAudioWithConfirm);
 
   document.querySelectorAll(".audio-preset-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      if (!audioState.mediaPath) return;
-      showToast("Traitement audio disponible a l'etape 4", 2500);
-    });
+    card.addEventListener("click", () => handleAudioPresetClick(card.dataset.preset));
+  });
+
+  document.querySelectorAll("#audio-ab-toggle [data-audio-source]").forEach((button) => {
+    button.addEventListener("click", () => setActiveAudioSource(button.dataset.audioSource));
   });
 
   bindAudioNativeDragDrop(appState);
@@ -1030,23 +1069,36 @@ async function bindAudioNativeDragDrop(appState) {
 
 function loadAudioFile(path) {
   if (!path || typeof path !== "string") return;
+  if (audioState.processing) {
+    showToast("Un traitement audio est deja en cours", 2800);
+    return;
+  }
   if (!isSupportedAudioPath(path)) {
     showToast("Format non supporté", 2800);
     return;
   }
 
-  destroyAudioOriginalPlayer();
+  destroyAudioPlayer("original");
+  destroyAudioPlayer("result");
   audioState.mediaPath = path;
   audioState.mediaName = getPathName(path);
   audioState.mediaSize = null;
   audioState.mediaDuration = null;
+  audioState.resultDuration = null;
   audioState.currentPreset = null;
   audioState.processing = false;
+  audioState.processingPreset = null;
+  audioState.processingProgress = 0;
   audioState.resultPath = null;
+  audioState.resultFormat = null;
+  audioState.resultOutputDir = null;
   audioState.currentSrc = "original";
+  audioState.lastErrorPreset = null;
+  audioState.exportDir = null;
+  audioState.exportProcessing = false;
 
   audioUpdateUI();
-  requestAnimationFrame(() => loadAudioOriginalWaveform(path));
+  requestAnimationFrame(() => loadAudioWaveform("original", path, { activate: true }));
   showToast("Fichier audio chargé", 1800);
 }
 
@@ -1076,12 +1128,16 @@ function audioUpdateUI() {
   const exportBtn = document.getElementById("audio-export-btn");
   if (exportBtn) exportBtn.disabled = !audioState.resultPath || audioState.processing;
 
-  document.querySelectorAll(".audio-preset-card").forEach((card) => {
-    card.classList.remove("active", "processing", "disabled");
-    card.disabled = false;
-    const status = card.querySelector(".audio-preset-status");
-    if (status) status.textContent = "Appliquer";
-  });
+  const resultMeta = document.getElementById("audio-result-meta");
+  if (resultMeta) {
+    const presetLabel = AUDIO_PRESET_LABELS[audioState.currentPreset] || "Preset applique";
+    const resultName = audioState.resultPath ? getPathName(audioState.resultPath) : "";
+    resultMeta.textContent = audioState.resultPath ? `${presetLabel} · ${resultName}` : "Preset applique";
+  }
+
+  renderAudioPresetCards();
+  renderAudioAbToggle();
+  updateAudioExportModal();
 
   if (hasMedia) {
     syncAudioTransportFromPlayer();
@@ -1092,172 +1148,21 @@ function audioUpdateUI() {
   }
 }
 
-function loadAudioOriginalWaveform(path) {
-  const container = document.getElementById("audio-waveform-original");
-  if (!container) return;
-
-  destroyAudioOriginalPlayer();
-  const token = ++audioLoadToken;
-
-  container.classList.remove("error");
-  container.classList.add("loading");
-  container.textContent = "Chargement du waveform...";
-  setAudioTransportEnabled(false);
-  updateAudioTransport(0, 0);
-
-  const src = getAudioAssetSrc(path);
-  const WaveSurferCtor = window.WaveSurfer;
-  if (!WaveSurferCtor || typeof WaveSurferCtor.create !== "function") {
-    renderAudioFallback(src, "Impossible d'afficher ce fichier audio");
-    return;
-  }
-
-  try {
-    container.textContent = "";
-    audioOriginalWave = WaveSurferCtor.create({
-      container,
-      url: src,
-      height: 100,
-      waveColor: getCssVar("--text2", "#8a8f98"),
-      progressColor: getCssVar("--accent", "#2563eb"),
-      cursorColor: "#E8390C",
-      cursorWidth: 2,
-      barWidth: 2,
-      barRadius: 2,
-      barGap: 2,
-      normalize: true,
-      interact: true,
-    });
-
-    audioOriginalWave.on("ready", () => {
-      if (token !== audioLoadToken) return;
-      container.classList.remove("loading");
-      audioState.mediaDuration = audioOriginalWave.getDuration();
-      setAudioTransportEnabled(true);
-      updateAudioTransport(0, audioState.mediaDuration);
-    });
-
-    audioOriginalWave.on("timeupdate", (time) => {
-      if (token !== audioLoadToken) return;
-      updateAudioTransport(time, audioOriginalWave.getDuration());
-    });
-
-    audioOriginalWave.on("audioprocess", (time) => {
-      if (token !== audioLoadToken) return;
-      updateAudioTransport(time, audioOriginalWave.getDuration());
-    });
-
-    audioOriginalWave.on("seeking", (time) => {
-      if (token !== audioLoadToken) return;
-      updateAudioTransport(time, audioOriginalWave.getDuration());
-    });
-
-    audioOriginalWave.on("play", () => setAudioPlayButton(true));
-    audioOriginalWave.on("pause", () => setAudioPlayButton(false));
-    audioOriginalWave.on("finish", () => {
-      setAudioPlayButton(false);
-      updateAudioTransport(audioOriginalWave.getDuration(), audioOriginalWave.getDuration());
-    });
-
-    audioOriginalWave.on("error", (err) => {
-      if (token !== audioLoadToken) return;
-      console.error("[audio] wavesurfer load error:", err);
-      renderAudioFallback(src, "Impossible d'afficher ce fichier audio");
-    });
-  } catch (err) {
-    console.error("[audio] wavesurfer init failed:", err);
-    renderAudioFallback(src, "Impossible d'afficher ce fichier audio");
-  }
-}
-
-function destroyAudioOriginalPlayer() {
-  audioLoadToken += 1;
-
-  if (audioOriginalWave) {
-    try {
-      audioOriginalWave.destroy();
-    } catch (err) {
-      console.warn("[audio] wavesurfer destroy failed:", err);
-    }
-    audioOriginalWave = null;
-  }
-
-  if (audioFallbackEl) {
-    try {
-      audioFallbackEl.pause();
-      audioFallbackEl.removeAttribute("src");
-      audioFallbackEl.load();
-    } catch (err) {
-      console.warn("[audio] fallback cleanup failed:", err);
-    }
-    audioFallbackEl = null;
-  }
-
-  const container = document.getElementById("audio-waveform-original");
-  if (container) {
-    container.classList.remove("loading", "error");
-    container.innerHTML = "";
-  }
-}
-
-function renderAudioFallback(src, message) {
-  const container = document.getElementById("audio-waveform-original");
-  if (!container) return;
-
-  if (audioOriginalWave) {
-    try {
-      audioOriginalWave.destroy();
-    } catch (err) {
-      console.warn("[audio] wavesurfer fallback destroy failed:", err);
-    }
-    audioOriginalWave = null;
-  }
-
-  container.classList.remove("loading");
-  container.classList.add("error");
-  container.innerHTML = "";
-
-  const error = document.createElement("div");
-  error.className = "audio-wave-error";
-  error.textContent = message;
-
-  const audio = document.createElement("audio");
-  audio.className = "audio-native-fallback";
-  audio.controls = true;
-  audio.src = src;
-  audioFallbackEl = audio;
-
-  audio.addEventListener("loadedmetadata", () => {
-    audioState.mediaDuration = audio.duration || 0;
-    setAudioTransportEnabled(true);
-    updateAudioTransport(0, audioState.mediaDuration);
-  });
-  audio.addEventListener("timeupdate", () => updateAudioTransport(audio.currentTime || 0, audio.duration || 0));
-  audio.addEventListener("play", () => setAudioPlayButton(true));
-  audio.addEventListener("pause", () => setAudioPlayButton(false));
-  audio.addEventListener("ended", () => setAudioPlayButton(false));
-  audio.addEventListener("error", () => {
-    setAudioTransportEnabled(false);
-    updateAudioTransport(0, 0);
-  });
-
-  container.append(error, audio);
-}
-
 function audioTogglePlayback() {
-  if (audioOriginalWave) {
-    audioOriginalWave.playPause();
+  const player = getAudioPlayer(audioState.currentSrc);
+  if (player.wave) {
+    player.wave.playPause();
     return;
   }
 
-  if (!audioFallbackEl) return;
-  if (audioFallbackEl.paused) {
-    audioFallbackEl.play().catch((err) => {
+  if (!player.fallback) return;
+  if (player.fallback.paused) {
+    player.fallback.play().catch((err) => {
       console.error("[audio] fallback play failed:", err);
       showToast("Lecture impossible", 2500);
     });
   } else {
-    audioFallbackEl.pause();
+    player.fallback.pause();
   }
 }
 
@@ -1269,32 +1174,16 @@ function audioSeekFromTimelineEvent(event) {
   if (!rect.width) return;
   const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
 
-  if (audioOriginalWave) {
-    audioOriginalWave.seekTo(ratio);
-    updateAudioTransport(audioOriginalWave.getCurrentTime(), audioOriginalWave.getDuration());
-    return;
-  }
-
-  if (audioFallbackEl && Number.isFinite(audioFallbackEl.duration) && audioFallbackEl.duration > 0) {
-    audioFallbackEl.currentTime = audioFallbackEl.duration * ratio;
-    updateAudioTransport(audioFallbackEl.currentTime, audioFallbackEl.duration);
-  }
+  const duration = getAudioSourceDuration(audioState.currentSrc);
+  seekAudioSource(audioState.currentSrc, duration * ratio);
+  updateAudioTransport(getAudioSourceCurrentTime(audioState.currentSrc), duration);
 }
 
 function syncAudioTransportFromPlayer() {
-  if (audioOriginalWave) {
-    updateAudioTransport(audioOriginalWave.getCurrentTime(), audioOriginalWave.getDuration());
-    setAudioTransportEnabled(true);
-    return;
-  }
-
-  if (audioFallbackEl) {
-    updateAudioTransport(audioFallbackEl.currentTime || 0, audioFallbackEl.duration || 0);
-    setAudioTransportEnabled(true);
-    return;
-  }
-
-  updateAudioTransport(0, audioState.mediaDuration || 0);
+  const duration = getAudioSourceDuration(audioState.currentSrc);
+  updateAudioTransport(getAudioSourceCurrentTime(audioState.currentSrc), duration);
+  setAudioTransportEnabled(duration > 0);
+  setAudioPlayButton(isAudioSourcePlaying(audioState.currentSrc));
 }
 
 function updateAudioTransport(current, duration) {
@@ -1348,22 +1237,573 @@ function getCssVar(name, fallback) {
   return value || fallback;
 }
 
+function renderAudioPresetCards() {
+  document.querySelectorAll(".audio-preset-card").forEach((card) => {
+    const preset = card.dataset.preset;
+    const status = card.querySelector(".audio-preset-status");
+    const progress = card.querySelector(".audio-preset-progress span");
+    card.classList.remove("active", "processing", "disabled", "error");
+    card.disabled = false;
+    if (progress) progress.style.width = "0%";
+
+    if (audioState.processing) {
+      const isCurrent = preset === audioState.processingPreset;
+      card.disabled = !isCurrent;
+      card.classList.toggle("processing", isCurrent);
+      card.classList.toggle("disabled", !isCurrent);
+      if (status) {
+        status.textContent = isCurrent
+          ? `Traitement ${Math.round(audioState.processingProgress || 0)}%`
+          : "En attente";
+      }
+      if (progress && isCurrent) progress.style.width = `${Math.min(audioState.processingProgress || 0, 100)}%`;
+      return;
+    }
+
+    if (audioState.resultPath && audioState.currentPreset === preset) {
+      card.classList.add("active");
+      if (status) status.textContent = "✓ Applique";
+      if (progress) progress.style.width = "100%";
+      return;
+    }
+
+    if (audioState.lastErrorPreset === preset) {
+      card.classList.add("error");
+      if (status) status.textContent = "↻ Reessayer";
+      return;
+    }
+
+    if (status) status.textContent = "Appliquer";
+  });
+}
+
+function renderAudioAbToggle() {
+  document.querySelectorAll("#audio-ab-toggle [data-audio-source]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.audioSource === audioState.currentSrc);
+  });
+}
+
+async function handleAudioPresetClick(presetKey) {
+  if (!presetKey || !audioState.mediaPath || audioState.processing) return;
+  if (audioState.resultPath) {
+    const message = audioState.currentPreset === presetKey
+      ? "Relancer ce preset et remplacer le resultat actuel ?"
+      : "Remplacer le resultat actuel ?";
+    if (!confirm(message)) return;
+  }
+  await runAudioPreset(presetKey, {
+    format: null,
+    outputDir: null,
+    revealOnSuccess: false,
+  });
+}
+
+async function runAudioPreset(presetKey, options = {}) {
+  if (!audioState.mediaPath || audioState.processing) return null;
+
+  const token = ++audioOperationToken;
+  const format = options.format || null;
+  const outputDir = options.outputDir || null;
+  audioState.processing = true;
+  audioState.processingPreset = presetKey;
+  audioState.processingProgress = 0;
+  audioState.lastErrorPreset = null;
+  audioUpdateUI();
+
+  await startAudioProgressListener(token, presetKey);
+
+  try {
+    const result = await invoke("audio_apply_preset", {
+      input: audioState.mediaPath,
+      outputDir,
+      preset: presetKey,
+      format,
+    });
+
+    if (token !== audioOperationToken) return null;
+    if (!result || result.success === false) {
+      throw new Error((result && result.error) || "Traitement audio echoue");
+    }
+
+    const outputPath = result.outputPath || result.output_path;
+    if (!outputPath) throw new Error("Aucun fichier de sortie retourne");
+
+    destroyAudioPlayer("result");
+    audioState.processing = false;
+    audioState.processingPreset = null;
+    audioState.processingProgress = 100;
+    audioState.resultPath = outputPath;
+    audioState.resultFormat = format;
+    audioState.resultOutputDir = outputDir || getAudioDefaultOutputDir();
+    audioState.resultDuration = null;
+    audioState.currentPreset = presetKey;
+    audioState.lastErrorPreset = null;
+    audioUpdateUI();
+
+    const previousTime = Math.min(getAudioSourceCurrentTime("original"), getAudioSourceDuration("original") || Infinity);
+    requestAnimationFrame(() => loadAudioWaveform("result", outputPath, {
+      activate: true,
+      seekTime: Number.isFinite(previousTime) ? previousTime : 0,
+    }));
+    showToast("Preset applique", 2200);
+    return outputPath;
+  } catch (err) {
+    if (token === audioOperationToken) {
+      audioState.processing = false;
+      audioState.processingPreset = null;
+      audioState.processingProgress = 0;
+      audioState.lastErrorPreset = presetKey;
+      audioUpdateUI();
+      const message = err && err.message ? err.message : String(err);
+      showToast("Erreur audio : " + message, 5000);
+    }
+    return null;
+  } finally {
+    if (token === audioOperationToken) {
+      stopAudioProgressListener();
+    }
+  }
+}
+
+async function startAudioProgressListener(token, presetKey) {
+  stopAudioProgressListener();
+  const lst =
+    (window.__TAURI__ && window.__TAURI__.event && window.__TAURI__.event.listen)
+    || (typeof listen === "function" ? listen : null);
+  if (!lst) return;
+
+  try {
+    audioProgressUnlisten = await lst("audio-progress", (event) => {
+      if (token !== audioOperationToken) return;
+      const payload = event.payload || {};
+      const eventPreset = payload.preset || payload.preset_key;
+      if (eventPreset && eventPreset !== presetKey) return;
+      updateAudioPresetProgress(payload.percent || 0, payload.stage || "");
+    });
+  } catch (err) {
+    console.error("[audio] progress listener setup failed:", err);
+  }
+}
+
+function stopAudioProgressListener() {
+  if (!audioProgressUnlisten) return;
+  try {
+    audioProgressUnlisten();
+  } catch (err) {
+    console.warn("[audio] progress unlisten failed:", err);
+  }
+  audioProgressUnlisten = null;
+}
+
+function updateAudioPresetProgress(percent, stage) {
+  audioState.processingProgress = Math.min(100, Math.max(0, Number(percent) || 0));
+  const card = document.querySelector(`.audio-preset-card[data-preset="${audioState.processingPreset}"]`);
+  if (!card) return;
+  const progress = card.querySelector(".audio-preset-progress span");
+  const status = card.querySelector(".audio-preset-status");
+  if (progress) progress.style.width = `${audioState.processingProgress}%`;
+  if (status) {
+    const label = stage === "finalizing" || audioState.processingProgress >= 99
+      ? "Finalisation..."
+      : `Traitement ${Math.round(audioState.processingProgress)}%`;
+    status.textContent = label;
+  }
+}
+
+function loadAudioWaveform(source, path, options = {}) {
+  const container = getAudioWaveContainer(source);
+  if (!container) return;
+
+  destroyAudioPlayer(source);
+  const token = ++audioLoadTokens[source];
+  const seekTime = Number(options.seekTime || 0);
+
+  container.classList.remove("error");
+  container.classList.add("loading");
+  container.textContent = "Chargement du waveform...";
+  if (options.activate || audioState.currentSrc === source) {
+    setAudioTransportEnabled(false);
+    updateAudioTransport(0, getAudioSourceDuration(source));
+  }
+
+  const src = getAudioAssetSrc(path);
+  const WaveSurferCtor = window.WaveSurfer;
+  if (!WaveSurferCtor || typeof WaveSurferCtor.create !== "function") {
+    renderAudioWaveFallback(source, src, "Impossible d'afficher ce fichier audio", options);
+    return;
+  }
+
+  try {
+    container.textContent = "";
+    const wave = WaveSurferCtor.create({
+      container,
+      url: src,
+      height: 100,
+      waveColor: getCssVar("--text2", "#8a8f98"),
+      progressColor: getCssVar("--accent", "#2563eb"),
+      cursorColor: "#E8390C",
+      cursorWidth: 2,
+      barWidth: 2,
+      barRadius: 2,
+      barGap: 2,
+      normalize: true,
+      interact: true,
+    });
+    setAudioWave(source, wave);
+
+    wave.on("ready", () => {
+      if (token !== audioLoadTokens[source]) return;
+      container.classList.remove("loading");
+      const duration = wave.getDuration();
+      if (source === "original") audioState.mediaDuration = duration;
+      if (source === "result") audioState.resultDuration = duration;
+      if (seekTime > 0) seekAudioSource(source, seekTime);
+      if (options.activate || audioState.currentSrc === source) {
+        setActiveAudioSource(source, { preservePosition: false });
+      }
+    });
+
+    wave.on("timeupdate", (time) => {
+      if (source !== audioState.currentSrc || token !== audioLoadTokens[source]) return;
+      updateAudioTransport(time, wave.getDuration());
+    });
+    wave.on("audioprocess", (time) => {
+      if (source !== audioState.currentSrc || token !== audioLoadTokens[source]) return;
+      updateAudioTransport(time, wave.getDuration());
+    });
+    wave.on("seeking", (time) => {
+      if (source !== audioState.currentSrc || token !== audioLoadTokens[source]) return;
+      updateAudioTransport(time, wave.getDuration());
+    });
+    wave.on("play", () => {
+      if (source === audioState.currentSrc) setAudioPlayButton(true);
+    });
+    wave.on("pause", () => {
+      if (source === audioState.currentSrc) setAudioPlayButton(false);
+    });
+    wave.on("finish", () => {
+      if (source !== audioState.currentSrc) return;
+      setAudioPlayButton(false);
+      updateAudioTransport(wave.getDuration(), wave.getDuration());
+    });
+    wave.on("error", (err) => {
+      if (token !== audioLoadTokens[source]) return;
+      console.error("[audio] wavesurfer load error:", err);
+      renderAudioWaveFallback(source, src, "Impossible d'afficher ce fichier audio", options);
+    });
+  } catch (err) {
+    console.error("[audio] wavesurfer init failed:", err);
+    renderAudioWaveFallback(source, src, "Impossible d'afficher ce fichier audio", options);
+  }
+}
+
+function destroyAudioPlayer(source) {
+  audioLoadTokens[source] = (audioLoadTokens[source] || 0) + 1;
+
+  const player = getAudioPlayer(source);
+  if (player.wave) {
+    try {
+      player.wave.destroy();
+    } catch (err) {
+      console.warn("[audio] wavesurfer destroy failed:", err);
+    }
+    setAudioWave(source, null);
+  }
+
+  if (player.fallback) {
+    try {
+      player.fallback.pause();
+      player.fallback.removeAttribute("src");
+      player.fallback.load();
+    } catch (err) {
+      console.warn("[audio] fallback cleanup failed:", err);
+    }
+    setAudioFallback(source, null);
+  }
+
+  const container = getAudioWaveContainer(source);
+  if (container) {
+    container.classList.remove("loading", "error");
+    container.innerHTML = "";
+  }
+}
+
+function renderAudioWaveFallback(source, src, message, options = {}) {
+  const container = getAudioWaveContainer(source);
+  if (!container) return;
+
+  const player = getAudioPlayer(source);
+  if (player.wave) {
+    try {
+      player.wave.destroy();
+    } catch (err) {
+      console.warn("[audio] wavesurfer fallback destroy failed:", err);
+    }
+    setAudioWave(source, null);
+  }
+
+  container.classList.remove("loading");
+  container.classList.add("error");
+  container.innerHTML = "";
+
+  const error = document.createElement("div");
+  error.className = "audio-wave-error";
+  error.textContent = message;
+
+  const audio = document.createElement("audio");
+  audio.className = "audio-native-fallback";
+  audio.controls = true;
+  audio.src = src;
+  setAudioFallback(source, audio);
+
+  audio.addEventListener("loadedmetadata", () => {
+    const duration = audio.duration || 0;
+    if (source === "original") audioState.mediaDuration = duration;
+    if (source === "result") audioState.resultDuration = duration;
+    if (options.seekTime) seekAudioSource(source, options.seekTime);
+    if (options.activate || audioState.currentSrc === source) {
+      setActiveAudioSource(source, { preservePosition: false });
+    }
+  });
+  audio.addEventListener("timeupdate", () => {
+    if (source === audioState.currentSrc) updateAudioTransport(audio.currentTime || 0, audio.duration || 0);
+  });
+  audio.addEventListener("play", () => {
+    if (source === audioState.currentSrc) setAudioPlayButton(true);
+  });
+  audio.addEventListener("pause", () => {
+    if (source === audioState.currentSrc) setAudioPlayButton(false);
+  });
+  audio.addEventListener("ended", () => {
+    if (source === audioState.currentSrc) setAudioPlayButton(false);
+  });
+  audio.addEventListener("error", () => {
+    if (source === audioState.currentSrc) {
+      setAudioTransportEnabled(false);
+      updateAudioTransport(0, 0);
+    }
+  });
+
+  container.append(error, audio);
+}
+
+function getAudioWaveContainer(source) {
+  return document.getElementById(source === "result" ? "audio-waveform-result" : "audio-waveform-original");
+}
+
+function getAudioPlayer(source) {
+  return {
+    wave: source === "result" ? audioResultWave : audioOriginalWave,
+    fallback: source === "result" ? audioResultFallbackEl : audioOriginalFallbackEl,
+  };
+}
+
+function setAudioWave(source, wave) {
+  if (source === "result") audioResultWave = wave;
+  else audioOriginalWave = wave;
+}
+
+function setAudioFallback(source, fallback) {
+  if (source === "result") audioResultFallbackEl = fallback;
+  else audioOriginalFallbackEl = fallback;
+}
+
+function setActiveAudioSource(source, options = {}) {
+  if (source === "result" && !audioState.resultPath) return;
+  if (source === audioState.currentSrc) {
+    if (Number.isFinite(options.seekTime) && options.seekTime > 0) {
+      seekAudioSource(source, options.seekTime);
+    }
+    renderAudioAbToggle();
+    syncAudioTransportFromPlayer();
+    return;
+  }
+  const previousTime = options.preservePosition === false ? 0 : getAudioSourceCurrentTime(audioState.currentSrc);
+  const nextTime = Number.isFinite(options.seekTime) ? options.seekTime : previousTime;
+  pauseAudioSource(audioState.currentSrc);
+  audioState.currentSrc = source;
+  if (nextTime > 0) seekAudioSource(source, nextTime);
+  renderAudioAbToggle();
+  syncAudioTransportFromPlayer();
+}
+
+function getAudioSourceCurrentTime(source) {
+  const player = getAudioPlayer(source);
+  if (player.wave && typeof player.wave.getCurrentTime === "function") return player.wave.getCurrentTime() || 0;
+  if (player.fallback) return player.fallback.currentTime || 0;
+  return 0;
+}
+
+function getAudioSourceDuration(source) {
+  const player = getAudioPlayer(source);
+  if (player.wave && typeof player.wave.getDuration === "function") return player.wave.getDuration() || 0;
+  if (player.fallback) return player.fallback.duration || 0;
+  return source === "result" ? (audioState.resultDuration || 0) : (audioState.mediaDuration || 0);
+}
+
+function seekAudioSource(source, time) {
+  const duration = getAudioSourceDuration(source);
+  if (!duration || !Number.isFinite(duration)) return;
+  const safeTime = Math.min(Math.max(time || 0, 0), duration);
+  const player = getAudioPlayer(source);
+  if (player.wave) {
+    player.wave.seekTo(safeTime / duration);
+    return;
+  }
+  if (player.fallback) player.fallback.currentTime = safeTime;
+}
+
+function pauseAudioSource(source) {
+  const player = getAudioPlayer(source);
+  if (player.wave && typeof player.wave.pause === "function") player.wave.pause();
+  if (player.fallback && !player.fallback.paused) player.fallback.pause();
+}
+
+function isAudioSourcePlaying(source) {
+  const player = getAudioPlayer(source);
+  if (player.wave && typeof player.wave.isPlaying === "function") return player.wave.isPlaying();
+  return Boolean(player.fallback && !player.fallback.paused);
+}
+
+function openAudioExportModal() {
+  if (!audioState.resultPath || !audioState.currentPreset) return;
+  audioState.exportDir = getAudioDefaultOutputDir();
+  audioState.exportProcessing = false;
+  document.querySelectorAll('input[name="audio-export-format"]').forEach((input) => {
+    input.checked = input.value === "original";
+  });
+  updateAudioExportModal();
+  document.getElementById("audio-export-modal")?.classList.remove("hidden");
+}
+
+function closeAudioExportModal() {
+  if (audioState.exportProcessing) return;
+  document.getElementById("audio-export-modal")?.classList.add("hidden");
+}
+
+async function chooseAudioExportDir() {
+  if (audioState.exportProcessing) return;
+  try {
+    const tauriOpen =
+      (window.__TAURI__ && window.__TAURI__.dialog && window.__TAURI__.dialog.open)
+      || (typeof open === "function" ? open : null);
+    if (!tauriOpen) throw new Error("Dialogue Tauri non disponible");
+    const selected = await tauriOpen({ directory: true, multiple: false });
+    if (!selected) return;
+    audioState.exportDir = Array.isArray(selected) ? selected[0] : selected;
+    updateAudioExportModal();
+  } catch (err) {
+    console.error("[audio] export folder picker failed:", err);
+    showToast("Impossible de choisir le dossier", 3000);
+  }
+}
+
+async function confirmAudioExport() {
+  if (!audioState.resultPath || !audioState.currentPreset || audioState.exportProcessing) return;
+  const selectedFormat = document.querySelector('input[name="audio-export-format"]:checked')?.value || "original";
+  const format = selectedFormat === "original" ? null : selectedFormat;
+  const outputDir = audioState.exportDir || getAudioDefaultOutputDir();
+  const existingDir = normalizeAudioPath(getPathDir(audioState.resultPath));
+  const desiredDir = normalizeAudioPath(outputDir);
+  const existingExt = getPathExtension(audioState.resultPath);
+  const desiredExt = format || getPathExtension(audioState.mediaPath || "");
+
+  if (existingDir === desiredDir && existingExt === desiredExt) {
+    await revealAudioOutput(audioState.resultPath);
+    closeAudioExportModal();
+    return;
+  }
+
+  audioState.exportProcessing = true;
+  updateAudioExportModal();
+  const outputPath = await runAudioPreset(audioState.currentPreset, {
+    format,
+    outputDir,
+    revealOnSuccess: true,
+  });
+  audioState.exportProcessing = false;
+  updateAudioExportModal();
+
+  if (outputPath) {
+    await revealAudioOutput(outputPath);
+    closeAudioExportModal();
+  }
+}
+
+function updateAudioExportModal() {
+  const input = document.getElementById("audio-export-folder-input");
+  const label = document.getElementById("audio-export-folder-label");
+  const confirmBtn = document.getElementById("audio-export-confirm");
+  const dir = audioState.exportDir || getAudioDefaultOutputDir();
+  if (input) input.value = dir || "LoadLink-Audio";
+  if (label) label.textContent = "Choisir";
+  if (confirmBtn) {
+    confirmBtn.disabled = audioState.exportProcessing;
+    confirmBtn.textContent = audioState.exportProcessing ? "Export..." : "Confirmer";
+  }
+}
+
+async function revealAudioOutput(path) {
+  if (!path) return;
+  try {
+    await invoke("reveal_path", { path });
+  } catch (err) {
+    console.warn("[audio] reveal_path failed, fallback to folder:", err);
+    const folder = getPathDir(path);
+    if (folder) await invoke("open_folder", { path: folder });
+  }
+}
+
+function getAudioDefaultOutputDir() {
+  const sourceDir = getPathDir(audioState.mediaPath || "");
+  return sourceDir ? joinPath(sourceDir, "LoadLink-Audio") : "";
+}
+
+function joinPath(dir, child) {
+  if (!dir) return child;
+  const separator = dir.includes("\\") ? "\\" : "/";
+  return dir.endsWith("\\") || dir.endsWith("/") ? dir + child : dir + separator + child;
+}
+
+function normalizeAudioPath(path) {
+  return String(path || "").replace(/\//g, "\\").replace(/\\+$/g, "").toLowerCase();
+}
+
+function audioStopTransientListeners() {
+  stopAudioProgressListener();
+}
+
 function resetAudioWithConfirm() {
   if (!audioState.mediaPath) return;
-  if (!confirm("Abandonner ce fichier ?")) return;
+  const message = audioState.processing
+    ? "Annuler le traitement en cours et abandonner ce fichier ?"
+    : "Abandonner ce fichier ?";
+  if (!confirm(message)) return;
   resetAudioState();
 }
 
 function resetAudioState() {
-  destroyAudioOriginalPlayer();
+  audioOperationToken += 1;
+  stopAudioProgressListener();
+  destroyAudioPlayer("original");
+  destroyAudioPlayer("result");
   audioState.mediaPath = null;
   audioState.mediaName = null;
   audioState.mediaSize = null;
   audioState.mediaDuration = null;
+  audioState.resultDuration = null;
   audioState.currentPreset = null;
   audioState.processing = false;
+  audioState.processingPreset = null;
+  audioState.processingProgress = 0;
   audioState.resultPath = null;
+  audioState.resultFormat = null;
+  audioState.resultOutputDir = null;
   audioState.currentSrc = "original";
+  audioState.lastErrorPreset = null;
+  audioState.exportDir = null;
+  audioState.exportProcessing = false;
+  document.getElementById("audio-export-modal")?.classList.add("hidden");
   audioUpdateUI();
 }
 
