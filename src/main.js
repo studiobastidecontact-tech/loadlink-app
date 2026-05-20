@@ -2730,16 +2730,23 @@ function audioRecordingScrollPush(peakL, peakR) {
   if (!canvas || !ctx) return;
   const width = canvas.width;
   const height = canvas.height;
-  const imageData = ctx.getImageData(2, 0, width - 2, height);
-  ctx.clearRect(0, 0, width, height);
-  ctx.putImageData(imageData, 0, 0);
-
-  const x = width - 2;
-  const center = height / 2;
-  const peak = Math.max(peakL, peakR);
-  const halfHeight = peak * center;
-  ctx.fillStyle = peak > 0.95 ? "#ef4444" : peak > 0.6 ? "#facc15" : "#22c55e";
-  ctx.fillRect(x, center - halfHeight, 2, halfHeight * 2);
+  // Hard guard: getImageData throws IndexSizeError/RangeError on zero/negative
+  // sizes. Skip the frame if the canvas hasn't been laid out yet.
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width < 4 || height < 4) return;
+  try {
+    const imageData = ctx.getImageData(2, 0, width - 2, height);
+    ctx.clearRect(0, 0, width, height);
+    ctx.putImageData(imageData, 0, 0);
+    const x = width - 2;
+    const center = height / 2;
+    const peak = Math.max(peakL, peakR);
+    const halfHeight = peak * center;
+    ctx.fillStyle = peak > 0.95 ? "#ef4444" : peak > 0.6 ? "#facc15" : "#22c55e";
+    ctx.fillRect(x, center - halfHeight, 2, halfHeight * 2);
+  } catch (err) {
+    // Don't crash the REC loop if the canvas state is transiently invalid.
+    console.warn("[record] scroll frame skipped:", err);
+  }
 }
 
 function audioRecordingTickTimer() {
@@ -3318,9 +3325,20 @@ function audioUpdateUI() {
   const isBeginner = level === "beginner";
   const isAmateur = level === "amateur";
   const isPro = level === "pro";
+  const inRecordingView = audioRecordState?.view === "recording";
 
-  document.getElementById("audio-empty")?.classList.toggle("hidden", hasMedia);
-  document.getElementById("audio-workspace")?.classList.toggle("hidden", !hasMedia);
+  // While the user is in the recording view we leave the workspace and empty
+  // state hidden no matter what other state changes (re-mounting the workspace
+  // would re-create wavesurfer instances inside a zero-width container and
+  // trigger RangeError loops in renderMultiCanvas).
+  if (!inRecordingView) {
+    document.getElementById("audio-empty")?.classList.toggle("hidden", hasMedia);
+    document.getElementById("audio-workspace")?.classList.toggle("hidden", !hasMedia);
+  } else {
+    document.getElementById("audio-empty")?.classList.add("hidden");
+    document.getElementById("audio-workspace")?.classList.add("hidden");
+    return; // skip the rest — nothing to render in REC view
+  }
 
   // Shared player (toolbar + waveforms + transport) lives above the level panels
   // and stays visible whenever media is loaded, regardless of user level.
