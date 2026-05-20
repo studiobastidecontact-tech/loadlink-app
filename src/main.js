@@ -5267,6 +5267,10 @@ function setActiveAudioSource(source, options = {}) {
     setAudioPlayButton(true);
   }
 
+  // Hook the VU meter to the now-active wave so the L/R footer matches what
+  // the user hears.
+  if (newWave) attachAudioLiveMeter(newWave);
+
   console.log("[audio] active source →", source, "wasPlaying=", wasPlaying, "previousTime=", previousTime);
   renderAudioAbToggle();
   syncAudioTransportFromPlayer();
