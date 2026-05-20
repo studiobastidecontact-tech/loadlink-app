@@ -1871,6 +1871,12 @@ body.dark .libreoffice-warning {
   border-color: var(--text3);
 }
 
+.audio-track-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 .audio-track-gain-wrap {
   display: flex;
   align-items: center;
@@ -2165,6 +2171,74 @@ body.dark .libreoffice-warning {
 .audio-apply-full-btn:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.audio-marker {
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 100%;
+  transform: translateX(-50%);
+  border-left: 2px solid #facc15;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.audio-marker::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #facc15;
+}
+
+#audio-waveform-original {
+  position: relative;
+}
+
+.audio-help-modal-card {
+  max-width: 520px;
+  max-height: 86vh;
+  overflow-y: auto;
+}
+
+.audio-help-modal-card h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.audio-help-modal-card h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  margin: 18px 0 8px;
+  color: var(--text);
+}
+
+.audio-help-intro,
+.audio-help-text {
+  color: var(--text2);
+  font-size: 13px;
+  margin: 0 0 10px;
+  line-height: 1.55;
+}
+
+.audio-help-list {
+  margin: 0 0 8px;
+  padding: 0 0 0 18px;
+  color: var(--text2);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.audio-help-list strong {
+  color: var(--text);
+  font-weight: 700;
 }
 
 .audio-apply-full-hint {

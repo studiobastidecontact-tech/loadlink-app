@@ -1412,6 +1412,43 @@
   </div>
 </div>
 
+<div class="modal hidden" id="audio-help-modal">
+  <div class="modal-card audio-help-modal-card">
+    <h2>Audio Studio · Aide</h2>
+    <p class="audio-help-intro">Les contrôles clés à connaître pour traiter une voix en quelques secondes.</p>
+
+    <h3>EQ paramétrique</h3>
+    <ul class="audio-help-list">
+      <li><strong>Glisser</strong> un point pour ajuster fréquence et gain (±24 dB)</li>
+      <li><strong>Double-clic</strong> = reset cette bande</li>
+      <li><strong>Molette</strong> sur un point = ajuste Q (largeur de bande)</li>
+      <li><strong>Clic droit</strong> sur un point = change le type (peaking, lowpass, highpass, shelf, notch)</li>
+      <li>Snap automatique à 0 dB quand on s'en approche (±0.5 dB)</li>
+    </ul>
+
+    <h3>Aperçu &amp; rendu</h3>
+    <ul class="audio-help-list">
+      <li>Chaque modification déclenche un <strong>aperçu 5 s</strong> à partir du curseur — pour entendre vite</li>
+      <li>Clique <strong>Appliquer au fichier complet</strong> pour rendre tout le fichier</li>
+      <li>Exporter ouvre les options pro (WAV 24 bit, FLAC, MP3 CBR/VBR, métadonnées ID3…)</li>
+    </ul>
+
+    <h3>Raccourcis clavier</h3>
+    <ul class="audio-help-list">
+      <li><strong>Ctrl + Z</strong> · annuler · <strong>Ctrl + Maj + Z</strong> ou <strong>Ctrl + Y</strong> · refaire</li>
+      <li><strong>Ctrl + molette</strong> sur la waveform = zoom horizontal</li>
+      <li><strong>Maj + clic</strong> sur la waveform = pose un marqueur (clic droit pour le supprimer)</li>
+    </ul>
+
+    <h3>Niveau 2 · Affiner le résultat</h3>
+    <p class="audio-help-text">Les 6 sliders humains (volume, bruit, voix, compression, silences, sibilance) ajustent automatiquement la chaîne ffmpeg sous-jacente. Reset = revient au preset.</p>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-primary" id="audio-help-modal-close" style="width:auto;margin-top:0;padding:9px 22px;">Compris</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal hidden" id="welcome-modal">
   <div class="modal-card welcome-card">
     <div class="welcome-icon">

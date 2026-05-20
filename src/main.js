@@ -1016,6 +1016,9 @@ const audioState = {
   exportName: "",
   exportMetadata: { title: "", artist: "", album: "", year: "", genre: "", comment: "" },
   refineOpen: false,
+  history: [],
+  historyIndex: -1,
+  track: { mute: false, solo: false, gainDb: 0 },
   refineSliders: {
     volume: 50,
     noise: 50,
@@ -1048,6 +1051,8 @@ let audioPreviewDebounce = null;
 let audioPreviewToken = 0;
 let audioPreviewPending = false;
 let audioEqDrag = null;
+let audioHistoryDebounce = null;
+const AUDIO_HISTORY_MAX = 20;
 let audioLoadTokens = {
   original: 0,
   result: 0,
@@ -1080,7 +1085,16 @@ function bindAudioModuleHandlers(appState) {
   const refineReset = document.getElementById("audio-refine-reset");
 
   backBtn?.addEventListener("click", goHome);
-  helpBtn?.addEventListener("click", () => showToast("Aide Audio Studio disponible bientot", 2500));
+  helpBtn?.addEventListener("click", openAudioHelpModal);
+  document.getElementById("audio-undo-btn")?.addEventListener("click", audioUndo);
+  document.getElementById("audio-redo-btn")?.addEventListener("click", audioRedo);
+  document.getElementById("audio-help-modal-close")?.addEventListener("click", closeAudioHelpModal);
+  document.getElementById("audio-help-modal")?.addEventListener("click", (event) => {
+    if (event.target.id === "audio-help-modal") closeAudioHelpModal();
+  });
+  bindAudioTrackControls();
+  bindAudioKeyboardShortcuts(appState);
+  bindAudioTimelineTools();
   importCard?.addEventListener("click", pickAudioFile);
   playBtn?.addEventListener("click", audioTogglePlayback);
   timeline?.addEventListener("click", audioSeekFromTimelineEvent);
@@ -1155,6 +1169,123 @@ function bindAudioModuleHandlers(appState) {
   window.addEventListener("mouseup", handleAudioEqDragEnd);
 
   bindAudioNativeDragDrop(appState);
+}
+
+function bindAudioTrackControls() {
+  const muteBtn = document.querySelector("#audio-track-card .audio-track-btn[title='Mute']");
+  const soloBtn = document.querySelector("#audio-track-card .audio-track-btn[title='Solo']");
+  const gainInput = document.getElementById("audio-track-gain");
+
+  muteBtn?.addEventListener("click", () => {
+    audioState.track.mute = !audioState.track.mute;
+    muteBtn.classList.toggle("active", audioState.track.mute);
+    applyAudioTrackGainToPlayers();
+  });
+  soloBtn?.addEventListener("click", () => {
+    audioState.track.solo = !audioState.track.solo;
+    soloBtn.classList.toggle("active", audioState.track.solo);
+    // Single track: solo is informational only.
+  });
+  if (gainInput) {
+    gainInput.disabled = false;
+    gainInput.value = String(audioState.track.gainDb);
+    gainInput.addEventListener("input", () => {
+      audioState.track.gainDb = clampNumber(Number(gainInput.value), -24, 12);
+      applyAudioTrackGainToPlayers();
+    });
+  }
+}
+
+function applyAudioTrackGainToPlayers() {
+  const linear = audioState.track.mute ? 0 : Math.pow(10, audioState.track.gainDb / 20);
+  ["original", "result"].forEach((source) => {
+    const player = getAudioPlayer(source);
+    try {
+      if (player.wave && typeof player.wave.setVolume === "function") {
+        player.wave.setVolume(linear);
+      }
+      if (player.fallback) player.fallback.volume = clampNumber(linear, 0, 1);
+    } catch (err) {
+      console.warn("[audio] setVolume failed:", err);
+    }
+  });
+}
+
+function bindAudioKeyboardShortcuts(appState) {
+  document.addEventListener("keydown", (event) => {
+    if (!appState || appState.currentModule !== "audio") return;
+    const target = event.target;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+    if (!event.ctrlKey && !event.metaKey) return;
+    if (event.key === "z" && !event.shiftKey) {
+      event.preventDefault();
+      audioUndo();
+    } else if ((event.key === "z" && event.shiftKey) || event.key === "y") {
+      event.preventDefault();
+      audioRedo();
+    }
+  });
+}
+
+function bindAudioTimelineTools() {
+  const originalWrap = document.getElementById("audio-waveform-original");
+  if (originalWrap) {
+    originalWrap.addEventListener("wheel", (event) => {
+      if (!event.ctrlKey) return;
+      event.preventDefault();
+      const wave = audioOriginalWave;
+      if (!wave || typeof wave.zoom !== "function") return;
+      const current = Number(wave.options?.minPxPerSec) || 0;
+      const next = clampNumber(current + (event.deltaY > 0 ? -20 : 20), 0, 500);
+      try { wave.zoom(next); } catch (err) { console.warn("[audio] zoom failed:", err); }
+    }, { passive: false });
+
+    originalWrap.addEventListener("click", (event) => {
+      if (!event.shiftKey) return;
+      const rect = originalWrap.getBoundingClientRect();
+      if (!rect.width) return;
+      const ratio = (event.clientX - rect.left) / rect.width;
+      const duration = audioState.mediaDuration || 0;
+      if (!duration) return;
+      const time = clampNumber(ratio * duration, 0, duration);
+      audioState.markers = Array.isArray(audioState.markers) ? audioState.markers : [];
+      audioState.markers.push(time);
+      renderAudioMarkers();
+      showToast(`Marqueur ajouté à ${formatAudioTime(time)}`, 1500);
+    });
+  }
+}
+
+function renderAudioMarkers() {
+  const container = document.getElementById("audio-waveform-original");
+  if (!container) return;
+  container.querySelectorAll(".audio-marker").forEach((el) => el.remove());
+  const duration = audioState.mediaDuration || 0;
+  if (!duration) return;
+  (audioState.markers || []).forEach((time, index) => {
+    const marker = document.createElement("div");
+    marker.className = "audio-marker";
+    marker.style.left = `${(time / duration) * 100}%`;
+    marker.title = `Marqueur ${index + 1} · ${formatAudioTime(time)}`;
+    marker.addEventListener("click", (event) => {
+      event.stopPropagation();
+      seekAudioSource("original", time);
+    });
+    marker.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      audioState.markers.splice(index, 1);
+      renderAudioMarkers();
+    });
+    container.appendChild(marker);
+  });
+}
+
+function openAudioHelpModal() {
+  document.getElementById("audio-help-modal")?.classList.remove("hidden");
+}
+
+function closeAudioHelpModal() {
+  document.getElementById("audio-help-modal")?.classList.add("hidden");
 }
 
 async function pickAudioFile() {
@@ -1269,6 +1400,10 @@ function loadAudioFile(path) {
   resetAudioRefineState(false);
   audioState.analysis = null;
 
+  audioState.markers = [];
+  audioState.track = { mute: false, solo: false, gainDb: 0 };
+  resetAudioHistory();
+  commitAudioHistorySnapshot();
   audioUpdateUI();
   analyzeAudioFile(path);
   requestAnimationFrame(() => loadAudioWaveform("original", path, { activate: true }));
@@ -1859,6 +1994,7 @@ function scheduleAudioChainRender(delay = 400) {
   if (!audioState.mediaPath) return;
   audioState.fullChainStale = Boolean(audioState.fullChainPath);
   renderAudioApplyFullButton();
+  scheduleAudioHistorySnapshot();
   if (audioState.previewProcessing) {
     audioPreviewPending = true;
     return;
@@ -1867,6 +2003,72 @@ function scheduleAudioChainRender(delay = 400) {
   audioPreviewDebounce = window.setTimeout(() => {
     runAudioPreviewChain();
   }, delay);
+}
+
+function captureAudioStateSnapshot() {
+  return {
+    effectChain: JSON.parse(JSON.stringify(audioState.effectChain)),
+    effects: audioState.effects.map((effect) => ({ ...effect })),
+    refineSliders: { ...audioState.refineSliders },
+    currentPreset: audioState.currentPreset,
+  };
+}
+
+function restoreAudioStateSnapshot(snapshot) {
+  if (!snapshot) return;
+  audioState.effectChain = JSON.parse(JSON.stringify(snapshot.effectChain));
+  audioState.effects = snapshot.effects.map((effect) => ({ ...effect }));
+  audioState.refineSliders = { ...snapshot.refineSliders };
+  audioState.currentPreset = snapshot.currentPreset;
+  audioUpdateUI();
+  scheduleAudioChainRender(150);
+}
+
+function scheduleAudioHistorySnapshot(delay = 500) {
+  clearTimeout(audioHistoryDebounce);
+  audioHistoryDebounce = window.setTimeout(commitAudioHistorySnapshot, delay);
+}
+
+function commitAudioHistorySnapshot() {
+  const snapshot = captureAudioStateSnapshot();
+  const serialized = JSON.stringify(snapshot);
+  const top = audioState.history[audioState.historyIndex];
+  if (top && JSON.stringify(top) === serialized) return;
+  audioState.history = audioState.history.slice(0, audioState.historyIndex + 1);
+  audioState.history.push(snapshot);
+  if (audioState.history.length > AUDIO_HISTORY_MAX) {
+    audioState.history.shift();
+  }
+  audioState.historyIndex = audioState.history.length - 1;
+  renderAudioHistoryButtons();
+}
+
+function resetAudioHistory() {
+  audioState.history = [];
+  audioState.historyIndex = -1;
+  clearTimeout(audioHistoryDebounce);
+  renderAudioHistoryButtons();
+}
+
+function audioUndo() {
+  if (audioState.historyIndex <= 0) return;
+  audioState.historyIndex -= 1;
+  restoreAudioStateSnapshot(audioState.history[audioState.historyIndex]);
+  renderAudioHistoryButtons();
+}
+
+function audioRedo() {
+  if (audioState.historyIndex >= audioState.history.length - 1) return;
+  audioState.historyIndex += 1;
+  restoreAudioStateSnapshot(audioState.history[audioState.historyIndex]);
+  renderAudioHistoryButtons();
+}
+
+function renderAudioHistoryButtons() {
+  const undo = document.getElementById("audio-undo-btn");
+  const redo = document.getElementById("audio-redo-btn");
+  if (undo) undo.disabled = audioState.historyIndex <= 0;
+  if (redo) redo.disabled = audioState.historyIndex >= audioState.history.length - 1;
 }
 
 function getAudioPreviewStartSeconds() {
@@ -3232,6 +3434,9 @@ function resetAudioState() {
   resetAudioRefineState(false);
   audioState.analysis = null;
   audioState.studioTab = "edit";
+  audioState.markers = [];
+  audioState.track = { mute: false, solo: false, gainDb: 0 };
+  resetAudioHistory();
   document.getElementById("audio-export-modal")?.classList.add("hidden");
   audioUpdateUI();
 }
