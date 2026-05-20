@@ -149,6 +149,7 @@ pub struct AudioMixTrack {
     pub path: String,
     pub gain_db: Option<f32>,
     pub mute: Option<bool>,
+    pub pan: Option<f32>,   // -100..100, 0 = center
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -159,6 +160,26 @@ pub struct AudioMixOptions {
     pub format: Option<String>,
     pub effects: Vec<AudioEffect>,
     pub extra_tracks: Vec<AudioMixTrack>,
+    pub primary_pan: Option<f32>,
+    pub master_gain_db: Option<f32>,
+}
+
+fn pan_filter(pan: f32) -> Option<String> {
+    let p = clamp(pan, -100.0, 100.0) / 100.0; // -1..1
+    if p.abs() < 0.02 {
+        return None;
+    }
+    // Linear pan keeping mono compatibility. For pan<0 (left), keep more of c0.
+    // We use ffmpeg pan filter with stereo output preserving constant power.
+    // Approximation: left = (1-p)/2 * (c0+c1), right = (1+p)/2 * (c0+c1) for mono in
+    // For stereo input we crossfade:
+    let l_c0 = (1.0 - p.max(0.0)).clamp(0.0, 1.0);
+    let l_c1 = (-p).clamp(0.0, 1.0);
+    let r_c0 = p.clamp(0.0, 1.0);
+    let r_c1 = (1.0 + p.min(0.0)).clamp(0.0, 1.0);
+    Some(format!(
+        "pan=stereo|c0={l_c0:.4}*c0+{l_c1:.4}*c1|c1={r_c0:.4}*c0+{r_c1:.4}*c1"
+    ))
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -568,7 +589,12 @@ pub async fn apply_mix(app: &AppHandle, opts: AudioMixOptions) -> Result<AudioPr
 
     let total_inputs = 1 + opts.extra_tracks.len();
     let mut filter_complex = String::new();
-    filter_complex.push_str(&format!("[0:a]{chain_filter}[main]"));
+    let primary_pan = opts.primary_pan.unwrap_or(0.0);
+    if let Some(pan_f) = pan_filter(primary_pan) {
+        filter_complex.push_str(&format!("[0:a]{chain_filter},{pan_f}[main]"));
+    } else {
+        filter_complex.push_str(&format!("[0:a]{chain_filter}[main]"));
+    }
     let mut mix_inputs = vec!["[main]".to_string()];
     for (idx, track) in opts.extra_tracks.iter().enumerate() {
         let stream_in = format!("[{}:a]", idx + 1);
@@ -579,15 +605,26 @@ pub async fn apply_mix(app: &AppHandle, opts: AudioMixOptions) -> Result<AudioPr
         };
         let linear = 10f32.powf(gain_db / 20.0);
         let label = format!("[t{idx}]");
-        filter_complex.push_str(&format!(
-            ";{stream_in}aresample={target_sample_rate},volume={linear:.6}{label}"
-        ));
+        let mut filter_segment = format!(
+            "{stream_in}aresample={target_sample_rate},volume={linear:.6}"
+        );
+        if let Some(pan_f) = pan_filter(track.pan.unwrap_or(0.0)) {
+            filter_segment.push(',');
+            filter_segment.push_str(&pan_f);
+        }
+        filter_complex.push_str(&format!(";{filter_segment}{label}"));
         mix_inputs.push(label);
     }
     let joined_inputs = mix_inputs.join("");
     filter_complex.push_str(&format!(
-        ";{joined_inputs}amix=inputs={total_inputs}:duration=longest:normalize=0[out]"
+        ";{joined_inputs}amix=inputs={total_inputs}:duration=longest:normalize=0"
     ));
+    let master_gain_db = clamp(opts.master_gain_db.unwrap_or(0.0), -24.0, 6.0);
+    if master_gain_db.abs() > 0.05 {
+        let linear = 10f32.powf(master_gain_db / 20.0);
+        filter_complex.push_str(&format!(",volume={linear:.6}"));
+    }
+    filter_complex.push_str("[out]");
 
     emit_progress(app, 0.0, "preparing", Some(source_name.clone()), None, None);
 

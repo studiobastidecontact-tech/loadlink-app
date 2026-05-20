@@ -1643,22 +1643,224 @@ function renderAudioMasterVerdict() {
 }
 
 function renderAudioMixingView() {
-  // Stub — populated by Chantier B implementation
   renderAudioMixingStrips();
   updateAudioMixInsights();
 }
 
+function ensureAudioMixingPanState() {
+  if (!Number.isFinite(audioState.track.pan)) audioState.track.pan = 0;
+  if (!Number.isFinite(audioState.masterGainDb)) audioState.masterGainDb = 0;
+  (audioState.extraTracks || []).forEach((t) => {
+    if (!Number.isFinite(t.pan)) t.pan = 0;
+  });
+}
+
 function renderAudioMixingStrips() {
+  ensureAudioMixingPanState();
   const root = document.getElementById("audio-mixing-strips");
   if (!root) return;
-  // Lazy initial render placeholder; Chantier B fills this in.
-  if (!root.dataset.bound) {
-    root.dataset.bound = "1";
+  const primary = {
+    id: "primary",
+    name: audioState.mediaName || "Piste principale",
+    label: "Voix principale",
+    color: "#3b82f6",
+    gainDb: audioState.track.gainDb || 0,
+    pan: audioState.track.pan || 0,
+    mute: audioState.track.mute,
+    solo: audioState.track.solo,
+    primary: true,
+  };
+  const extras = (audioState.extraTracks || []).map((t) => ({ ...t }));
+  const all = [primary, ...extras];
+
+  const strips = all.map((track) => renderAudioMixStrip(track)).join("");
+  const master = renderAudioMixMasterStrip();
+  root.innerHTML = strips + master;
+
+  // Bindings
+  root.querySelectorAll(".audio-mix-strip[data-strip-id]").forEach((stripEl) => {
+    const id = stripEl.dataset.stripId;
+    stripEl.querySelector(".audio-mix-fader")?.addEventListener("input", (event) => {
+      const value = clampNumber(Number(event.target.value), -24, 12);
+      updateAudioMixStripField(id, "gainDb", value);
+      const label = stripEl.querySelector(".audio-mix-fader-value");
+      if (label) label.textContent = `${value > 0 ? "+" : ""}${value.toFixed(1)} dB`;
+    });
+    stripEl.querySelector(".audio-mix-pan")?.addEventListener("input", (event) => {
+      let value = clampNumber(Number(event.target.value), -100, 100);
+      if (Math.abs(value) < 5) value = 0;
+      event.target.value = value;
+      updateAudioMixStripField(id, "pan", value);
+      const label = stripEl.querySelector(".audio-mix-pan-value");
+      if (label) label.textContent = audioMixPanLabel(value);
+    });
+    stripEl.querySelector("[data-mix-action='mute']")?.addEventListener("click", () => {
+      const next = !audioMixGetField(id, "mute");
+      updateAudioMixStripField(id, "mute", next);
+      renderAudioMixingStrips();
+    });
+    stripEl.querySelector("[data-mix-action='solo']")?.addEventListener("click", () => {
+      const next = !audioMixGetField(id, "solo");
+      updateAudioMixStripField(id, "solo", next);
+      renderAudioMixingStrips();
+    });
+    stripEl.querySelector("[data-mix-action='remove']")?.addEventListener("click", () => {
+      removeAudioExtraTrack(id);
+      renderAudioMixingStrips();
+    });
+  });
+
+  const masterEl = root.querySelector(".audio-mix-master");
+  if (masterEl) {
+    masterEl.querySelector(".audio-mix-fader")?.addEventListener("input", (event) => {
+      const value = clampNumber(Number(event.target.value), -24, 6);
+      audioState.masterGainDb = value;
+      const label = masterEl.querySelector(".audio-mix-fader-value");
+      if (label) label.textContent = `${value > 0 ? "+" : ""}${value.toFixed(1)} dB`;
+      audioState.fullChainStale = Boolean(audioState.fullChainPath);
+      renderAudioApplyFullButton();
+    });
+    masterEl.querySelector("[data-mix-master-action='goto-mastering']")?.addEventListener("click", () => {
+      setAudioStudioTab("master");
+    });
   }
 }
 
+function renderAudioMixStrip(track) {
+  const initial = (track.label || track.name || "?").charAt(0).toUpperCase();
+  const safeName = String(track.name || "Piste").replace(/[<>&"]/g, (c) => ({
+    "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;",
+  }[c]));
+  return `
+    <div class="audio-mix-strip" data-strip-id="${track.id}" style="--track-color:${track.color}">
+      <div class="audio-mix-strip-head">
+        <span class="audio-mix-strip-color">${initial}</span>
+        <div class="audio-mix-strip-meta">
+          <div class="audio-mix-strip-name">${safeName}</div>
+          <div class="audio-mix-strip-type">${track.label || ""}</div>
+        </div>
+        ${track.primary ? "" : '<button type="button" class="audio-mix-strip-remove" data-mix-action="remove" title="Retirer la piste">×</button>'}
+      </div>
+      <div class="audio-mix-strip-vu">
+        <div class="audio-mix-strip-vu-bar"><div class="audio-mix-strip-vu-fill"></div></div>
+        <div class="audio-mix-strip-vu-bar"><div class="audio-mix-strip-vu-fill"></div></div>
+      </div>
+      <div class="audio-mix-strip-pan">
+        <label>PAN <strong class="audio-mix-pan-value">${audioMixPanLabel(track.pan)}</strong></label>
+        <input type="range" class="audio-mix-pan" min="-100" max="100" step="1" value="${track.pan}" />
+      </div>
+      <div class="audio-mix-strip-fader">
+        <label>Gain</label>
+        <input type="range" class="audio-mix-fader" min="-24" max="12" step="0.5" value="${track.gainDb}" orient="vertical" />
+        <strong class="audio-mix-fader-value">${track.gainDb > 0 ? "+" : ""}${Number(track.gainDb).toFixed(1)} dB</strong>
+      </div>
+      <div class="audio-mix-strip-actions">
+        <button type="button" class="audio-track-btn${track.mute ? " active" : ""}" data-mix-action="mute" title="Mute">M</button>
+        <button type="button" class="audio-track-btn audio-mix-solo${track.solo ? " active" : ""}" data-mix-action="solo" title="Solo">S</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderAudioMixMasterStrip() {
+  const masterGain = audioState.masterGainDb || 0;
+  return `
+    <div class="audio-mix-strip audio-mix-master">
+      <div class="audio-mix-strip-head">
+        <span class="audio-mix-strip-color audio-mix-master-color">M</span>
+        <div class="audio-mix-strip-meta">
+          <div class="audio-mix-strip-name">MASTER</div>
+          <div class="audio-mix-strip-type">Bus principal</div>
+        </div>
+      </div>
+      <div class="audio-mix-strip-vu audio-mix-master-vu">
+        <div class="audio-mix-strip-vu-bar"><div class="audio-mix-strip-vu-fill" id="audio-mix-master-vu-l"></div></div>
+        <div class="audio-mix-strip-vu-bar"><div class="audio-mix-strip-vu-fill" id="audio-mix-master-vu-r"></div></div>
+      </div>
+      <div class="audio-mix-master-readout">
+        <div><span>LUFS</span><strong id="audio-mix-master-lufs">--</strong></div>
+        <div><span>True Peak</span><strong id="audio-mix-master-peak">--</strong></div>
+      </div>
+      <div class="audio-mix-strip-fader">
+        <label>Master gain</label>
+        <input type="range" class="audio-mix-fader" min="-24" max="6" step="0.5" value="${masterGain}" />
+        <strong class="audio-mix-fader-value">${masterGain > 0 ? "+" : ""}${Number(masterGain).toFixed(1)} dB</strong>
+      </div>
+      <button type="button" class="audio-mix-master-goto" data-mix-master-action="goto-mastering">Mastering →</button>
+    </div>
+  `;
+}
+
+function audioMixPanLabel(value) {
+  const v = Number(value) || 0;
+  if (Math.abs(v) < 5) return "Centre";
+  if (v < 0) return `L ${Math.abs(v).toFixed(0)}`;
+  return `R ${v.toFixed(0)}`;
+}
+
+function audioMixGetField(stripId, field) {
+  if (stripId === "primary") return audioState.track[field];
+  const track = (audioState.extraTracks || []).find((t) => t.id === stripId);
+  return track ? track[field] : undefined;
+}
+
+function updateAudioMixStripField(stripId, field, value) {
+  if (stripId === "primary") {
+    audioState.track[field] = value;
+    if (field === "gainDb" || field === "mute") applyAudioTrackGainToPlayers();
+  } else {
+    updateAudioExtraTrack(stripId, { [field]: value });
+  }
+  audioState.fullChainStale = Boolean(audioState.fullChainPath);
+  renderAudioApplyFullButton();
+}
+
 function updateAudioMixInsights() {
-  // Stub
+  const peak = audioState.analysis?.peakDbfs;
+  const lufs = audioState.analysis?.loudnessLufs;
+  const headroomEl = document.getElementById("audio-mix-headroom");
+  const peakEl = document.getElementById("audio-mix-peak");
+  const warning = document.getElementById("audio-mix-clip-warning");
+  const adviceEl = document.getElementById("audio-mix-advice");
+  const widthEl = document.getElementById("audio-mix-width");
+  const masterLufs = document.getElementById("audio-mix-master-lufs");
+  const masterPeak = document.getElementById("audio-mix-master-peak");
+
+  if (Number.isFinite(peak)) {
+    const headroom = -peak;
+    if (headroomEl) headroomEl.textContent = `${headroom.toFixed(1)} dB`;
+    if (peakEl) peakEl.textContent = `${peak.toFixed(1)} dBFS`;
+    if (warning) warning.classList.toggle("hidden", peak < -0.1);
+    if (adviceEl) {
+      if (peak > -0.5) adviceEl.textContent = `Très peu de marge (${headroom.toFixed(1)} dB). Réduis le master de ${(0.5 - headroom).toFixed(1)} dB.`;
+      else if (peak < -12) adviceEl.textContent = `Beaucoup de marge (${headroom.toFixed(1)} dB). Tu peux booster le master de ~6 dB.`;
+      else adviceEl.textContent = `Marge confortable (${headroom.toFixed(1)} dB).`;
+    }
+  } else {
+    if (headroomEl) headroomEl.textContent = "-- dB";
+    if (peakEl) peakEl.textContent = "--";
+    if (warning) warning.classList.add("hidden");
+    if (adviceEl) adviceEl.textContent = "Lance \"Appliquer au fichier complet\" pour analyser.";
+  }
+
+  if (masterLufs) masterLufs.textContent = Number.isFinite(lufs) ? `${lufs.toFixed(1)}` : "--";
+  if (masterPeak) masterPeak.textContent = Number.isFinite(peak) ? `${peak.toFixed(1)}` : "--";
+
+  const extras = audioState.extraTracks || [];
+  if (extras.length === 0) {
+    if (widthEl) widthEl.textContent = "100% (mono mix)";
+  } else {
+    if (widthEl) widthEl.textContent = `${100 + extras.length * 5}% estimée`;
+  }
+
+  const fill = document.getElementById("audio-mix-balance-fill");
+  if (fill) {
+    const tracks = [audioState.track, ...extras];
+    const avgPan = tracks.reduce((s, t) => s + (Number(t.pan) || 0), 0) / Math.max(1, tracks.length);
+    const widthPct = Math.min(80, Math.abs(avgPan) + 20);
+    fill.style.width = `${widthPct}%`;
+    fill.style.left = avgPan < 0 ? `${50 - widthPct / 2}%` : `${50 - widthPct / 2 + avgPan / 100 * widthPct / 2}%`;
+  }
 }
 
 function audioMasterExportFinal() {
@@ -2671,8 +2873,9 @@ function loadAudioFile(path) {
   audioState.analysis = null;
 
   audioState.markers = [];
-  audioState.track = { mute: false, solo: false, gainDb: 0 };
+  audioState.track = { mute: false, solo: false, gainDb: 0, pan: 0 };
   audioState.extraTracks = [];
+  audioState.masterGainDb = 0;
   resetAudioHistory();
   commitAudioHistorySnapshot();
   audioUpdateUI();
@@ -3466,15 +3669,23 @@ async function runAudioEffectChain(options = {}) {
       path: t.path,
       gainDb: Number(t.gainDb || 0),
       mute: Boolean(t.mute),
+      pan: Number(t.pan || 0),
     }));
-    const commandName = extraTracks.length > 0 ? "audio_apply_mix" : "audio_apply_chain";
+    const masterGainDb = Number(audioState.masterGainDb || 0);
+    const primaryPan = Number(audioState.track?.pan || 0);
+    const useMix = extraTracks.length > 0 || Math.abs(masterGainDb) > 0.05 || Math.abs(primaryPan) > 0.5;
+    const commandName = useMix ? "audio_apply_mix" : "audio_apply_chain";
     const reqPayload = {
       input: audioState.mediaPath,
       outputDir,
       format,
       effects: buildAudioEffectPayload(),
     };
-    if (extraTracks.length > 0) reqPayload.extraTracks = extraTracks;
+    if (useMix) {
+      reqPayload.extraTracks = extraTracks;
+      reqPayload.primaryPan = primaryPan;
+      reqPayload.masterGainDb = masterGainDb;
+    }
     const result = await invoke(commandName, { req: reqPayload });
 
     if (token !== audioOperationToken || chainToken !== audioChainToken) return null;
@@ -4882,8 +5093,9 @@ function resetAudioState() {
   audioState.analysis = null;
   audioState.studioTab = "edit";
   audioState.markers = [];
-  audioState.track = { mute: false, solo: false, gainDb: 0 };
+  audioState.track = { mute: false, solo: false, gainDb: 0, pan: 0 };
   audioState.extraTracks = [];
+  audioState.masterGainDb = 0;
   resetAudioHistory();
   detachAudioLiveMeter();
   ["audio-meter-l-fill", "audio-meter-r-fill"].forEach((id) => {
