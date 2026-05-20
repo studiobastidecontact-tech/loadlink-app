@@ -1926,7 +1926,12 @@ const audioRecordState = {
 };
 
 function showAudioRecordingView() {
+  // Tear down any active wavesurfer instances — their hidden parent triggers
+  // RangeError loops in renderMultiCanvas while we're on the recording view.
+  destroyAudioPlayer("original");
+  destroyAudioPlayer("result");
   document.getElementById("audio-empty")?.classList.add("hidden");
+  document.getElementById("audio-workspace")?.classList.add("hidden");
   document.getElementById("audio-recording-view")?.classList.remove("hidden");
   audioRecordState.view = "recording";
   audioPopulateDevices().catch((err) => console.warn("[record] devices enum failed:", err));
@@ -4345,29 +4350,46 @@ function loadAudioWaveform(source, path, options = {}) {
   try {
     container.textContent = "";
     // Wavesurfer.renderMultiCanvas throws RangeError("Invalid array length") when the
-    // container width is 0 (hidden/just-attached panel). Defer creation until layout
-    // settles to keep the multi-track sidebar refresh from killing the primary wave.
+    // container has 0 dimensions (hidden parent, just-attached panel, resize race).
+    // Use a ResizeObserver-style retry loop and wrap the inner creation in its own
+    // try/catch so RangeErrors from inside requestAnimationFrame don't bubble up
+    // as uncaught promise rejections.
+    let attempts = 0;
     const startCreate = () => {
       if (token !== audioLoadTokens[source]) return;
       const width = container.clientWidth || container.getBoundingClientRect().width || 0;
-      if (!width) {
+      const height = container.clientHeight || container.getBoundingClientRect().height || 0;
+      if (!width || !height) {
+        attempts += 1;
+        if (attempts > 60) {
+          // 60 frames ≈ 1 s with no layout — give up silently rather than spam.
+          console.warn("[audio] wavesurfer container never gained size, skipping render");
+          return;
+        }
         requestAnimationFrame(startCreate);
         return;
       }
-      const wave = WaveSurferCtor.create({
-        container,
-        url: src,
-        height: 100,
-        waveColor: getCssVar("--text2", "#8a8f98"),
-        progressColor: getCssVar("--accent", "#2563eb"),
-        cursorColor: "#E8390C",
-        cursorWidth: 2,
-        barWidth: 2,
-        barRadius: 2,
-        barGap: 2,
-        normalize: true,
-        interact: true,
-      });
+      let wave;
+      try {
+        wave = WaveSurferCtor.create({
+          container,
+          url: src,
+          height: 100,
+          waveColor: getCssVar("--text2", "#8a8f98"),
+          progressColor: getCssVar("--accent", "#2563eb"),
+          cursorColor: "#E8390C",
+          cursorWidth: 2,
+          barWidth: 2,
+          barRadius: 2,
+          barGap: 2,
+          normalize: true,
+          interact: true,
+        });
+      } catch (createErr) {
+        console.warn("[audio] WaveSurfer.create failed, falling back:", createErr);
+        renderAudioWaveFallback(source, src, "Impossible d'afficher ce fichier audio", options);
+        return;
+      }
       setAudioWave(source, wave);
       hookAudioWaveListeners(source, wave, container, token, options, src);
     };
