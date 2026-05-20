@@ -3,8 +3,9 @@
 use loadlink_audio_master::{
     analyze as audio_analyze_run, apply_chain as audio_apply_chain_run,
     apply_preset as audio_apply_preset_run, apply_preview as audio_apply_preview_run,
-    list_presets as audio_list_presets_run, AudioAnalysis, AudioEffectChain, AudioPresetInfo,
-    AudioPresetOptions, AudioPreviewOptions, AudioProcessResult,
+    export_audio as audio_export_run, list_presets as audio_list_presets_run, AudioAnalysis,
+    AudioEffectChain, AudioExportOptions, AudioPresetInfo, AudioPresetOptions,
+    AudioPreviewOptions, AudioProcessResult,
 };
 use loadlink_compressor::{
     compress_chunked_session, compress_dropped_files as compressor_dropped,
@@ -698,6 +699,69 @@ async fn audio_preview_chain(
         .await
         .map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+async fn audio_export(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    req: AudioExportOptions,
+) -> Result<AudioProcessResult, String> {
+    let display_name = std::path::Path::new(&req.input)
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| req.input.clone());
+    let title = format!("Audio export -- {} ({})", display_name, req.format);
+    let mut job = Job::new(JobKind::AudioProcess, title);
+    job.input_path = Some(req.input.clone());
+    job.metadata = serde_json::json!({
+        "format": req.format.clone(),
+        "sampleRate": req.sample_rate,
+        "bitDepth": req.bit_depth,
+    });
+    let job_id = job.id;
+
+    if let Err(e) = state.job_manager.insert(&job) {
+        tracing::warn!("Failed to insert audio export job: {}", e);
+    }
+    let _ = state
+        .job_manager
+        .update_state(job_id, JobState::Running, 0.0, None, None);
+
+    let result = audio_export_run(&app, req).await;
+
+    match &result {
+        Ok(r) if r.success => {
+            let _ = state.job_manager.update_state(
+                job_id,
+                JobState::Completed,
+                100.0,
+                None,
+                Some(r.output_path.clone()),
+            );
+        }
+        Ok(r) => {
+            let _ = state.job_manager.update_state(
+                job_id,
+                JobState::Failed,
+                0.0,
+                r.error.clone(),
+                None,
+            );
+        }
+        Err(e) => {
+            let err = e.to_string();
+            let _ = state.job_manager.update_state(
+                job_id,
+                JobState::Failed,
+                0.0,
+                Some(err.clone()),
+                None,
+            );
+        }
+    }
+
+    result.map_err(|e| e.to_string())
+}
 // ============================================
 // Misc commands
 // ============================================
@@ -882,6 +946,7 @@ pub fn run() {
             audio_apply_preset,
             audio_apply_chain,
             audio_preview_chain,
+            audio_export,
             // Phase 4.5 Lire (player)
             read_text_file,
             write_text_file,

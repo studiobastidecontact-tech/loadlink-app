@@ -86,6 +86,39 @@ pub struct AudioPreviewOptions {
     pub duration_seconds: f64,
 }
 
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioExportMetadata {
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub album: Option<String>,
+    pub year: Option<String>,
+    pub genre: Option<String>,
+    pub comment: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioExportOptions {
+    pub input: String,
+    pub output_dir: Option<String>,
+    pub output_name: Option<String>,
+    /// "wav" | "flac" | "mp3" | "aac" | "m4a" | "ogg" | "opus" | "original"
+    pub format: String,
+    pub sample_rate: Option<u32>,
+    /// 16 | 24 | 32 — for WAV / FLAC
+    pub bit_depth: Option<u32>,
+    /// "cbr" | "vbr" — for MP3
+    pub mp3_mode: Option<String>,
+    /// CBR: 128|160|192|256|320 kbps · VBR: 0-9 quality
+    pub mp3_quality: Option<u32>,
+    /// 0-12, FLAC compression level
+    pub flac_level: Option<u32>,
+    /// AAC bitrate in kbps (128 / 160 / 192 / 256)
+    pub aac_bitrate: Option<u32>,
+    pub metadata: Option<AudioExportMetadata>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AudioEffect {
@@ -558,6 +591,200 @@ pub async fn apply_chain(app: &AppHandle, opts: AudioEffectChain) -> Result<Audi
         output_info,
         error: None,
     })
+}
+
+/// Transcode an already-rendered audio file into the chosen export format with
+/// fine-grained codec settings and ID3-style metadata. Does NOT re-run any
+/// effect chain — feed it the master produced by `apply_chain` or `apply_preset`.
+pub async fn export_audio(app: &AppHandle, opts: AudioExportOptions) -> Result<AudioProcessResult> {
+    let ffmpeg = get_ffmpeg_path(app)?;
+    let source = PathBuf::from(&opts.input);
+    ensure_source_exists(&source)?;
+
+    let normalized_format = if opts.format.eq_ignore_ascii_case("original") {
+        source
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_lowercase())
+            .unwrap_or_else(|| "wav".to_string())
+    } else {
+        normalize_output_format(Some(opts.format.as_str()), &source)?
+    };
+
+    let out_dir = resolve_output_dir(&source, opts.output_dir.as_deref())?;
+    std::fs::create_dir_all(&out_dir)?;
+
+    let stem = opts
+        .output_name
+        .as_deref()
+        .map(|name| name.trim())
+        .filter(|name| !name.is_empty())
+        .map(|name| name.to_string())
+        .unwrap_or_else(|| {
+            source
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .map(|s| format!("{s}_export"))
+                .unwrap_or_else(|| "export".to_string())
+        });
+    let mut candidate = out_dir.join(format!("{stem}.{normalized_format}"));
+    let mut idx = 1u32;
+    while candidate.exists() {
+        candidate = out_dir.join(format!("{stem}-{idx}.{normalized_format}"));
+        idx += 1;
+    }
+    let out_path = candidate;
+
+    emit_progress(
+        app,
+        0.0,
+        "exporting",
+        Some(display_name(&source)),
+        None,
+        Some(out_path.to_string_lossy().to_string()),
+    );
+
+    let mut cmd = Command::new(&ffmpeg);
+    cmd.arg("-hide_banner").arg("-y").arg("-i").arg(&source);
+    if let Some(sr) = opts.sample_rate {
+        let sr = clamp(sr as f32, 8_000.0, 192_000.0) as u32;
+        cmd.arg("-ar").arg(sr.to_string());
+    }
+    cmd.arg("-map").arg("0:a:0").arg("-vn");
+    append_export_codec_args(&mut cmd, &normalized_format, &opts);
+    append_metadata_args(&mut cmd, opts.metadata.as_ref());
+    cmd.arg(&out_path);
+    cmd.stdout(Stdio::null()).stderr(Stdio::piped());
+    apply_no_window(&mut cmd);
+
+    let output = cmd
+        .output()
+        .await
+        .map_err(|e| LoadlinkError::SpawnFailed(format!("ffmpeg audio export: {e}")))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let _ = std::fs::remove_file(&out_path);
+        emit_progress(app, 0.0, "failed", Some(display_name(&source)), None, None);
+        return Ok(AudioProcessResult {
+            success: false,
+            output_path: String::new(),
+            preset: "export".to_string(),
+            output_info: None,
+            error: Some(ffmpeg_error(&stderr)),
+        });
+    }
+
+    emit_progress(
+        app,
+        100.0,
+        "completed",
+        Some(display_name(&source)),
+        None,
+        Some(out_path.to_string_lossy().to_string()),
+    );
+
+    let output_info = std::fs::metadata(&out_path)
+        .ok()
+        .map(|m| format!("Fichier audio: {:.1} Mo", m.len() as f64 / 1_048_576.0));
+
+    Ok(AudioProcessResult {
+        success: true,
+        output_path: out_path.to_string_lossy().to_string(),
+        preset: "export".to_string(),
+        output_info,
+        error: None,
+    })
+}
+
+fn append_export_codec_args(cmd: &mut Command, format: &str, opts: &AudioExportOptions) {
+    match format {
+        "wav" => {
+            let codec = match opts.bit_depth.unwrap_or(16) {
+                24 => "pcm_s24le",
+                32 => "pcm_f32le",
+                _ => "pcm_s16le",
+            };
+            cmd.arg("-c:a").arg(codec);
+        }
+        "flac" => {
+            cmd.arg("-c:a").arg("flac");
+            if let Some(level) = opts.flac_level {
+                let lvl = clamp(level as f32, 0.0, 12.0) as u32;
+                cmd.arg("-compression_level").arg(lvl.to_string());
+            }
+            if let Some(depth) = opts.bit_depth {
+                let fmt = match depth {
+                    24 => "s32",
+                    32 => "s32",
+                    _ => "s16",
+                };
+                cmd.arg("-sample_fmt").arg(fmt);
+            }
+        }
+        "mp3" => {
+            cmd.arg("-c:a").arg("libmp3lame");
+            let mode = opts
+                .mp3_mode
+                .as_deref()
+                .map(|m| m.to_lowercase())
+                .unwrap_or_else(|| "cbr".to_string());
+            let quality = opts.mp3_quality.unwrap_or(320);
+            if mode == "vbr" {
+                let q = clamp(quality as f32, 0.0, 9.0) as u32;
+                cmd.arg("-q:a").arg(q.to_string());
+            } else {
+                cmd.arg("-b:a")
+                    .arg(format!("{}k", clamp(quality as f32, 64.0, 320.0) as u32));
+            }
+        }
+        "aac" | "m4a" => {
+            cmd.arg("-c:a").arg("aac");
+            let bitrate = opts.aac_bitrate.unwrap_or(256);
+            cmd.arg("-b:a")
+                .arg(format!("{}k", clamp(bitrate as f32, 64.0, 320.0) as u32));
+        }
+        "aiff" => {
+            cmd.arg("-c:a").arg("pcm_s16be");
+        }
+        "alac" => {
+            cmd.arg("-c:a").arg("alac");
+        }
+        "ogg" => {
+            cmd.arg("-c:a").arg("libvorbis");
+            let q = clamp(opts.mp3_quality.unwrap_or(5) as f32, 0.0, 10.0) as u32;
+            cmd.arg("-q:a").arg(q.to_string());
+        }
+        "opus" => {
+            cmd.arg("-c:a").arg("libopus");
+            let bitrate = opts.aac_bitrate.unwrap_or(160);
+            cmd.arg("-b:a")
+                .arg(format!("{}k", clamp(bitrate as f32, 32.0, 320.0) as u32));
+        }
+        "wma" => {
+            cmd.arg("-c:a").arg("wmav2").arg("-b:a").arg("192k");
+        }
+        _ => {
+            cmd.arg("-c:a").arg("pcm_s16le");
+        }
+    }
+}
+
+fn append_metadata_args(cmd: &mut Command, metadata: Option<&AudioExportMetadata>) {
+    let Some(meta) = metadata else { return };
+    let entries = [
+        ("title", meta.title.as_deref()),
+        ("artist", meta.artist.as_deref()),
+        ("album", meta.album.as_deref()),
+        ("date", meta.year.as_deref()),
+        ("genre", meta.genre.as_deref()),
+        ("comment", meta.comment.as_deref()),
+    ];
+    for (key, value) in entries {
+        if let Some(v) = value.filter(|s| !s.trim().is_empty()) {
+            cmd.arg("-metadata").arg(format!("{key}={v}"));
+        }
+    }
 }
 
 /// Generate a short audio preview of an effect chain.
@@ -1073,6 +1300,7 @@ fn eq_band_filter(band: &EqBand) -> Option<String> {
     match band.kind.as_str() {
         "highpass" => Some(format!("highpass=f={freq}")),
         "lowpass" => Some(format!("lowpass=f={freq}")),
+        "notch" => Some(format!("bandreject=f={freq}:width_type=q:w={q}")),
         "lowshelf" | "highshelf" | "peaking" => {
             Some(format!("equalizer=f={freq}:t=q:w={q}:g={gain}"))
         }

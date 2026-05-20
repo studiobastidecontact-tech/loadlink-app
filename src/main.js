@@ -1005,6 +1005,16 @@ const audioState = {
   lastErrorPreset: null,
   exportDir: null,
   exportProcessing: false,
+  exportFormat: "wav",
+  exportSampleRate: 48000,
+  exportBitDepth: 24,
+  exportMp3Mode: "cbr",
+  exportMp3Quality: 320,
+  exportFlacLevel: 5,
+  exportAacBitrate: 256,
+  exportOggQuality: 5,
+  exportName: "",
+  exportMetadata: { title: "", artist: "", album: "", year: "", genre: "", comment: "" },
   refineOpen: false,
   refineSliders: {
     volume: 50,
@@ -1080,6 +1090,20 @@ function bindAudioModuleHandlers(appState) {
   exportFolderBtn?.addEventListener("click", chooseAudioExportDir);
   exportModal?.addEventListener("click", (event) => {
     if (event.target === exportModal && !audioState.exportProcessing) closeAudioExportModal();
+  });
+  document.querySelectorAll('input[name="audio-export-format"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      audioState.exportFormat = input.value;
+      renderAudioExportQualityPanel();
+    });
+  });
+  document.getElementById("audio-export-meta-btn")?.addEventListener("click", () => {
+    const fields = document.getElementById("audio-export-meta-fields");
+    const btn = document.getElementById("audio-export-meta-btn");
+    if (!fields || !btn) return;
+    const wasHidden = fields.classList.contains("hidden");
+    fields.classList.toggle("hidden");
+    btn.textContent = wasHidden ? "− Masquer" : "+ Ajouter";
   });
 
   recordCard?.addEventListener("click", () => {
@@ -1496,9 +1520,10 @@ function renderAudioEqPanel() {
   return `
     <div class="audio-eq-panel${disabledClass}">
       <svg class="audio-eq-graph" id="audio-eq-graph" viewBox="0 0 280 180" role="img" aria-label="Courbe EQ">
-        ${[-18, -6, 0, 6, 12].map((db) => {
+        ${[-24, -12, -6, 0, 6, 12, 24].map((db) => {
           const y = gainToEqY(db);
-          return `<line class="audio-eq-grid" x1="0" y1="${y}" x2="280" y2="${y}"></line><text class="audio-eq-label" x="4" y="${y - 3}">${db}dB</text>`;
+          const cls = db === 0 ? "audio-eq-grid audio-eq-grid-zero" : "audio-eq-grid";
+          return `<line class="${cls}" x1="0" y1="${y}" x2="280" y2="${y}"></line><text class="audio-eq-label" x="4" y="${y - 3}">${db > 0 ? "+" : ""}${db}dB</text>`;
         }).join("")}
         ${[20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].map((freq) => {
           const x = freqToEqX(freq);
@@ -1506,14 +1531,20 @@ function renderAudioEqPanel() {
           return `<line class="audio-eq-grid" x1="${x}" y1="0" x2="${x}" y2="180"></line><text class="audio-eq-label" x="${x + 2}" y="176">${label}</text>`;
         }).join("")}
         <polyline class="audio-eq-curve" points="${path}"></polyline>
-        ${points.map((point) => `<circle class="audio-eq-point" data-band="${point.index}" cx="${point.x}" cy="${point.y}" r="7" style="--band-color:${point.band.color}"></circle>`).join("")}
+        ${points.map((point) => `<circle class="audio-eq-point" data-band="${point.index}" cx="${point.x}" cy="${point.y}" r="8" style="--band-color:${point.band.color}"><title>${point.band.kind} · ${Math.round(point.band.freq)} Hz · ${point.band.gain.toFixed(1)} dB · Q ${point.band.q.toFixed(2)}</title></circle>`).join("")}
+        <g class="audio-eq-tooltip-group" id="audio-eq-tooltip-group" style="display:none">
+          <line class="audio-eq-tooltip-line" id="audio-eq-tooltip-line" x1="0" y1="0" x2="0" y2="180"></line>
+          <rect class="audio-eq-tooltip-bg" id="audio-eq-tooltip-bg" x="0" y="0" width="96" height="32" rx="4"></rect>
+          <text class="audio-eq-tooltip-text" id="audio-eq-tooltip-text" x="0" y="0"></text>
+        </g>
       </svg>
-      <div class="audio-eq-readout" id="audio-eq-readout">Freq ${Math.round(bands[0].freq)} Hz / Gain ${bands[0].gain.toFixed(1)} dB</div>
+      <div class="audio-eq-readout" id="audio-eq-readout">Bande 1 · ${Math.round(bands[0].freq)} Hz · ${bands[0].gain.toFixed(1)} dB · Q ${bands[0].q.toFixed(2)}</div>
+      <div class="audio-eq-hints">Glisser·molette = Q · double-clic = reset · clic droit = type</div>
       <div class="audio-eq-table">
         ${bands.map((band, index) => `
           <div class="audio-eq-row">
             <select data-eq-kind="${index}">
-              ${["highpass", "lowshelf", "peaking", "highshelf", "lowpass"].map((kind) => `<option value="${kind}"${band.kind === kind ? " selected" : ""}>${kind}</option>`).join("")}
+              ${AUDIO_EQ_TYPES.map((kind) => `<option value="${kind}"${band.kind === kind ? " selected" : ""}>${kind}</option>`).join("")}
             </select>
             <input data-eq-freq="${index}" type="number" min="20" max="20000" value="${Math.round(band.freq)}" />
             <input data-eq-gain="${index}" type="number" min="-24" max="24" step="0.5" value="${band.gain}" />
@@ -1521,19 +1552,58 @@ function renderAudioEqPanel() {
           </div>
         `).join("")}
       </div>
-      <button type="button" class="audio-effect-reset" id="audio-eq-reset">Reset EQ</button>
+      <button type="button" class="audio-effect-reset" id="audio-eq-reset">Reset EQ complet</button>
     </div>
   `;
 }
 
 function bindAudioEqPanel(root) {
+  const graph = root.querySelector("#audio-eq-graph");
+
   root.querySelectorAll(".audio-eq-point").forEach((point) => {
+    const bandIndex = Number(point.dataset.band);
     point.addEventListener("mousedown", (event) => {
-      audioEqDrag = { band: Number(point.dataset.band) };
+      if (event.button !== 0) return;
+      audioEqDrag = { band: bandIndex };
       updateAudioEqBandFromEvent(event);
       event.preventDefault();
     });
+    point.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      resetAudioEqBand(bandIndex);
+    });
+    point.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      const band = audioState.effectChain.eq.bands[bandIndex];
+      if (!band) return;
+      const delta = event.deltaY > 0 ? -0.1 : 0.1;
+      band.q = Number(clampNumber(band.q + delta, 0.1, 18).toFixed(2));
+      updateAudioEqVisuals();
+      renderAudioEqTableValues();
+      if (audioState.effectChain.eq.enabled) scheduleAudioChainRender(400);
+    }, { passive: false });
+    point.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      const band = audioState.effectChain.eq.bands[bandIndex];
+      if (!band) return;
+      const currentIdx = AUDIO_EQ_TYPES.indexOf(band.kind);
+      band.kind = AUDIO_EQ_TYPES[(currentIdx + 1) % AUDIO_EQ_TYPES.length];
+      renderAudioEffectDetail();
+      if (audioState.effectChain.eq.enabled) scheduleAudioChainRender(300);
+      showToast(`Bande ${bandIndex + 1} → ${band.kind}`, 1500);
+    });
   });
+
+  if (graph) {
+    graph.addEventListener("mousemove", (event) => {
+      if (audioEqDrag) return;
+      updateAudioEqTooltip(event);
+    });
+    graph.addEventListener("mouseleave", () => {
+      hideAudioEqTooltip();
+    });
+  }
+
   root.querySelectorAll("[data-eq-kind], [data-eq-freq], [data-eq-gain], [data-eq-q]").forEach((input) => {
     input.addEventListener("input", () => {
       const bandIndex = Number(input.dataset.eqKind ?? input.dataset.eqFreq ?? input.dataset.eqGain ?? input.dataset.eqQ);
@@ -1541,17 +1611,74 @@ function bindAudioEqPanel(root) {
       if (!band) return;
       if (input.dataset.eqKind !== undefined) band.kind = input.value;
       if (input.dataset.eqFreq !== undefined) band.freq = clampNumber(Number(input.value), 20, 20000);
-      if (input.dataset.eqGain !== undefined) band.gain = clampNumber(Number(input.value), -24, 24);
+      if (input.dataset.eqGain !== undefined) band.gain = applyEqGainSnap(clampNumber(Number(input.value), -24, 24));
       if (input.dataset.eqQ !== undefined) band.q = clampNumber(Number(input.value), 0.1, 18);
       renderAudioEffectDetail();
-      if (audioState.effectChain.eq.enabled) scheduleAudioChainRender(500);
+      if (audioState.effectChain.eq.enabled) scheduleAudioChainRender(400);
     });
   });
   root.querySelector("#audio-eq-reset")?.addEventListener("click", () => {
     audioState.effectChain.eq.bands = AUDIO_DEFAULT_EQ_BANDS.map((band) => ({ ...band }));
     renderAudioEffectsSidebar();
-    if (audioState.effectChain.eq.enabled) scheduleAudioChainRender(500);
+    if (audioState.effectChain.eq.enabled) scheduleAudioChainRender(300);
   });
+}
+
+function resetAudioEqBand(index) {
+  const defaults = AUDIO_DEFAULT_EQ_BANDS[index];
+  const band = audioState.effectChain.eq.bands[index];
+  if (!band) return;
+  if (defaults) {
+    Object.assign(band, { ...defaults });
+  } else {
+    Object.assign(band, { kind: "peaking", freq: 1000, gain: 0, q: 1 });
+  }
+  renderAudioEffectDetail();
+  if (audioState.effectChain.eq.enabled) scheduleAudioChainRender(300);
+  showToast(`Bande ${index + 1} réinitialisée`, 1200);
+}
+
+function renderAudioEqTableValues() {
+  const bands = audioState.effectChain.eq.bands;
+  bands.forEach((band, index) => {
+    const freqInput = document.querySelector(`[data-eq-freq="${index}"]`);
+    const gainInput = document.querySelector(`[data-eq-gain="${index}"]`);
+    const qInput = document.querySelector(`[data-eq-q="${index}"]`);
+    if (freqInput) freqInput.value = Math.round(band.freq);
+    if (gainInput) gainInput.value = band.gain;
+    if (qInput) qInput.value = band.q;
+  });
+}
+
+function updateAudioEqTooltip(event) {
+  const graph = document.getElementById("audio-eq-graph");
+  const group = document.getElementById("audio-eq-tooltip-group");
+  const bg = document.getElementById("audio-eq-tooltip-bg");
+  const text = document.getElementById("audio-eq-tooltip-text");
+  const line = document.getElementById("audio-eq-tooltip-line");
+  if (!graph || !group || !bg || !text || !line) return;
+  const rect = graph.getBoundingClientRect();
+  const x = clampNumber(((event.clientX - rect.left) / rect.width) * 280, 0, 280);
+  const y = clampNumber(((event.clientY - rect.top) / rect.height) * 180, 0, 180);
+  const freq = eqXToFreq(x);
+  const gain = eqYToGain(y);
+  const label = freq >= 1000 ? `${(freq / 1000).toFixed(freq >= 10000 ? 1 : 2).replace(/\.?0+$/, "")} kHz` : `${freq} Hz`;
+  const gainLabel = `${gain > 0 ? "+" : ""}${gain.toFixed(1)} dB`;
+  text.textContent = `${label} · ${gainLabel}`;
+  line.setAttribute("x1", x);
+  line.setAttribute("x2", x);
+  const boxX = clampNumber(x + 6, 0, 280 - 96);
+  const boxY = clampNumber(y - 36, 4, 180 - 32);
+  bg.setAttribute("x", boxX);
+  bg.setAttribute("y", boxY);
+  text.setAttribute("x", boxX + 6);
+  text.setAttribute("y", boxY + 20);
+  group.style.display = "";
+}
+
+function hideAudioEqTooltip() {
+  const group = document.getElementById("audio-eq-tooltip-group");
+  if (group) group.style.display = "none";
 }
 
 function handleAudioEqDragMove(event) {
@@ -1572,9 +1699,10 @@ function updateAudioEqBandFromEvent(event) {
   const band = audioState.effectChain.eq.bands[audioEqDrag.band];
   if (!band) return;
   band.freq = eqXToFreq(x);
-  band.gain = eqYToGain(y);
+  band.gain = applyEqGainSnap(eqYToGain(y));
   updateAudioEqVisuals();
-  if (audioState.effectChain.eq.enabled) scheduleAudioChainRender(500);
+  renderAudioEqTableValues();
+  if (audioState.effectChain.eq.enabled) scheduleAudioChainRender(400);
 }
 
 function updateAudioEqVisuals() {
@@ -1589,10 +1717,15 @@ function updateAudioEqVisuals() {
     if (circle) {
       circle.setAttribute("cx", point.x);
       circle.setAttribute("cy", point.y);
+      const title = circle.querySelector("title");
+      if (title) title.textContent = `${point.band.kind} · ${Math.round(point.band.freq)} Hz · ${point.band.gain.toFixed(1)} dB · Q ${point.band.q.toFixed(2)}`;
     }
   });
-  const active = points[audioEqDrag?.band || 0]?.band || eq.bands[0];
-  if (readout && active) readout.textContent = `Freq ${Math.round(active.freq)} Hz / Gain ${active.gain.toFixed(1)} dB`;
+  const activeIndex = audioEqDrag?.band ?? 0;
+  const active = points[activeIndex]?.band || eq.bands[0];
+  if (readout && active) {
+    readout.textContent = `Bande ${activeIndex + 1} · ${active.kind} · ${Math.round(active.freq)} Hz · ${active.gain > 0 ? "+" : ""}${active.gain.toFixed(1)} dB · Q ${active.q.toFixed(2)}`;
+  }
 }
 
 function renderAudioCompressorPanel() {
@@ -1606,6 +1739,16 @@ function renderAudioCompressorPanel() {
   ];
   return `
     <div class="audio-compressor-panel${compressor.enabled ? "" : " disabled"}">
+      <div class="audio-compressor-gr-block">
+        <div class="audio-compressor-gr-label">Gain reduction</div>
+        <div class="audio-compressor-gr-bar">
+          <div class="audio-compressor-gr-fill" id="audio-compressor-gr-fill"></div>
+          <div class="audio-compressor-gr-scale">
+            <span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span>
+          </div>
+        </div>
+        <div class="audio-compressor-gr-value" id="audio-compressor-gr-value">-- dB</div>
+      </div>
       <div class="audio-compressor-controls">
         ${controls.map((control) => {
           const value = compressor[control.key];
@@ -1623,6 +1766,25 @@ function renderAudioCompressorPanel() {
   `;
 }
 
+function estimateAudioCompressorGainReduction() {
+  const c = audioState.effectChain.compressor;
+  if (!c.enabled) return 0;
+  const peakDb = Number.isFinite(audioState.analysis?.peakDbfs) ? audioState.analysis.peakDbfs : -6;
+  if (peakDb <= c.threshold) return 0;
+  const above = peakDb - c.threshold;
+  return clampNumber((above * (c.ratio - 1)) / c.ratio, 0, 24);
+}
+
+function renderAudioCompressorGainReduction() {
+  const fill = document.getElementById("audio-compressor-gr-fill");
+  const value = document.getElementById("audio-compressor-gr-value");
+  if (!fill || !value) return;
+  const reduction = estimateAudioCompressorGainReduction();
+  const pct = clampNumber((reduction / 24) * 100, 0, 100);
+  fill.style.width = `${pct}%`;
+  value.textContent = reduction > 0 ? `−${reduction.toFixed(1)} dB` : "−0.0 dB";
+}
+
 function bindAudioCompressorPanel(root) {
   root.querySelectorAll("[data-compressor-control]").forEach((input) => {
     input.addEventListener("input", () => {
@@ -1631,7 +1793,8 @@ function bindAudioCompressorPanel(root) {
       const unit = key === "ratio" ? ":1" : (key === "attack" || key === "release" ? "ms" : "dB");
       const value = root.querySelector(`[data-compressor-value="${key}"]`);
       if (value) value.textContent = formatAudioCompressorValue(audioState.effectChain.compressor[key], unit);
-      if (audioState.effectChain.compressor.enabled) scheduleAudioChainRender(500);
+      renderAudioCompressorGainReduction();
+      if (audioState.effectChain.compressor.enabled) scheduleAudioChainRender(400);
     });
   });
   root.querySelector("#audio-compressor-reset")?.addEventListener("click", () => {
@@ -1640,8 +1803,9 @@ function bindAudioCompressorPanel(root) {
       ...AUDIO_DEFAULT_COMPRESSOR,
     };
     renderAudioEffectsSidebar();
-    if (audioState.effectChain.compressor.enabled) scheduleAudioChainRender(500);
+    if (audioState.effectChain.compressor.enabled) scheduleAudioChainRender(300);
   });
+  renderAudioCompressorGainReduction();
 }
 
 function formatAudioCompressorValue(value, unit) {
@@ -1669,13 +1833,20 @@ function eqXToFreq(x) {
   return Math.round(10 ** (min + normalized * (max - min)));
 }
 
+// Y axis spans ±24 dB across the 180px graph height.
 function gainToEqY(gain) {
-  return clampNumber(((12 - clampNumber(gain, -18, 12)) / 30) * 180, 0, 180);
+  return clampNumber(((24 - clampNumber(gain, -24, 24)) / 48) * 180, 0, 180);
 }
 
 function eqYToGain(y) {
-  return Number((12 - (clampNumber(y, 0, 180) / 180) * 30).toFixed(1));
+  return Number((24 - (clampNumber(y, 0, 180) / 180) * 48).toFixed(1));
 }
+
+function applyEqGainSnap(gain) {
+  return Math.abs(gain) < 0.5 ? 0 : gain;
+}
+
+const AUDIO_EQ_TYPES = ["peaking", "lowpass", "highpass", "lowshelf", "highshelf", "notch"];
 
 function eqBandToPoint(band) {
   return {
@@ -2690,12 +2861,21 @@ function isAudioSourcePlaying(source) {
 }
 
 function openAudioExportModal() {
-  if (!audioState.resultPath || !audioState.currentPreset) return;
+  if (!audioState.resultPath || audioState.resultIsPreview) {
+    showToast("Applique d'abord la chaîne au fichier complet", 2800);
+    return;
+  }
   audioState.exportDir = getAudioDefaultOutputDir();
   audioState.exportProcessing = false;
+  if (!audioState.exportName) {
+    const baseName = getPathName(audioState.mediaPath || "").replace(/\.[^.]+$/, "") || "export";
+    audioState.exportName = `${baseName}_master`;
+  }
   document.querySelectorAll('input[name="audio-export-format"]').forEach((input) => {
-    input.checked = input.value === "original";
+    input.checked = input.value === audioState.exportFormat;
   });
+  renderAudioExportQualityPanel();
+  renderAudioExportMetadataFields();
   updateAudioExportModal();
   document.getElementById("audio-export-modal")?.classList.remove("hidden");
 }
@@ -2722,50 +2902,213 @@ async function chooseAudioExportDir() {
   }
 }
 
-async function confirmAudioExport() {
-  if (!audioState.resultPath || !audioState.currentPreset || audioState.exportProcessing) return;
-  const selectedFormat = document.querySelector('input[name="audio-export-format"]:checked')?.value || "original";
-  const format = selectedFormat === "original" ? null : selectedFormat;
-  const outputDir = audioState.exportDir || getAudioDefaultOutputDir();
-  const existingDir = normalizeAudioPath(getPathDir(audioState.resultPath));
-  const desiredDir = normalizeAudioPath(outputDir);
-  const existingExt = getPathExtension(audioState.resultPath);
-  const desiredExt = format || getPathExtension(audioState.mediaPath || "");
+function renderAudioExportQualityPanel() {
+  const panel = document.getElementById("audio-export-quality");
+  if (!panel) return;
+  const fmt = audioState.exportFormat;
+  let body = "";
+  if (fmt === "wav") {
+    body = `
+      <div class="audio-export-quality-row">
+        <label class="audio-export-quality-label">Sample rate</label>
+        <div class="audio-export-quality-pills" data-quality-key="sampleRate">
+          ${[44100, 48000, 96000].map((sr) => `<button type="button" class="audio-quality-pill${audioState.exportSampleRate === sr ? " active" : ""}" data-value="${sr}">${sr === 44100 ? "44.1 kHz" : sr === 48000 ? "48 kHz" : "96 kHz"}</button>`).join("")}
+        </div>
+      </div>
+      <div class="audio-export-quality-row">
+        <label class="audio-export-quality-label">Bit depth</label>
+        <div class="audio-export-quality-pills" data-quality-key="bitDepth">
+          ${[16, 24, 32].map((bd) => `<button type="button" class="audio-quality-pill${audioState.exportBitDepth === bd ? " active" : ""}" data-value="${bd}">${bd}-bit${bd === 32 ? " float" : ""}</button>`).join("")}
+        </div>
+      </div>
+    `;
+  } else if (fmt === "flac") {
+    body = `
+      <div class="audio-export-quality-row">
+        <label class="audio-export-quality-label">Sample rate</label>
+        <div class="audio-export-quality-pills" data-quality-key="sampleRate">
+          ${[44100, 48000, 96000].map((sr) => `<button type="button" class="audio-quality-pill${audioState.exportSampleRate === sr ? " active" : ""}" data-value="${sr}">${sr === 44100 ? "44.1 kHz" : sr === 48000 ? "48 kHz" : "96 kHz"}</button>`).join("")}
+        </div>
+      </div>
+      <div class="audio-export-quality-row">
+        <label class="audio-export-quality-label">Bit depth</label>
+        <div class="audio-export-quality-pills" data-quality-key="bitDepth">
+          ${[16, 24].map((bd) => `<button type="button" class="audio-quality-pill${audioState.exportBitDepth === bd ? " active" : ""}" data-value="${bd}">${bd}-bit</button>`).join("")}
+        </div>
+      </div>
+      <div class="audio-export-quality-row">
+        <label class="audio-export-quality-label">Compression (0-12)</label>
+        <input type="range" min="0" max="12" step="1" value="${audioState.exportFlacLevel}" data-quality-key="flacLevel" />
+        <strong data-quality-display="flacLevel">${audioState.exportFlacLevel}</strong>
+      </div>
+    `;
+  } else if (fmt === "mp3") {
+    body = `
+      <div class="audio-export-quality-row">
+        <label class="audio-export-quality-label">Mode</label>
+        <div class="audio-export-quality-pills" data-quality-key="mp3Mode">
+          <button type="button" class="audio-quality-pill${audioState.exportMp3Mode === "cbr" ? " active" : ""}" data-value="cbr">CBR (débit fixe)</button>
+          <button type="button" class="audio-quality-pill${audioState.exportMp3Mode === "vbr" ? " active" : ""}" data-value="vbr">VBR (qualité)</button>
+        </div>
+      </div>
+      ${audioState.exportMp3Mode === "cbr"
+        ? `<div class="audio-export-quality-row">
+            <label class="audio-export-quality-label">Débit</label>
+            <div class="audio-export-quality-pills" data-quality-key="mp3Quality">
+              ${[128, 160, 192, 256, 320].map((b) => `<button type="button" class="audio-quality-pill${audioState.exportMp3Quality === b ? " active" : ""}" data-value="${b}">${b} kbps</button>`).join("")}
+            </div>
+           </div>`
+        : `<div class="audio-export-quality-row">
+            <label class="audio-export-quality-label">Qualité VBR (0=meilleur)</label>
+            <input type="range" min="0" max="9" step="1" value="${Math.min(9, audioState.exportMp3Quality)}" data-quality-key="mp3Quality" />
+            <strong data-quality-display="mp3Quality">${Math.min(9, audioState.exportMp3Quality)}</strong>
+           </div>`
+      }
+    `;
+  } else if (fmt === "aac") {
+    body = `
+      <div class="audio-export-quality-row">
+        <label class="audio-export-quality-label">Débit</label>
+        <div class="audio-export-quality-pills" data-quality-key="aacBitrate">
+          ${[128, 160, 192, 256].map((b) => `<button type="button" class="audio-quality-pill${audioState.exportAacBitrate === b ? " active" : ""}" data-value="${b}">${b} kbps</button>`).join("")}
+        </div>
+      </div>
+    `;
+  } else if (fmt === "opus") {
+    body = `
+      <div class="audio-export-quality-row">
+        <label class="audio-export-quality-label">Débit</label>
+        <div class="audio-export-quality-pills" data-quality-key="aacBitrate">
+          ${[64, 96, 128, 160, 192].map((b) => `<button type="button" class="audio-quality-pill${audioState.exportAacBitrate === b ? " active" : ""}" data-value="${b}">${b} kbps</button>`).join("")}
+        </div>
+      </div>
+    `;
+  } else {
+    body = `<p class="audio-export-quality-info">Conserve l'extension du fichier source : <strong>${getPathExtension(audioState.mediaPath || "") || "wav"}</strong></p>`;
+  }
+  panel.innerHTML = body;
 
-  if (existingDir === desiredDir && existingExt === desiredExt) {
-    await revealAudioOutput(audioState.resultPath);
-    closeAudioExportModal();
+  panel.querySelectorAll("[data-quality-key]").forEach((el) => {
+    if (el.tagName === "INPUT") {
+      el.addEventListener("input", () => {
+        const key = el.dataset.qualityKey;
+        const value = Number(el.value);
+        if (key === "flacLevel") audioState.exportFlacLevel = value;
+        if (key === "mp3Quality") audioState.exportMp3Quality = value;
+        const display = panel.querySelector(`[data-quality-display="${key}"]`);
+        if (display) display.textContent = String(value);
+      });
+    } else {
+      el.querySelectorAll("[data-value]").forEach((pill) => {
+        pill.addEventListener("click", () => {
+          const key = el.dataset.qualityKey;
+          const rawValue = pill.dataset.value;
+          const value = Number.isFinite(Number(rawValue)) ? Number(rawValue) : rawValue;
+          if (key === "sampleRate") audioState.exportSampleRate = value;
+          if (key === "bitDepth") audioState.exportBitDepth = value;
+          if (key === "mp3Mode") {
+            audioState.exportMp3Mode = value;
+            if (value === "vbr" && audioState.exportMp3Quality > 9) audioState.exportMp3Quality = 2;
+            if (value === "cbr" && audioState.exportMp3Quality < 64) audioState.exportMp3Quality = 320;
+          }
+          if (key === "mp3Quality") audioState.exportMp3Quality = value;
+          if (key === "aacBitrate") audioState.exportAacBitrate = value;
+          if (key === "flacLevel") audioState.exportFlacLevel = value;
+          renderAudioExportQualityPanel();
+        });
+      });
+    }
+  });
+}
+
+function renderAudioExportMetadataFields() {
+  const ids = ["title", "artist", "album", "year", "genre", "comment"];
+  ids.forEach((field) => {
+    const el = document.getElementById(`audio-export-meta-${field}`);
+    if (el) el.value = audioState.exportMetadata[field] || "";
+  });
+}
+
+function updateAudioExportMetadataFromForm() {
+  const ids = ["title", "artist", "album", "year", "genre", "comment"];
+  ids.forEach((field) => {
+    const el = document.getElementById(`audio-export-meta-${field}`);
+    if (el) audioState.exportMetadata[field] = el.value;
+  });
+}
+
+async function confirmAudioExport() {
+  if (!audioState.resultPath || audioState.resultIsPreview || audioState.exportProcessing) return;
+  const selectedFormat = document.querySelector('input[name="audio-export-format"]:checked')?.value || audioState.exportFormat;
+  audioState.exportFormat = selectedFormat;
+  const outputDir = audioState.exportDir || getAudioDefaultOutputDir();
+  const nameInput = document.getElementById("audio-export-name-input");
+  if (nameInput) audioState.exportName = nameInput.value.trim();
+  updateAudioExportMetadataFromForm();
+
+  const sourceForExport = audioState.fullChainPath || audioState.resultPath;
+  if (!sourceForExport) {
+    showToast("Aucun fichier prêt à exporter", 2800);
     return;
   }
 
+  const metadata = {};
+  ["title", "artist", "album", "year", "genre", "comment"].forEach((field) => {
+    const value = audioState.exportMetadata[field];
+    if (value && value.trim()) metadata[field] = value.trim();
+  });
+
   audioState.exportProcessing = true;
   updateAudioExportModal();
-  const outputPath = audioState.currentPreset === "chain"
-    ? await runAudioEffectChain({ format, outputDir })
-    : await runAudioPreset(audioState.currentPreset, {
-      format,
-      outputDir,
-      revealOnSuccess: true,
-    });
-  audioState.exportProcessing = false;
-  updateAudioExportModal();
 
-  if (outputPath) {
-    await revealAudioOutput(outputPath);
-    closeAudioExportModal();
+  try {
+    const result = await invoke("audio_export", {
+      req: {
+        input: sourceForExport,
+        outputDir,
+        outputName: audioState.exportName || null,
+        format: selectedFormat,
+        sampleRate: audioState.exportSampleRate,
+        bitDepth: audioState.exportBitDepth,
+        mp3Mode: audioState.exportMp3Mode,
+        mp3Quality: audioState.exportMp3Quality,
+        flacLevel: audioState.exportFlacLevel,
+        aacBitrate: audioState.exportAacBitrate,
+        metadata: Object.keys(metadata).length ? metadata : null,
+      },
+    });
+    audioState.exportProcessing = false;
+    updateAudioExportModal();
+
+    if (!result || result.success === false) {
+      throw new Error((result && result.error) || "Export échoué");
+    }
+    const outputPath = result.outputPath || result.output_path;
+    if (outputPath) {
+      await revealAudioOutput(outputPath);
+      showToast("Export terminé", 2200);
+      closeAudioExportModal();
+    }
+  } catch (err) {
+    audioState.exportProcessing = false;
+    updateAudioExportModal();
+    const message = err && err.message ? err.message : String(err);
+    showToast("Erreur export : " + message, 5000);
   }
 }
 
 function updateAudioExportModal() {
   const input = document.getElementById("audio-export-folder-input");
   const label = document.getElementById("audio-export-folder-label");
+  const nameInput = document.getElementById("audio-export-name-input");
   const confirmBtn = document.getElementById("audio-export-confirm");
   const dir = audioState.exportDir || getAudioDefaultOutputDir();
   if (input) input.value = dir || "LoadLink-Audio";
   if (label) label.textContent = "Choisir";
+  if (nameInput && document.activeElement !== nameInput) nameInput.value = audioState.exportName || "";
   if (confirmBtn) {
     confirmBtn.disabled = audioState.exportProcessing;
-    confirmBtn.textContent = audioState.exportProcessing ? "Export..." : "Confirmer";
+    confirmBtn.textContent = audioState.exportProcessing ? "Export en cours…" : "Exporter";
   }
 }
 
@@ -2832,6 +3175,7 @@ function renderAudioMeters() {
   if (lufsValue) lufsValue.textContent = lufs === null ? "--" : lufs.toFixed(1);
   if (lufsShort) lufsShort.textContent = lufs === null ? "-- Short Term" : `${(lufs + 0.4).toFixed(1)} Short Term`;
   if (peakValue) peakValue.textContent = peak === null ? "--" : peak.toFixed(1);
+  renderAudioCompressorGainReduction();
 }
 
 function dbToPercent(db) {

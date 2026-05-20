@@ -1345,21 +1345,51 @@
     <h2>Exporter l'audio</h2>
     <div class="audio-export-section">
       <label class="field-label">Format</label>
-      <div class="audio-export-options" id="audio-export-format-options">
+      <div class="audio-export-options audio-export-format-grid" id="audio-export-format-options">
         <label class="audio-radio-option">
-          <input type="radio" name="audio-export-format" value="original" checked />
-          <span>Format d'origine</span>
+          <input type="radio" name="audio-export-format" value="wav" checked />
+          <span>WAV<small>Non compressé · 16/24/32 bit</small></span>
+        </label>
+        <label class="audio-radio-option">
+          <input type="radio" name="audio-export-format" value="flac" />
+          <span>FLAC<small>Sans perte · compression 0-12</small></span>
         </label>
         <label class="audio-radio-option">
           <input type="radio" name="audio-export-format" value="mp3" />
-          <span>MP3</span>
+          <span>MP3<small>Compatible universel · CBR/VBR</small></span>
         </label>
         <label class="audio-radio-option">
-          <input type="radio" name="audio-export-format" value="wav" />
-          <span>WAV</span>
+          <input type="radio" name="audio-export-format" value="aac" />
+          <span>AAC / M4A<small>Apple, podcast iOS</small></span>
+        </label>
+        <label class="audio-radio-option">
+          <input type="radio" name="audio-export-format" value="opus" />
+          <span>OPUS<small>Voix · streaming léger</small></span>
+        </label>
+        <label class="audio-radio-option">
+          <input type="radio" name="audio-export-format" value="original" />
+          <span>Format d'origine<small>Conserve l'extension source</small></span>
         </label>
       </div>
     </div>
+
+    <div class="audio-export-section audio-export-quality" id="audio-export-quality"></div>
+
+    <div class="audio-export-section">
+      <label class="field-label" id="audio-export-meta-toggle">
+        <span>Métadonnées (ID3)</span>
+        <button type="button" class="audio-export-meta-btn" id="audio-export-meta-btn">+ Ajouter</button>
+      </label>
+      <div class="audio-export-meta hidden" id="audio-export-meta-fields">
+        <input type="text" id="audio-export-meta-title" placeholder="Titre" autocomplete="off" />
+        <input type="text" id="audio-export-meta-artist" placeholder="Artiste / Auteur" autocomplete="off" />
+        <input type="text" id="audio-export-meta-album" placeholder="Album / Émission" autocomplete="off" />
+        <input type="text" id="audio-export-meta-year" placeholder="Année" autocomplete="off" />
+        <input type="text" id="audio-export-meta-genre" placeholder="Genre" autocomplete="off" />
+        <textarea id="audio-export-meta-comment" placeholder="Commentaire"></textarea>
+      </div>
+    </div>
+
     <div class="audio-export-section">
       <label class="field-label">Dossier</label>
       <div class="audio-folder-picker">
@@ -1369,9 +1399,15 @@
         </button>
       </div>
     </div>
+
+    <div class="audio-export-section">
+      <label class="field-label" for="audio-export-name-input">Nom du fichier</label>
+      <input type="text" id="audio-export-name-input" placeholder="Laisser vide pour _export auto" autocomplete="off" />
+    </div>
+
     <div class="modal-actions">
       <button type="button" class="btn-secondary" id="audio-export-cancel">Annuler</button>
-      <button type="button" class="btn-primary" id="audio-export-confirm" style="width:auto;margin-top:0;padding:9px 18px;">Confirmer</button>
+      <button type="button" class="btn-primary" id="audio-export-confirm" style="width:auto;margin-top:0;padding:9px 18px;">Exporter</button>
     </div>
   </div>
 </div>
