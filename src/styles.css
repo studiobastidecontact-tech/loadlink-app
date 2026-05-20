@@ -7038,3 +7038,26 @@ body.dark .audio-waveform {
 
 /* Phase 6 : suppression - styles #player-export-card (element supprime).
    Le panneau export est maintenant dans l'onglet sidebar EDIT (.edit-export-slot). */
+
+#page-audioV2 {
+  padding: 0;
+  overflow: hidden;
+  background: #0a0a0a;
+}
+
+.audio-v2-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #0a0a0a;
+}
+
+.nav-icon.ni-audio-v2 {
+  color: var(--accent);
+}
+
+.module-card[data-module="audioV2"] .module-card-icon {
+  background: var(--accent-light);
+  color: var(--accent);
+}

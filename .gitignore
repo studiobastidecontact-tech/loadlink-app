@@ -12,6 +12,8 @@ node_modules
 dist
 dist-ssr
 dist-v2
+!src/audio-v2-bundle/
+!src/audio-v2-bundle/**
 *.local
 
 # Rust build outputs (HUGE — never commit)

@@ -72,6 +72,7 @@ const MODULE_INFO = {
   compress:   { title: "Compresser", sub: "Archive en ZIP ou réencode des vidéos en H.265.", ready: true },
   convert:    { title: "Convertir", sub: "Change le format d'un fichier local sans perte de qualité.", ready: true },
   audio:      { title: "Audio", sub: "Édition audio multitrack, normalisation, mastering.", ready: false },
+  audioV2:    { title: "Audio V2", sub: "Timeline multi-pistes pour post-production audio.", ready: true },
   video:      { title: "Vidéo", sub: "Découpage, recadrage, sous-titres et effets vidéo.", ready: false },
   ai:         { title: "IA Studio", sub: "Traitements assistés par intelligence artificielle.", ready: false },
   import:     { title: "Importer", sub: "Importe automatiquement depuis carte SD, drone, caméra.", ready: false },
@@ -84,6 +85,17 @@ const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB per chunk
 
 MODULE_INFO.audio.sub = "Mastering audio pour ton contenu.";
 MODULE_INFO.audio.ready = true;
+
+const loadAudioV2Frame = () => {
+  const frame = $("audio-v2-frame");
+  if (!frame) return;
+  if (!frame.src) frame.src = "audio-v2-bundle/audio-v2.html";
+};
+
+const unloadAudioV2Frame = () => {
+  const frame = $("audio-v2-frame");
+  if (frame) frame.src = "";
+};
 
 // ============================================
 // STATE
@@ -162,6 +174,9 @@ const goHome = () => {
   if (state.currentModule === "audio" && typeof audioStopTransientListeners === "function") {
     audioStopTransientListeners();
   }
+  if (state.currentModule === "audioV2") {
+    unloadAudioV2Frame();
+  }
   state.currentModule = "home";
   appPage().classList.add("hidden");
   homePage().classList.remove("hidden");
@@ -188,6 +203,9 @@ const openModule = (moduleKey) => {
   if (state.currentModule === "audio" && moduleKey !== "audio" && typeof audioStopTransientListeners === "function") {
     audioStopTransientListeners();
   }
+  if (state.currentModule === "audioV2" && moduleKey !== "audioV2") {
+    unloadAudioV2Frame();
+  }
   state.currentModule = moduleKey;
   homePage().classList.add("hidden");
   appPage().classList.remove("hidden");
@@ -199,6 +217,9 @@ const openModule = (moduleKey) => {
     showModulePage("page-" + moduleKey);
     if (moduleKey === "audio" && typeof initAudioModule === "function") {
       initAudioModule(state);
+    }
+    if (moduleKey === "audioV2") {
+      loadAudioV2Frame();
     }
   } else {
     showModulePage("page-placeholder");
