@@ -2269,7 +2269,9 @@ body.dark .libreoffice-warning {
   flex-direction: column;
   gap: 14px;
   padding: 16px 18px;
-  overflow: auto;
+  /* Workspace owns the global scroll (post-Bug D refacto); the editor panel
+     just lays its sections out and lets them grow naturally. */
+  overflow: visible;
 }
 
 .audio-tool-strip {
@@ -4435,6 +4437,11 @@ body.dark .libreoffice-warning {
   line-height: 1.55;
   display: grid;
   gap: 10px;
+  /* If the library ever grows enough to overflow the viewport, give it its
+     own scrolling area so the user can still reach everything on small
+     windows. max-height accounts for the sticky shared player + footer. */
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
 }
 
 .audio-library-categories {
