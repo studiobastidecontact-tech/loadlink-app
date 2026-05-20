@@ -2319,12 +2319,16 @@ body.dark .libreoffice-warning {
    CHANTIER C — Mastering view
    ============================================ */
 .audio-mastering-view {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 18px;
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
+  padding: 18px;
+  overflow-y: auto;
 }
 
 .audio-mastering-head {
@@ -2808,12 +2812,16 @@ body.dark .libreoffice-warning {
    CHANTIER B — Mixing view (stubs, expanded below)
    ============================================ */
 .audio-mixing-view {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 18px;
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
+  padding: 18px;
+  overflow-y: auto;
 }
 
 .audio-mixing-body {

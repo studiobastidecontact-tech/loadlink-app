@@ -2933,7 +2933,11 @@ function audioUpdateUI() {
   const isMixTab = tab === "mix";
   const isMasterTab = tab === "master";
   document.getElementById("audio-empty")?.classList.toggle("hidden", !isEditTab || hasMedia);
-  document.getElementById("audio-workspace")?.classList.toggle("hidden", !isEditTab || !hasMedia);
+  // Workspace container holds the studio shell, mixing view, mastering view AND the
+  // metering footer. Keep it visible as long as media is loaded so the inner views
+  // can render — toggle the children individually based on the active tab.
+  document.getElementById("audio-workspace")?.classList.toggle("hidden", !hasMedia);
+  document.getElementById("audio-studio-shell")?.classList.toggle("hidden", !isEditTab);
   const placeholder = document.getElementById("audio-studio-placeholder");
   if (placeholder) placeholder.classList.add("hidden");
   const mixView = document.getElementById("audio-mixing-view");
