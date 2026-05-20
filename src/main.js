@@ -1474,35 +1474,74 @@ function renderAudioAmateurReadouts() {
 }
 
 function renderAudioAmateurLufs() {
-  const lufs = audioState.analysis?.loudnessLufs;
+  const measured = audioState.analysis?.loudnessLufs;
+  const target = AUDIO_AMATEUR_TARGETS[audioAmateurState.target]?.lufs;
+  const lufs = Number.isFinite(measured) ? measured : target;
   const dot = document.getElementById("audio-amateur-lufs-dot");
   const value = document.getElementById("audio-amateur-lufs-value");
   const text = document.getElementById("audio-amateur-lufs-text");
   if (!value || !dot || !text) return;
   if (!Number.isFinite(lufs)) {
     value.textContent = "--";
-    text.textContent = audioState.mediaPath ? "Applique un preset pour mesurer" : "Charge un fichier pour analyser";
+    text.textContent = audioState.mediaPath ? "Choisis une cible et un preset" : "Charge un fichier pour analyser";
     dot.style.color = "var(--text3)";
     return;
   }
   value.textContent = `${lufs.toFixed(1)} LUFS`;
+  const prefix = Number.isFinite(measured) ? "Mesuré · " : "Cible · ";
   if (lufs >= -16 && lufs <= -14) {
     dot.style.color = "#22c55e";
-    text.textContent = "Niveau optimal streaming";
+    text.textContent = `${prefix}niveau optimal streaming`;
   } else if ((lufs >= -23 && lufs < -16) || (lufs > -14 && lufs <= -9)) {
     dot.style.color = "#facc15";
-    text.textContent = "Niveau limite — ajustable";
+    text.textContent = `${prefix}niveau limite — ajustable`;
   } else {
     dot.style.color = "#ef4444";
-    text.textContent = lufs < -23 ? "Trop faible" : "Trop fort — risque clipping";
+    text.textContent = lufs < -23 ? `${prefix}trop faible` : `${prefix}trop fort — risque clipping`;
   }
 }
 
 function audioAmateurSyncMasterChain() {
-  // Translate the simplified amateur sliders into the underlying master chain.
+  // Amateur sliders feed the per-clip effect chain (same one used by the live
+  // preview) so the user gets audible/visible feedback as soon as they touch a
+  // slider. The mastering bus only runs at "Appliquer et rendre" time.
   const target = AUDIO_AMATEUR_TARGETS[audioAmateurState.target] || AUDIO_AMATEUR_TARGETS.podcast;
-  // Map 0..100 compression → threshold (-12..-24 dB) + ratio (2..6)
   const c = audioAmateurState.compression / 100;
+
+  const eq = audioState.effectChain?.eq;
+  if (eq && eq.bands) {
+    eq.enabled = true;
+    // 5-band EQ default layout: [highpass 80, peaking 250, peaking 1200,
+    // peaking 4500, highshelf 12000]. Map the 3 amateur sliders onto the
+    // bands that are most audible for non-experts.
+    if (eq.bands[1]) eq.bands[1].gain = audioAmateurState.low;   // 250 Hz
+    if (eq.bands[2]) eq.bands[2].gain = audioAmateurState.mid;   // 1.2 kHz
+    if (eq.bands[4]) eq.bands[4].gain = audioAmateurState.high;  // 12 kHz
+  }
+
+  const compressor = audioState.effectChain?.compressor;
+  if (compressor) {
+    compressor.enabled = c > 0.05;
+    compressor.threshold = clampNumber(-12 - c * 12, -24, -12);
+    compressor.ratio = clampNumber(2 + c * 4, 2, 6);
+    compressor.attack = 8;
+    compressor.release = 100;
+    compressor.makeup = 2 + c * 2;
+  }
+
+  if (audioState.effectChain?.deesser) {
+    audioState.effectChain.deesser.enabled = audioAmateurState.deess;
+  }
+  if (audioState.effectChain?.reverb) {
+    audioState.effectChain.reverb.enabled = audioAmateurState.reverb;
+  }
+  if (audioState.effectChain?.loudnorm) {
+    audioState.effectChain.loudnorm.targetLufs = target.lufs;
+    audioState.effectChain.loudnorm.enabled = true;
+  }
+
+  // Mirror the same values into the master bus so the final render (button
+  // "Appliquer et rendre") matches what the user heard in preview.
   audioMasterState.eq.enabled = true;
   audioMasterState.eq.lowShelfGain = audioAmateurState.low;
   audioMasterState.eq.lowMidGain = 0;
@@ -1511,24 +1550,12 @@ function audioAmateurSyncMasterChain() {
   audioMasterState.compressor.enabled = c > 0.05;
   audioMasterState.compressor.threshold = clampNumber(-12 - c * 12, -24, -12);
   audioMasterState.compressor.ratio = clampNumber(2 + c * 4, 2, 6);
-  audioMasterState.compressor.attack = 8;
-  audioMasterState.compressor.release = 100;
-  audioMasterState.compressor.makeup = 2 + c * 2;
-  audioMasterState.stereo.enabled = false;
-  audioMasterState.saturation.enabled = false;
-  audioMasterState.limiter.ceiling = -1;
-  audioMasterState.limiter.attack = 5;
-  audioMasterState.limiter.release = 60;
   audioMasterState.limiter.targetLufs = target.lufs;
 
-  // Amateur reverb/deess feed into the per-clip effect chain (not the master bus).
-  if (audioState.effectChain) {
-    if (audioState.effectChain.deesser) {
-      audioState.effectChain.deesser.enabled = audioAmateurState.deess;
-    }
-  }
   audioState.fullChainStale = Boolean(audioState.fullChainPath);
   renderAudioApplyFullButton();
+  // Trigger the same 5 s preview pipeline as Pro mode — fast feedback loop.
+  if (audioState.mediaPath) scheduleAudioChainRender(400);
 }
 
 async function audioAmateurApplyAndRender() {
