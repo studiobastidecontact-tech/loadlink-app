@@ -1014,6 +1014,7 @@ const audioState = {
   effects: AUDIO_DEFAULT_EFFECTS.map((effect) => ({ ...effect })),
   effectChain: createDefaultEffectChain(),
   chainProcessing: false,
+  chainPending: false,
   analysis: null,
 };
 
@@ -1216,6 +1217,8 @@ function loadAudioFile(path) {
   audioState.processing = false;
   audioState.processingPreset = null;
   audioState.processingProgress = 0;
+  audioState.chainProcessing = false;
+  audioState.chainPending = false;
   audioState.resultPath = null;
   audioState.resultFormat = null;
   audioState.resultOutputDir = null;
@@ -1258,6 +1261,7 @@ function audioUpdateUI() {
   }
 
   document.getElementById("audio-result-panel")?.classList.toggle("hidden", !audioState.resultPath);
+  document.getElementById("audio-result-panel")?.classList.toggle("chain-processing", audioState.chainProcessing);
   document.getElementById("audio-ab-toggle")?.classList.toggle("hidden", !audioState.resultPath);
   renderAudioRefinePanel();
 
@@ -1303,6 +1307,7 @@ function renderAudioEffectsSidebar() {
 
   const chain = document.getElementById("audio-effects-chain");
   if (!chain) return;
+  document.getElementById("audio-effect-detail")?.classList.toggle("chain-processing", audioState.chainProcessing);
   chain.innerHTML = audioState.effects.map((effect) => `
     <button type="button" class="audio-effect-row${effect.key === audioState.selectedEffect ? " selected" : ""}${effect.enabled ? "" : " off"}" data-effect="${effect.key}">
       <span class="audio-effect-handle">⋮⋮</span>
@@ -1572,7 +1577,11 @@ function eqBandToPoint(band) {
 }
 
 function scheduleAudioChainRender(delay = 500) {
-  if (!audioState.mediaPath || !audioState.resultPath || audioState.processing) return;
+  if (!audioState.mediaPath || !audioState.resultPath) return;
+  if (audioState.processing) {
+    audioState.chainPending = true;
+    return;
+  }
   clearTimeout(audioChainDebounce);
   audioChainDebounce = window.setTimeout(() => {
     runAudioEffectChain();
@@ -1593,6 +1602,7 @@ async function runAudioEffectChain(options = {}) {
   // TODO: add backend cancellation for stale FFmpeg jobs; UI currently keeps only the latest result.
   audioState.processing = true;
   audioState.chainProcessing = true;
+  audioState.chainPending = false;
   audioState.processingPreset = "chain";
   audioState.processingProgress = 0;
   audioState.lastErrorPreset = null;
@@ -1655,6 +1665,9 @@ async function runAudioEffectChain(options = {}) {
       audioState.chainProcessing = false;
       audioState.processingPreset = null;
       audioUpdateUI();
+      if (audioState.chainPending) {
+        scheduleAudioChainRender(250);
+      }
     }
   }
 }
@@ -2421,11 +2434,13 @@ async function confirmAudioExport() {
 
   audioState.exportProcessing = true;
   updateAudioExportModal();
-  const outputPath = await runAudioPreset(audioState.currentPreset, {
-    format,
-    outputDir,
-    revealOnSuccess: true,
-  });
+  const outputPath = audioState.currentPreset === "chain"
+    ? await runAudioEffectChain({ format, outputDir })
+    : await runAudioPreset(audioState.currentPreset, {
+      format,
+      outputDir,
+      revealOnSuccess: true,
+    });
   audioState.exportProcessing = false;
   updateAudioExportModal();
 
@@ -2546,6 +2561,8 @@ function resetAudioState() {
   audioState.processing = false;
   audioState.processingPreset = null;
   audioState.processingProgress = 0;
+  audioState.chainProcessing = false;
+  audioState.chainPending = false;
   audioState.resultPath = null;
   audioState.resultFormat = null;
   audioState.resultOutputDir = null;

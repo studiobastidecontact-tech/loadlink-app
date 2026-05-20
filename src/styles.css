@@ -2142,6 +2142,26 @@ body.dark .libreoffice-warning {
   padding: 14px;
 }
 
+.audio-effect-detail.chain-processing {
+  position: relative;
+}
+
+.audio-effect-detail.chain-processing::after {
+  content: "Traitement...";
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 1px solid rgba(37,99,235,.24);
+  border-radius: 999px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
 .audio-effect-detail-head {
   display: flex;
   align-items: center;
@@ -2364,6 +2384,10 @@ body.dark .libreoffice-warning {
 
 .audio-wave-panel.result {
   border-color: rgba(232, 57, 12, .28);
+}
+
+.audio-result-panel.chain-processing .audio-wave-panel.result {
+  animation: audioChainPulse 1.2s ease-in-out infinite;
 }
 
 .audio-wave-header {
@@ -2674,6 +2698,15 @@ body.dark .audio-waveform {
   color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-light);
+}
+
+@keyframes audioChainPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(232,57,12,.14), var(--shadow-sm);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(232,57,12,.10), var(--shadow-md);
+  }
 }
 
 .audio-preset-card.processing .audio-preset-status::before {
