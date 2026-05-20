@@ -5271,6 +5271,7 @@ function renderAudioMeters() {
   if (lufsShort) lufsShort.textContent = lufs === null ? "-- Short Term" : `${(lufs + 0.4).toFixed(1)} Short Term`;
   if (peakValue) peakValue.textContent = peak === null ? "--" : peak.toFixed(1);
   renderAudioCompressorGainReduction();
+  if (audioState.userLevel === "amateur") renderAudioAmateurLufs();
 }
 
 function dbToPercent(db) {
