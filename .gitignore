@@ -60,3 +60,7 @@ src-tauri/src/lib.rs.OLD
 # Phase 4 - Python embeddable (use setup-python.ps1 to install)
 # Whole python/ dir is ignored; whisper_runner.py is force-added with git add -f
 src-tauri/binaries/python/
+
+# Phase A — dev-time generated audio outputs (when running `cargo run` from src-tauri/)
+src-tauri/Music/
+src-tauri/Videos/
