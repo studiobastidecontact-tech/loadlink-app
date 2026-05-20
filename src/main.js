@@ -1019,6 +1019,7 @@ const audioState = {
   history: [],
   historyIndex: -1,
   track: { mute: false, solo: false, gainDb: 0 },
+  extraTracks: [],
   refineSliders: {
     volume: 50,
     noise: 50,
@@ -1194,6 +1195,149 @@ function bindAudioTrackControls() {
       applyAudioTrackGainToPlayers();
     });
   }
+}
+
+const AUDIO_TRACK_TYPES = [
+  { key: "voice", label: "Voix", color: "#3b82f6", hints: ["voix", "voice", "voc", "podcast", "interview"] },
+  { key: "music", label: "Musique", color: "#a855f7", hints: ["music", "track", "song", "ost"] },
+  { key: "ambient", label: "Ambiance", color: "#10b981", hints: ["ambient", "ambiance", "room", "noise", "background"] },
+  { key: "fx", label: "Effets", color: "#f97316", hints: ["fx", "effect", "whoosh", "impact", "sfx"] },
+];
+
+function detectAudioTrackType(path) {
+  const lower = String(path).toLowerCase();
+  for (const t of AUDIO_TRACK_TYPES) {
+    if (t.hints.some((hint) => lower.includes(hint))) return t;
+  }
+  return AUDIO_TRACK_TYPES[1];
+}
+
+async function addAudioExtraTrack() {
+  try {
+    const tauriOpen =
+      (window.__TAURI__ && window.__TAURI__.dialog && window.__TAURI__.dialog.open)
+      || (typeof open === "function" ? open : null);
+    if (!tauriOpen) {
+      showToast("Dialogue Tauri non disponible", 3000);
+      return;
+    }
+    const selected = await tauriOpen({
+      multiple: false,
+      filters: [{ name: "Fichiers audio", extensions: AUDIO_SUPPORTED_EXTENSIONS }],
+    });
+    if (!selected) return;
+    const path = Array.isArray(selected) ? selected[0] : selected;
+    if (!isSupportedAudioPath(path)) {
+      showToast("Format non supporté", 2500);
+      return;
+    }
+    const type = detectAudioTrackType(path);
+    audioState.extraTracks.push({
+      id: `track-${Date.now()}`,
+      path,
+      name: getPathName(path).replace(/\.[^.]+$/, ""),
+      type: type.key,
+      color: type.color,
+      label: type.label,
+      gainDb: 0,
+      mute: false,
+      solo: false,
+    });
+    renderAudioExtraTracks();
+    showToast(`Piste "${type.label}" ajoutée`, 1800);
+    audioState.fullChainStale = Boolean(audioState.fullChainPath);
+    renderAudioApplyFullButton();
+  } catch (err) {
+    console.error("[audio] add extra track failed:", err);
+    showToast("Erreur ajout piste : " + err, 3500);
+  }
+}
+
+function removeAudioExtraTrack(id) {
+  audioState.extraTracks = audioState.extraTracks.filter((t) => t.id !== id);
+  renderAudioExtraTracks();
+  audioState.fullChainStale = Boolean(audioState.fullChainPath);
+  renderAudioApplyFullButton();
+}
+
+function updateAudioExtraTrack(id, updates) {
+  const track = audioState.extraTracks.find((t) => t.id === id);
+  if (!track) return;
+  Object.assign(track, updates);
+  audioState.fullChainStale = Boolean(audioState.fullChainPath);
+  renderAudioApplyFullButton();
+}
+
+function renderAudioExtraTracks() {
+  const sidebar = document.getElementById("audio-tracks-sidebar");
+  if (!sidebar) return;
+  let extraList = document.getElementById("audio-extra-tracks-list");
+  if (!extraList) {
+    extraList = document.createElement("div");
+    extraList.id = "audio-extra-tracks-list";
+    extraList.className = "audio-extra-tracks-list";
+    sidebar.appendChild(extraList);
+  }
+  let addBtn = document.getElementById("audio-add-track-btn");
+  if (!addBtn) {
+    addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.id = "audio-add-track-btn";
+    addBtn.className = "audio-add-track-btn";
+    addBtn.textContent = "+ Ajouter une piste";
+    addBtn.addEventListener("click", addAudioExtraTrack);
+    sidebar.appendChild(addBtn);
+  } else {
+    sidebar.appendChild(addBtn); // ensure it stays at bottom
+  }
+
+  extraList.innerHTML = audioState.extraTracks.map((track) => `
+    <div class="audio-extra-track-card" data-track-id="${track.id}" style="--track-color:${track.color}">
+      <div class="audio-extra-track-head">
+        <span class="audio-extra-track-color">${(track.label || "").charAt(0).toUpperCase()}</span>
+        <div class="audio-extra-track-meta">
+          <div class="audio-extra-track-name" title="${track.path.replace(/"/g, "&quot;")}">${track.name}</div>
+          <div class="audio-extra-track-type">${track.label}</div>
+        </div>
+        <button type="button" class="audio-extra-track-remove" data-action="remove" title="Retirer">×</button>
+      </div>
+      <div class="audio-extra-track-ctrls">
+        <button type="button" class="audio-track-btn${track.mute ? " active" : ""}" data-action="mute">M</button>
+        <button type="button" class="audio-track-btn${track.solo ? " active" : ""}" data-action="solo">S</button>
+        <label class="audio-extra-track-gain-wrap">
+          <span>Gain</span>
+          <input type="range" min="-24" max="12" step="0.5" value="${track.gainDb}" data-action="gain" />
+          <strong>${track.gainDb > 0 ? "+" : ""}${Number(track.gainDb).toFixed(1)} dB</strong>
+        </label>
+      </div>
+    </div>
+  `).join("");
+
+  extraList.querySelectorAll(".audio-extra-track-card").forEach((card) => {
+    const id = card.dataset.trackId;
+    card.querySelector("[data-action=remove]")?.addEventListener("click", () => removeAudioExtraTrack(id));
+    card.querySelector("[data-action=mute]")?.addEventListener("click", (event) => {
+      const track = audioState.extraTracks.find((t) => t.id === id);
+      if (!track) return;
+      track.mute = !track.mute;
+      event.currentTarget.classList.toggle("active", track.mute);
+      updateAudioExtraTrack(id, { mute: track.mute });
+    });
+    card.querySelector("[data-action=solo]")?.addEventListener("click", (event) => {
+      const track = audioState.extraTracks.find((t) => t.id === id);
+      if (!track) return;
+      track.solo = !track.solo;
+      event.currentTarget.classList.toggle("active", track.solo);
+      updateAudioExtraTrack(id, { solo: track.solo });
+    });
+    const gainInput = card.querySelector("[data-action=gain]");
+    const gainLabel = card.querySelector(".audio-extra-track-gain-wrap strong");
+    gainInput?.addEventListener("input", () => {
+      const value = clampNumber(Number(gainInput.value), -24, 12);
+      updateAudioExtraTrack(id, { gainDb: value });
+      if (gainLabel) gainLabel.textContent = `${value > 0 ? "+" : ""}${value.toFixed(1)} dB`;
+    });
+  });
 }
 
 function applyAudioTrackGainToPlayers() {
@@ -1402,6 +1546,7 @@ function loadAudioFile(path) {
 
   audioState.markers = [];
   audioState.track = { mute: false, solo: false, gainDb: 0 };
+  audioState.extraTracks = [];
   resetAudioHistory();
   commitAudioHistorySnapshot();
   audioUpdateUI();
@@ -1454,6 +1599,7 @@ function audioUpdateUI() {
   renderAudioMeters();
   renderAudioApplyFullButton();
   renderAudioResultHeader();
+  renderAudioExtraTracks();
   updateAudioExportModal();
 
   if (hasMedia) {
@@ -2167,14 +2313,20 @@ async function runAudioEffectChain(options = {}) {
   await startAudioProgressListener(token, "chain");
 
   try {
-    const result = await invoke("audio_apply_chain", {
-      req: {
-        input: audioState.mediaPath,
-        outputDir,
-        format,
-        effects: buildAudioEffectPayload(),
-      },
-    });
+    const extraTracks = (audioState.extraTracks || []).map((t) => ({
+      path: t.path,
+      gainDb: Number(t.gainDb || 0),
+      mute: Boolean(t.mute),
+    }));
+    const commandName = extraTracks.length > 0 ? "audio_apply_mix" : "audio_apply_chain";
+    const reqPayload = {
+      input: audioState.mediaPath,
+      outputDir,
+      format,
+      effects: buildAudioEffectPayload(),
+    };
+    if (extraTracks.length > 0) reqPayload.extraTracks = extraTracks;
+    const result = await invoke(commandName, { req: reqPayload });
 
     if (token !== audioOperationToken || chainToken !== audioChainToken) return null;
     if (!result || result.success === false) {
@@ -3436,6 +3588,7 @@ function resetAudioState() {
   audioState.studioTab = "edit";
   audioState.markers = [];
   audioState.track = { mute: false, solo: false, gainDb: 0 };
+  audioState.extraTracks = [];
   resetAudioHistory();
   document.getElementById("audio-export-modal")?.classList.add("hidden");
   audioUpdateUI();

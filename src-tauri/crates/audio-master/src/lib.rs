@@ -86,6 +86,24 @@ pub struct AudioPreviewOptions {
     pub duration_seconds: f64,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioMixTrack {
+    pub path: String,
+    pub gain_db: Option<f32>,
+    pub mute: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioMixOptions {
+    pub input: String,
+    pub output_dir: Option<String>,
+    pub format: Option<String>,
+    pub effects: Vec<AudioEffect>,
+    pub extra_tracks: Vec<AudioMixTrack>,
+}
+
 #[derive(Debug, Clone, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AudioExportMetadata {
@@ -456,6 +474,173 @@ pub async fn apply_preset(app: &AppHandle, opts: AudioPresetOptions) -> Result<A
         success: true,
         output_path: out_path.to_string_lossy().to_string(),
         preset: preset.key().to_string(),
+        output_info,
+        error: None,
+    })
+}
+
+/// Render the primary track's effect chain alongside one or more extra tracks (music,
+/// ambient, FX) mixed in via ffmpeg `amix`. The primary track's effects are applied first,
+/// then each extra is gain-scaled and mixed at equal weights.
+pub async fn apply_mix(app: &AppHandle, opts: AudioMixOptions) -> Result<AudioProcessResult> {
+    let ffmpeg = get_ffmpeg_path(app)?;
+    let primary = PathBuf::from(&opts.input);
+    ensure_source_exists(&primary)?;
+
+    if opts.extra_tracks.is_empty() {
+        return apply_chain(
+            app,
+            AudioEffectChain {
+                input: opts.input,
+                output_dir: opts.output_dir,
+                format: opts.format,
+                effects: opts.effects,
+            },
+        )
+        .await;
+    }
+
+    let probe = probe_input(&ffmpeg, &primary).await?;
+    let target_sample_rate = probe.sample_rate.unwrap_or(DEFAULT_SAMPLE_RATE);
+    let output_format = normalize_output_format(opts.format.as_deref(), &primary)?;
+    let out_dir = resolve_output_dir(&primary, opts.output_dir.as_deref())?;
+    std::fs::create_dir_all(&out_dir)?;
+    let out_path = unique_output_path(&primary, &out_dir, "mix", &output_format);
+    let chain_filter = build_effect_chain(&opts.effects, target_sample_rate);
+    let source_name = display_name(&primary);
+
+    let total_inputs = 1 + opts.extra_tracks.len();
+    let mut filter_complex = String::new();
+    filter_complex.push_str(&format!("[0:a]{chain_filter}[main]"));
+    let mut mix_inputs = vec!["[main]".to_string()];
+    for (idx, track) in opts.extra_tracks.iter().enumerate() {
+        let stream_in = format!("[{}:a]", idx + 1);
+        let gain_db = if track.mute.unwrap_or(false) {
+            -120.0
+        } else {
+            clamp(track.gain_db.unwrap_or(0.0), -60.0, 12.0)
+        };
+        let linear = 10f32.powf(gain_db / 20.0);
+        let label = format!("[t{idx}]");
+        filter_complex.push_str(&format!(
+            ";{stream_in}aresample={target_sample_rate},volume={linear:.6}{label}"
+        ));
+        mix_inputs.push(label);
+    }
+    let joined_inputs = mix_inputs.join("");
+    filter_complex.push_str(&format!(
+        ";{joined_inputs}amix=inputs={total_inputs}:duration=longest:normalize=0[out]"
+    ));
+
+    emit_progress(app, 0.0, "preparing", Some(source_name.clone()), None, None);
+
+    let mut cmd = Command::new(&ffmpeg);
+    cmd.arg("-hide_banner").arg("-y");
+    cmd.arg("-i").arg(&primary);
+    for track in &opts.extra_tracks {
+        let extra_path = PathBuf::from(&track.path);
+        ensure_source_exists(&extra_path)?;
+        cmd.arg("-i").arg(&extra_path);
+    }
+    cmd.arg("-filter_complex").arg(&filter_complex);
+    cmd.arg("-map").arg("[out]").arg("-vn");
+    append_codec_args(&mut cmd, &output_format);
+    cmd.arg("-progress").arg("pipe:1").arg("-nostats").arg(&out_path);
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    apply_no_window(&mut cmd);
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| LoadlinkError::SpawnFailed(format!("ffmpeg audio mix: {e}")))?;
+
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| LoadlinkError::Other("ffmpeg stdout indisponible".to_string()))?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| LoadlinkError::Other("ffmpeg stderr indisponible".to_string()))?;
+
+    let app_for_progress = app.clone();
+    let source_for_progress = source_name.clone();
+    let duration = probe.duration_seconds.unwrap_or(0.0);
+    let out_path_string = out_path.to_string_lossy().to_string();
+
+    let progress_task = tokio::spawn(async move {
+        let mut reader = BufReader::new(stdout).lines();
+        let time_re = Regex::new(r"out_time_(?:ms|us)=(\d+)").unwrap();
+        while let Ok(Some(line)) = reader.next_line().await {
+            if let Some(captures) = time_re.captures(&line) {
+                let micros = captures
+                    .get(1)
+                    .and_then(|m| m.as_str().parse::<f64>().ok())
+                    .unwrap_or(0.0);
+                let processed = micros / 1_000_000.0;
+                let percent = if duration > 0.0 {
+                    ((processed / duration) * 100.0).min(99.0) as f32
+                } else {
+                    50.0
+                };
+                emit_progress(
+                    &app_for_progress,
+                    percent,
+                    "mixing",
+                    Some(source_for_progress.clone()),
+                    None,
+                    Some(out_path_string.clone()),
+                );
+            }
+        }
+    });
+
+    let stderr_task = tokio::spawn(async move {
+        let mut reader = BufReader::new(stderr).lines();
+        let mut collected = String::new();
+        while let Ok(Some(line)) = reader.next_line().await {
+            collected.push_str(&line);
+            collected.push('\n');
+        }
+        collected
+    });
+
+    let status = child
+        .wait()
+        .await
+        .map_err(|e| LoadlinkError::Other(format!("ffmpeg wait: {e}")))?;
+    let _ = progress_task.await;
+    let stderr_collected = stderr_task.await.unwrap_or_default();
+
+    if !status.success() {
+        let _ = std::fs::remove_file(&out_path);
+        emit_progress(app, 0.0, "failed", Some(source_name), None, None);
+        return Ok(AudioProcessResult {
+            success: false,
+            output_path: String::new(),
+            preset: "mix".to_string(),
+            output_info: None,
+            error: Some(ffmpeg_error(&stderr_collected)),
+        });
+    }
+
+    emit_progress(
+        app,
+        100.0,
+        "completed",
+        Some(source_name),
+        None,
+        Some(out_path.to_string_lossy().to_string()),
+    );
+    cleanup_excess_chain_outputs(&primary, &out_dir, &out_path, 5);
+
+    let output_info = std::fs::metadata(&out_path)
+        .ok()
+        .map(|m| format!("Fichier audio: {:.1} Mo", m.len() as f64 / 1_048_576.0));
+
+    Ok(AudioProcessResult {
+        success: true,
+        output_path: out_path.to_string_lossy().to_string(),
+        preset: "mix".to_string(),
         output_info,
         error: None,
     })
