@@ -104,16 +104,22 @@ pub enum AudioEffect {
     DeEsser {
         enabled: bool,
         intensity: Option<f32>,
+        frequency: Option<f32>,
+        mode: Option<f32>,
     },
     Denoise {
         enabled: bool,
         amount: Option<f32>,
+        noise_floor: Option<f32>,
     },
     Reverb {
         enabled: bool,
     },
     Limiter {
         enabled: bool,
+        ceiling: Option<f32>,
+        attack: Option<f32>,
+        release: Option<f32>,
     },
     Silence {
         enabled: bool,
@@ -962,6 +968,7 @@ fn cleanup_excess_previews(out_dir: &Path, current_output: &Path, keep: usize) {
 
 fn build_effect_chain(effects: &[AudioEffect], target_sample_rate: u32) -> String {
     let mut filters = Vec::new();
+    let mut limiter_override: Option<(f32, f32, f32)> = None;
 
     for effect in effects {
         match effect {
@@ -989,13 +996,25 @@ fn build_effect_chain(effects: &[AudioEffect], target_sample_rate: u32) -> Strin
                     clamp(*makeup, 0.0, 24.0)
                 ));
             }
-            AudioEffect::DeEsser { enabled, intensity } if *enabled => {
+            AudioEffect::DeEsser {
+                enabled,
+                intensity,
+                frequency,
+                mode,
+            } if *enabled => {
                 let i = clamp(intensity.unwrap_or(0.35), 0.0, 1.0);
-                filters.push(format!("deesser=i={i}:m=0.5:f=0.55:s=o"));
+                let f = clamp(frequency.unwrap_or(0.55), 0.2, 1.0);
+                let m = clamp(mode.unwrap_or(0.5), 0.1, 1.0);
+                filters.push(format!("deesser=i={i}:m={m}:f={f}:s=o"));
             }
-            AudioEffect::Denoise { enabled, amount } if *enabled => {
+            AudioEffect::Denoise {
+                enabled,
+                amount,
+                noise_floor,
+            } if *enabled => {
                 let nr = clamp(amount.unwrap_or(12.0), 1.0, 30.0);
-                filters.push(format!("afftdn=nr={nr}"));
+                let nf = clamp(noise_floor.unwrap_or(-25.0), -50.0, -20.0);
+                filters.push(format!("afftdn=nr={nr}:nf={nf}"));
             }
             AudioEffect::Silence {
                 enabled,
@@ -1017,8 +1036,17 @@ fn build_effect_chain(effects: &[AudioEffect], target_sample_rate: u32) -> Strin
                     clamp(*target_lufs, -30.0, -8.0)
                 ));
             }
-            AudioEffect::Limiter { enabled } if *enabled => {
-                // Final limiter is always appended below to keep a single true output guard.
+            AudioEffect::Limiter {
+                enabled,
+                ceiling,
+                attack,
+                release,
+            } if *enabled => {
+                let c = clamp(ceiling.unwrap_or(-0.5), -3.0, 0.0);
+                let limit = 10f32.powf(c / 20.0);
+                let a = clamp(attack.unwrap_or(5.0), 1.0, 50.0) / 1000.0;
+                let r = clamp(release.unwrap_or(50.0), 10.0, 500.0) / 1000.0;
+                limiter_override = Some((limit, a, r));
             }
             AudioEffect::Reverb { enabled: _ } => {
                 // Reserved for a later phase.
@@ -1028,7 +1056,13 @@ fn build_effect_chain(effects: &[AudioEffect], target_sample_rate: u32) -> Strin
     }
 
     filters.push(format!("aresample={target_sample_rate}"));
-    filters.push("alimiter=limit=0.95".to_string());
+    if let Some((limit, attack, release)) = limiter_override {
+        filters.push(format!(
+            "alimiter=limit={limit:.4}:attack={attack:.4}:release={release:.4}"
+        ));
+    } else {
+        filters.push("alimiter=limit=0.95".to_string());
+    }
     filters.join(",")
 }
 

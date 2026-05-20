@@ -12,7 +12,8 @@
       "Bash(git pull *)",
       "Bash(git merge *)",
       "Bash(cargo check *)",
-      "Bash(rustup component *)"
+      "Bash(rustup component *)",
+      "Bash(git commit -m ' *2)"
     ]
   }
 }

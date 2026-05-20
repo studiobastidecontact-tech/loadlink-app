@@ -2415,6 +2415,62 @@ body.dark .libreoffice-warning {
   font-size: 11px;
 }
 
+.audio-slider-panel {
+  margin-top: 14px;
+  display: grid;
+  gap: 14px;
+}
+
+.audio-slider-panel.disabled {
+  opacity: .48;
+}
+
+.audio-slider-controls {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.audio-slider-control {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  display: grid;
+  grid-template-columns: 130px 1fr 64px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.audio-slider-control .audio-slider-label {
+  color: var(--text2);
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.audio-slider-control input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.audio-slider-control strong {
+  color: var(--text);
+  font-family: 'DM Mono', 'DM Sans', monospace;
+  font-size: 12px;
+  text-align: right;
+}
+
+.audio-slider-control .audio-slider-hint {
+  grid-column: 1 / -1;
+  color: var(--text2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10.5px;
+  margin-top: 4px;
+  opacity: 0.85;
+}
+
 .audio-wave-panel {
   background: var(--surface);
   border: 1px solid var(--border);

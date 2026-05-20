@@ -901,11 +901,11 @@ const AUDIO_PRESET_LABELS = {
   chain: "Chaine d'effets",
 };
 const AUDIO_DEFAULT_EFFECTS = [
-  { key: "eq", label: "EQ Parametrique", enabled: true },
+  { key: "eq", label: "EQ Paramétrique", enabled: true },
   { key: "compressor", label: "Compresseur", enabled: true },
-  { key: "deesser", label: "De-esser", enabled: true },
-  { key: "denoise", label: "Denoise", enabled: true },
-  { key: "reverb", label: "Reverberation", enabled: false },
+  { key: "deesser", label: "De-esser", enabled: false },
+  { key: "denoise", label: "Denoise", enabled: false },
+  { key: "reverb", label: "Réverbération", enabled: false },
   { key: "limiter", label: "Limiter", enabled: true },
 ];
 const AUDIO_DEFAULT_EQ_BANDS = [
@@ -927,10 +927,10 @@ function createDefaultEffectChain() {
   return {
     eq: { enabled: true, bands: AUDIO_DEFAULT_EQ_BANDS.map((band) => ({ ...band })) },
     compressor: { enabled: true, ...AUDIO_DEFAULT_COMPRESSOR },
-    deesser: { enabled: true, intensity: 0 },
-    denoise: { enabled: true, amount: 0 },
+    deesser: { enabled: false, intensity: 0.35, frequency: 0.55, mode: 0.5 },
+    denoise: { enabled: false, amount: 12, noiseFloor: -25 },
     reverb: { enabled: false },
-    limiter: { enabled: true },
+    limiter: { enabled: true, ceiling: -0.5, attack: 5, release: 50 },
     silence: { enabled: false, threshold: -35, duration: 0.4 },
     loudnorm: { enabled: false, targetLufs: -16 },
   };
@@ -947,7 +947,7 @@ function resetAudioEffectChainForPreset(presetKey) {
       { ...AUDIO_DEFAULT_EQ_BANDS[4], freq: 12000, gain: 1 },
     ];
     chain.compressor = { enabled: true, threshold: -18, ratio: 3, attack: 5, release: 80, makeup: 2 };
-    chain.denoise = { enabled: true, amount: 14 };
+    chain.denoise = { ...chain.denoise, enabled: true, amount: 14, noiseFloor: -25 };
     chain.loudnorm = { enabled: true, targetLufs: -16 };
   }
   if (presetKey === "voice_memo") {
@@ -959,7 +959,7 @@ function resetAudioEffectChainForPreset(presetKey) {
       { ...AUDIO_DEFAULT_EQ_BANDS[4], freq: 10000, gain: 1.5 },
     ];
     chain.compressor = { enabled: true, threshold: -22, ratio: 4, attack: 3, release: 100, makeup: 3 };
-    chain.denoise = { enabled: true, amount: 22 };
+    chain.denoise = { ...chain.denoise, enabled: true, amount: 22, noiseFloor: -30 };
     chain.loudnorm = { enabled: true, targetLufs: -15 };
   }
   if (presetKey === "podcast_interview") {
@@ -971,8 +971,8 @@ function resetAudioEffectChainForPreset(presetKey) {
       { ...AUDIO_DEFAULT_EQ_BANDS[4], freq: 12000, gain: 1 },
     ];
     chain.compressor = { enabled: true, threshold: -20, ratio: 3, attack: 8, release: 120, makeup: 2 };
-    chain.deesser = { enabled: true, intensity: 0.35 };
-    chain.denoise = { enabled: true, amount: 10 };
+    chain.deesser = { ...chain.deesser, enabled: true, intensity: 0.35, frequency: 0.55, mode: 0.5 };
+    chain.denoise = { ...chain.denoise, enabled: true, amount: 10, noiseFloor: -22 };
     chain.loudnorm = { enabled: true, targetLufs: -16 };
   }
   audioState.effectChain = chain;
@@ -1369,17 +1369,21 @@ function renderAudioEffectDetail() {
     return;
   }
 
-  let body = `<div class="audio-effect-detail-placeholder">Parametres - Disponibles en Phase H</div>`;
+  let body = `<div class="audio-effect-detail-placeholder">Paramètres bientôt disponibles.</div>`;
   if (effect.key === "eq") body = renderAudioEqPanel();
   if (effect.key === "compressor") body = renderAudioCompressorPanel();
+  if (effect.key === "deesser") body = renderAudioDeEsserPanel();
+  if (effect.key === "denoise") body = renderAudioDenoisePanel();
+  if (effect.key === "limiter") body = renderAudioLimiterPanel();
+  if (effect.key === "reverb") body = `<div class="audio-effect-detail-placeholder">Réverbération bientôt disponible (impulse response).</div>`;
 
   detail.innerHTML = `
     <div class="audio-effect-detail-head">
       <div>
-        <div class="audio-effect-detail-kicker">Effet selectionne</div>
+        <div class="audio-effect-detail-kicker">Effet sélectionné</div>
         <div class="audio-effect-detail-title">${effect.label}</div>
       </div>
-      <button type="button" class="audio-effect-power${effect.enabled ? " on" : ""}" id="audio-effect-power" title="Activer / desactiver">
+      <button type="button" class="audio-effect-power${effect.enabled ? " on" : ""}" id="audio-effect-power" title="Activer / désactiver">
         <span></span>
       </button>
     </div>
@@ -1389,6 +1393,94 @@ function renderAudioEffectDetail() {
   detail.querySelector("#audio-effect-power")?.addEventListener("click", () => toggleAudioEffect(effect.key));
   bindAudioEqPanel(detail);
   bindAudioCompressorPanel(detail);
+  bindAudioDeEsserPanel(detail);
+  bindAudioDenoisePanel(detail);
+  bindAudioLimiterPanel(detail);
+}
+
+function renderAudioSliderPanel(chainKey, enabled, controls, resetId) {
+  return `
+    <div class="audio-slider-panel${enabled ? "" : " disabled"}">
+      <div class="audio-slider-controls">
+        ${controls.map((control) => {
+          const value = control.value;
+          return `
+            <label class="audio-slider-control">
+              <span class="audio-slider-label">${control.label}</span>
+              <input type="range" data-slider-key="${chainKey}.${control.key}" min="${control.min}" max="${control.max}" step="${control.step}" value="${value}" />
+              <strong data-slider-value="${chainKey}.${control.key}">${formatAudioSliderValue(value, control.unit, control.precision)}</strong>
+              ${control.hint ? `<small class="audio-slider-hint">${control.hint}</small>` : ""}
+            </label>
+          `;
+        }).join("")}
+      </div>
+      <button type="button" class="audio-effect-reset" data-reset="${resetId}">Reset</button>
+    </div>
+  `;
+}
+
+function formatAudioSliderValue(value, unit, precision) {
+  const p = Number.isFinite(precision) ? precision : (Math.abs(value) < 10 ? 2 : 1);
+  return `${Number(value).toFixed(p)}${unit ? unit : ""}`;
+}
+
+function renderAudioDeEsserPanel() {
+  const d = audioState.effectChain.deesser;
+  return renderAudioSliderPanel("deesser", d.enabled, [
+    { key: "intensity", label: "Intensité", min: 0, max: 1, step: 0.01, value: d.intensity, precision: 2, hint: "0 = aucun · 1 = maximum" },
+    { key: "frequency", label: "Fréquence", min: 0.2, max: 1, step: 0.01, value: d.frequency, precision: 2, hint: "0.2 = grave · 1.0 = aigu" },
+    { key: "mode", label: "Mode", min: 0.1, max: 1, step: 0.01, value: d.mode, precision: 2, hint: "0.1 = doux · 1 = ferme" },
+  ], "deesser");
+}
+
+function renderAudioDenoisePanel() {
+  const d = audioState.effectChain.denoise;
+  return renderAudioSliderPanel("denoise", d.enabled, [
+    { key: "amount", label: "Intensité (dB)", min: 1, max: 30, step: 0.5, value: d.amount, precision: 1, hint: "1 = subtil · 30 = agressif" },
+    { key: "noiseFloor", label: "Plancher de bruit (dB)", min: -50, max: -20, step: 0.5, value: d.noiseFloor, precision: 1, hint: "-50 = silence très bas · -20 = pièce bruyante" },
+  ], "denoise");
+}
+
+function renderAudioLimiterPanel() {
+  const l = audioState.effectChain.limiter;
+  return renderAudioSliderPanel("limiter", l.enabled, [
+    { key: "ceiling", label: "Plafond (dB)", min: -3, max: 0, step: 0.1, value: l.ceiling, precision: 1, hint: "True peak max · -0.5 dB conseillé" },
+    { key: "attack", label: "Attaque (ms)", min: 1, max: 50, step: 1, value: l.attack, precision: 0, hint: "Plus court = plus réactif" },
+    { key: "release", label: "Release (ms)", min: 10, max: 500, step: 5, value: l.release, precision: 0, hint: "Plus long = plus doux" },
+  ], "limiter");
+}
+
+function bindAudioSliderPanel(root, chainKey, defaults, beforeSchedule) {
+  root.querySelectorAll(`[data-slider-key^="${chainKey}."]`).forEach((input) => {
+    input.addEventListener("input", () => {
+      const [, paramKey] = input.dataset.sliderKey.split(".");
+      audioState.effectChain[chainKey][paramKey] = Number(input.value);
+      const valueEl = root.querySelector(`[data-slider-value="${chainKey}.${paramKey}"]`);
+      if (valueEl) {
+        const unit = paramKey === "intensity" || paramKey === "frequency" || paramKey === "mode" ? "" : (paramKey === "ceiling" || paramKey === "noiseFloor" || paramKey === "amount" ? " dB" : " ms");
+        valueEl.textContent = formatAudioSliderValue(Number(input.value), unit, paramKey.includes("Floor") || paramKey === "ceiling" ? 1 : (paramKey === "attack" || paramKey === "release" ? 0 : 2));
+      }
+      if (typeof beforeSchedule === "function") beforeSchedule();
+      if (audioState.effectChain[chainKey].enabled) scheduleAudioChainRender(400);
+    });
+  });
+  root.querySelector(`[data-reset="${chainKey}"]`)?.addEventListener("click", () => {
+    Object.assign(audioState.effectChain[chainKey], defaults);
+    renderAudioEffectsSidebar();
+    if (audioState.effectChain[chainKey].enabled) scheduleAudioChainRender(300);
+  });
+}
+
+function bindAudioDeEsserPanel(root) {
+  bindAudioSliderPanel(root, "deesser", { intensity: 0.35, frequency: 0.55, mode: 0.5 });
+}
+
+function bindAudioDenoisePanel(root) {
+  bindAudioSliderPanel(root, "denoise", { amount: 12, noiseFloor: -25 });
+}
+
+function bindAudioLimiterPanel(root) {
+  bindAudioSliderPanel(root, "limiter", { ceiling: -0.5, attack: 5, release: 50 });
 }
 
 function renderAudioEqPanel() {
@@ -1798,13 +1890,32 @@ function buildAudioEffectPayload() {
       });
     }
     if (effect.key === "deesser") {
-      ordered.push({ type: "de_esser", enabled: Boolean(chain.deesser.enabled), intensity: chain.deesser.intensity });
+      ordered.push({
+        type: "de_esser",
+        enabled: Boolean(chain.deesser.enabled),
+        intensity: Number(chain.deesser.intensity),
+        frequency: Number(chain.deesser.frequency),
+        mode: Number(chain.deesser.mode),
+      });
     }
     if (effect.key === "denoise") {
-      ordered.push({ type: "denoise", enabled: Boolean(chain.denoise.enabled), amount: chain.denoise.amount });
+      ordered.push({
+        type: "denoise",
+        enabled: Boolean(chain.denoise.enabled),
+        amount: Number(chain.denoise.amount),
+        noise_floor: Number(chain.denoise.noiseFloor),
+      });
     }
     if (effect.key === "reverb") ordered.push({ type: "reverb", enabled: Boolean(chain.reverb.enabled) });
-    if (effect.key === "limiter") ordered.push({ type: "limiter", enabled: Boolean(chain.limiter.enabled) });
+    if (effect.key === "limiter") {
+      ordered.push({
+        type: "limiter",
+        enabled: Boolean(chain.limiter.enabled),
+        ceiling: Number(chain.limiter.ceiling),
+        attack: Number(chain.limiter.attack),
+        release: Number(chain.limiter.release),
+      });
+    }
   });
 
   ordered.push({
