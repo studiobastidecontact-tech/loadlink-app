@@ -1,5 +1,7 @@
 //! # LoadLink — Main Tauri orchestrator
 
+mod v2;
+
 use loadlink_audio_master::{
     analyze as audio_analyze_run, apply_chain as audio_apply_chain_run,
     apply_master_chain as audio_apply_master_run, apply_mix as audio_apply_mix_run,
@@ -33,6 +35,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager, State};
 use tokio::process::Command;
+use v2::audio_decode::v2_probe_media_file;
+use v2::project_io::{v2_read_project_file, v2_write_project_file};
 
 // ============================================
 // State
@@ -1121,6 +1125,10 @@ pub fn run() {
             // Phase 4.5 Lire (player)
             read_text_file,
             write_text_file,
+            // Audio Timeline V2
+            v2_probe_media_file,
+            v2_read_project_file,
+            v2_write_project_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

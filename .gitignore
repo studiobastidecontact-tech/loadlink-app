@@ -11,6 +11,7 @@ node_modules
 # Build outputs
 dist
 dist-ssr
+dist-v2
 *.local
 
 # Rust build outputs (HUGE — never commit)
@@ -52,6 +53,7 @@ src-tauri/binaries/ffmpeg-x86_64-apple-darwin
 
 src-tauri/binaries/test.mp4
 src-tauri/binaries/*.mp4
+src-tauri/Music/
 
 # Phase 1 migration backup
 src-tauri/src/lib.rs.OLD
@@ -60,7 +62,3 @@ src-tauri/src/lib.rs.OLD
 # Phase 4 - Python embeddable (use setup-python.ps1 to install)
 # Whole python/ dir is ignored; whisper_runner.py is force-added with git add -f
 src-tauri/binaries/python/
-
-# Phase A — dev-time generated audio outputs (when running `cargo run` from src-tauri/)
-src-tauri/Music/
-src-tauri/Videos/
