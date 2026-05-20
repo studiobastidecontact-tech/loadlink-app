@@ -3313,6 +3313,8 @@ function loadAudioFile(path) {
   audioState.masterGainDb = 0;
   resetAudioHistory();
   commitAudioHistorySnapshot();
+  bindAudioMasterPlayerOnce();
+  applyAudioMasterSource("original", { preserveTime: false });
   audioUpdateUI();
   analyzeAudioFile(path);
   requestAnimationFrame(() => loadAudioWaveform("original", path, { activate: true }));
@@ -4104,6 +4106,11 @@ async function runAudioPreviewChain() {
     audioState.resultDuration = null;
     if (!audioState.currentPreset) audioState.currentPreset = "chain";
     audioState.previewProcessing = false;
+    // If the user is currently listening to the result buffer, refresh the master
+    // audio source so the next preview is audible.
+    if (audioState.currentSrc === "result") {
+      applyAudioMasterSource("result", { preserveTime: true });
+    }
     audioUpdateUI();
     requestAnimationFrame(() => loadAudioWaveform("result", outputPath, {
       activate: false,
@@ -4201,6 +4208,7 @@ async function runAudioEffectChain(options = {}) {
     audioState.processingPreset = null;
     audioState.fullChainPath = outputPath;
     audioState.fullChainStale = false;
+    applyAudioMasterSource("result", { preserveTime: true });
     audioUpdateUI();
     requestAnimationFrame(() => loadAudioWaveform("result", outputPath, {
       activate: true,
@@ -4396,21 +4404,162 @@ function renderAudioStudioHeader(hasMedia) {
   if (exportBtn) exportBtn.disabled = !audioState.resultPath || audioState.processing;
 }
 
-function audioTogglePlayback() {
-  const player = getAudioPlayer(audioState.currentSrc);
-  if (player.wave) {
-    player.wave.playPause();
+// =============================================================================
+// Master audio player (single source of truth for playback)
+// =============================================================================
+// We use a dedicated <audio id="audio-master-player"> as the only sound-emitting
+// element. The two wavesurfer instances (original + result) are muted via
+// setVolume(0) and used only to render waveforms. The master <audio> source is
+// swapped between originalPath and resultPath when the user toggles A/B; the
+// wavesurfer cursors are kept in sync via timeupdate. This fixes the bug where
+// switching to "Résultat" left the user hearing the original because pause/play
+// across two wavesurfer instances was unreliable on this build.
+
+let audioMasterEl = null;
+let audioMasterCurrentPath = null;
+
+function getAudioMasterEl() {
+  if (!audioMasterEl) audioMasterEl = document.getElementById("audio-master-player");
+  return audioMasterEl;
+}
+
+function audioMasterPathFor(source) {
+  return source === "result" ? audioState.resultPath : audioState.mediaPath;
+}
+
+function applyAudioMasterSource(source, options = {}) {
+  const audio = getAudioMasterEl();
+  if (!audio) return;
+  const path = audioMasterPathFor(source);
+  if (!path) return;
+  const newSrc = getAudioAssetSrc(path);
+  const preserveTime = options.preserveTime !== false;
+  const previousTime = preserveTime ? (audio.currentTime || 0) : 0;
+  const shouldPlay = options.autoplay === true
+    || (options.resumeIfPlaying === true && !audio.paused);
+
+  console.log("[audio] master source →", source, "(", newSrc, ") wasPlaying=", !audio.paused, "preserveTime=", previousTime);
+
+  if (audioMasterCurrentPath === path && audio.src === newSrc) {
+    if (shouldPlay && audio.paused) {
+      audio.play().catch((err) => console.warn("[audio] master.play failed:", err));
+    }
     return;
   }
 
-  if (!player.fallback) return;
-  if (player.fallback.paused) {
-    player.fallback.play().catch((err) => {
-      console.error("[audio] fallback play failed:", err);
+  audioMasterCurrentPath = path;
+  audio.src = newSrc;
+  audio.load();
+
+  const restoreAndMaybePlay = () => {
+    if (previousTime > 0 && Number.isFinite(audio.duration) && previousTime < audio.duration) {
+      try { audio.currentTime = previousTime; } catch (_) { /* ignore */ }
+    }
+    if (shouldPlay) {
+      audio.play().catch((err) => console.warn("[audio] master.play failed:", err));
+    }
+  };
+
+  if (audio.readyState >= 2) {
+    // metadata already available (cached)
+    restoreAndMaybePlay();
+  } else {
+    audio.addEventListener("loadedmetadata", restoreAndMaybePlay, { once: true });
+  }
+}
+
+function audioMasterPlay() {
+  const audio = getAudioMasterEl();
+  if (!audio) return;
+  if (!audio.src) {
+    // No source yet — initialise from current state.
+    applyAudioMasterSource(audioState.currentSrc || "original", { autoplay: true });
+    return;
+  }
+  audio.play().catch((err) => console.warn("[audio] master.play failed:", err));
+}
+
+function audioMasterPause() {
+  const audio = getAudioMasterEl();
+  if (audio && !audio.paused) audio.pause();
+}
+
+function audioMasterIsPlaying() {
+  const audio = getAudioMasterEl();
+  return Boolean(audio && !audio.paused && audio.currentTime > 0 && !audio.ended);
+}
+
+function audioMasterSeek(time) {
+  const audio = getAudioMasterEl();
+  if (!audio || !Number.isFinite(time)) return;
+  try { audio.currentTime = Math.max(0, time); } catch (_) { /* ignore */ }
+}
+
+function audioMasterCurrentTime() {
+  const audio = getAudioMasterEl();
+  return audio ? (audio.currentTime || 0) : 0;
+}
+
+function audioMasterDuration() {
+  const audio = getAudioMasterEl();
+  return audio ? (audio.duration || 0) : 0;
+}
+
+function bindAudioMasterPlayerOnce() {
+  const audio = getAudioMasterEl();
+  if (!audio || audio.dataset.bound) return;
+  audio.dataset.bound = "1";
+  audio.addEventListener("play", () => {
+    setAudioPlayButton(true);
+    // Hook the AnalyserNode on first play (autoplay policy can block creation
+    // before user gesture, so we defer until the master actually starts).
+    attachAudioLiveMeterToMaster();
+  });
+  audio.addEventListener("pause", () => {
+    setAudioPlayButton(false);
+  });
+  audio.addEventListener("ended", () => {
+    setAudioPlayButton(false);
+  });
+  audio.addEventListener("timeupdate", () => {
+    const t = audio.currentTime || 0;
+    const d = audio.duration || 0;
+    updateAudioTransport(t, d);
+    // Mirror cursor onto both wavesurfer instances so the visual follows.
+    syncWavesurferCursorsToMaster(t);
+  });
+  audio.addEventListener("loadedmetadata", () => {
+    const d = audio.duration || 0;
+    updateAudioTransport(audio.currentTime || 0, d);
+    setAudioTransportEnabled(d > 0);
+  });
+}
+
+function syncWavesurferCursorsToMaster(time) {
+  ["original", "result"].forEach((src) => {
+    const wave = getAudioPlayer(src).wave;
+    if (!wave) return;
+    const duration = (typeof wave.getDuration === "function" ? wave.getDuration() : 0) || 0;
+    if (!duration) return;
+    const fraction = Math.min(1, Math.max(0, time / duration));
+    try {
+      if (typeof wave.seekTo === "function") wave.seekTo(fraction);
+    } catch (_) { /* wavesurfer not ready yet */ }
+  });
+}
+
+function audioTogglePlayback() {
+  bindAudioMasterPlayerOnce();
+  const audio = getAudioMasterEl();
+  if (!audio) return;
+  if (audio.paused) {
+    if (!audio.src) applyAudioMasterSource(audioState.currentSrc || "original");
+    audio.play().catch((err) => {
+      console.warn("[audio] master.play rejected:", err);
       showToast("Lecture impossible", 2500);
     });
   } else {
-    player.fallback.pause();
+    audio.pause();
   }
 }
 
@@ -4686,8 +4835,12 @@ async function runAudioPreset(presetKey, options = {}) {
     audioState.lastErrorPreset = null;
     audioState.fullChainPath = outputPath;
     audioState.fullChainStale = false;
+    audioState.currentSrc = "result";
     resetAudioEffectChainForPreset(presetKey);
     resetAudioRefineState(false);
+    // Swap the master <audio> to the freshly-rendered result file so the next
+    // Play press emits the processed audio, not the original.
+    applyAudioMasterSource("result", { preserveTime: true });
     audioUpdateUI();
 
     const previousTime = Math.min(getAudioSourceCurrentTime("original"), getAudioSourceDuration("original") || Infinity);
@@ -4828,6 +4981,11 @@ function loadAudioWaveform(source, path, options = {}) {
         return;
       }
       setAudioWave(source, wave);
+      // Mute wavesurfer's own audio output — the dedicated <audio id="audio-
+      // master-player"> drives playback. Wavesurfer keeps decoding the buffer
+      // for visualisation and cursor sync.
+      try { if (typeof wave.setVolume === "function") wave.setVolume(0); } catch (_) { /* ignore */ }
+      try { if (typeof wave.setMuted === "function") wave.setMuted(true); } catch (_) { /* ignore */ }
       hookAudioWaveListeners(source, wave, container, token, options, src);
     };
     startCreate();
@@ -4852,20 +5010,27 @@ function hookAudioWaveListeners(source, wave, container, token, options, src) {
       if (options.activate || audioState.currentSrc === source) {
         setActiveAudioSource(source, { preservePosition: false });
       }
-      if (source === audioState.currentSrc) attachAudioLiveMeter(wave);
+      // VU meter is now driven by the master <audio> (attachAudioLiveMeterToMaster
+      // is hooked from bindAudioMasterPlayerOnce on first play). No per-wave
+      // attach needed — wavesurfer is muted.
     }));
 
-    trackAudioWaveSubscription(wave, wave.on("timeupdate", (time) => {
-      if (source !== audioState.currentSrc || token !== audioLoadTokens[source]) return;
-      updateAudioTransport(time, wave.getDuration());
+    trackAudioWaveSubscription(wave, wave.on("timeupdate", () => {
+      // Wavesurfer is muted and used only for visualisation. Transport progress
+      // is owned by the master <audio> via its own timeupdate listener.
     }));
-    trackAudioWaveSubscription(wave, wave.on("audioprocess", (time) => {
-      if (source !== audioState.currentSrc || token !== audioLoadTokens[source]) return;
-      updateAudioTransport(time, wave.getDuration());
+    trackAudioWaveSubscription(wave, wave.on("audioprocess", () => {
+      // Master <audio> drives progress now.
     }));
     trackAudioWaveSubscription(wave, wave.on("seeking", (time) => {
+      // User clicked the waveform — pipe the seek through to the master so
+      // playback (and the cursor on the OTHER wave) follows.
       if (source !== audioState.currentSrc || token !== audioLoadTokens[source]) return;
-      updateAudioTransport(time, wave.getDuration());
+      audioMasterSeek(time);
+    }));
+    trackAudioWaveSubscription(wave, wave.on("interaction", (time) => {
+      if (source !== audioState.currentSrc || token !== audioLoadTokens[source]) return;
+      if (Number.isFinite(time)) audioMasterSeek(time);
     }));
     trackAudioWaveSubscription(wave, wave.on("play", () => {
       if (source === audioState.currentSrc) setAudioPlayButton(true);
@@ -5054,33 +5219,21 @@ function setActiveAudioSource(source, options = {}) {
     syncAudioTransportFromPlayer();
     return;
   }
-  const previousSrc = audioState.currentSrc;
-  const wasPlaying = isAudioSourcePlaying(previousSrc);
-  const previousTime = options.preservePosition === false ? 0 : getAudioSourceCurrentTime(previousSrc);
-  const nextTime = Number.isFinite(options.seekTime) ? options.seekTime : previousTime;
-  pauseAudioSource(previousSrc);
+  bindAudioMasterPlayerOnce();
+  const audio = getAudioMasterEl();
+  const wasPlaying = audio ? !audio.paused : false;
   audioState.currentSrc = source;
-  if (nextTime > 0) seekAudioSource(source, nextTime);
+  // Pivot the master <audio> element to the new source. The wavesurfer instances
+  // remain in place (muted) so the visual layout is unchanged; the cursor sync
+  // via timeupdate keeps both waveforms in lockstep with the audible playback.
+  applyAudioMasterSource(source, {
+    preserveTime: options.preservePosition !== false,
+    autoplay: false,
+    resumeIfPlaying: wasPlaying,
+  });
   renderAudioAbToggle();
   syncAudioTransportFromPlayer();
-  const activeWave = getAudioPlayer(source).wave;
-  if (activeWave) attachAudioLiveMeter(activeWave);
-  // Seamless A/B: if playback was running, resume on the new source at the same
-  // position so the user can hear the difference without a play-button round trip.
-  if (wasPlaying) {
-    const player = getAudioPlayer(source);
-    try {
-      if (player.wave && typeof player.wave.play === "function") {
-        player.wave.play();
-      } else if (player.fallback && player.fallback.paused) {
-        player.fallback.play().catch(() => {});
-      }
-    } catch (err) {
-      console.warn("[audio] resume after A/B switch failed:", err);
-    }
-    setAudioPlayButton(true);
-  }
-  // Keep the FX toggle in sync with the active source (Fix 3 — to be wired below)
+  if (wasPlaying) setAudioPlayButton(true);
   syncAudioFxToggle();
 }
 
@@ -5097,6 +5250,8 @@ function syncAudioFxToggle() {
 }
 
 function getAudioSourceCurrentTime(source) {
+  // Master <audio> is the source of truth for playback time across all sources.
+  if (source === audioState.currentSrc) return audioMasterCurrentTime();
   const player = getAudioPlayer(source);
   if (player.wave && typeof player.wave.getCurrentTime === "function") return player.wave.getCurrentTime() || 0;
   if (player.fallback) return player.fallback.currentTime || 0;
@@ -5111,27 +5266,33 @@ function getAudioSourceDuration(source) {
 }
 
 function seekAudioSource(source, time) {
+  if (source === audioState.currentSrc) {
+    audioMasterSeek(time);
+    return;
+  }
+  // For non-active sources we still update their wavesurfer cursor for visual.
   const duration = getAudioSourceDuration(source);
   if (!duration || !Number.isFinite(duration)) return;
   const safeTime = Math.min(Math.max(time || 0, 0), duration);
   const player = getAudioPlayer(source);
   if (player.wave) {
-    player.wave.seekTo(safeTime / duration);
+    try { player.wave.seekTo(safeTime / duration); } catch (_) { /* ignore */ }
     return;
   }
   if (player.fallback) player.fallback.currentTime = safeTime;
 }
 
 function pauseAudioSource(source) {
-  const player = getAudioPlayer(source);
-  if (player.wave && typeof player.wave.pause === "function") player.wave.pause();
-  if (player.fallback && !player.fallback.paused) player.fallback.pause();
+  // With the master <audio> doing playback, pausing a "source" means pausing
+  // the master if that source is currently active. Wavesurfers are muted.
+  if (source === audioState.currentSrc) {
+    audioMasterPause();
+  }
 }
 
 function isAudioSourcePlaying(source) {
-  const player = getAudioPlayer(source);
-  if (player.wave && typeof player.wave.isPlaying === "function") return player.wave.isPlaying();
-  return Boolean(player.fallback && !player.fallback.paused);
+  if (source === audioState.currentSrc) return audioMasterIsPlaying();
+  return false;
 }
 
 function openAudioExportModal() {
@@ -5468,6 +5629,46 @@ function ensureAudioMeterContext() {
   } catch (err) {
     console.warn("[audio] AudioContext init failed:", err);
     return null;
+  }
+}
+
+function attachAudioLiveMeterToMaster() {
+  // VU meter is attached to the dedicated <audio> master so the bars react to
+  // whatever buffer is currently playing (original or result), regardless of
+  // which wavesurfer instance is rendering the waveform.
+  const audio = getAudioMasterEl();
+  if (!audio) return;
+  if (audioMeterFor === audio) {
+    if (audioMeterCtx?.state === "suspended") audioMeterCtx.resume().catch(() => {});
+    return;
+  }
+  detachAudioLiveMeter();
+  const ctx = ensureAudioMeterContext();
+  if (!ctx) return;
+  try {
+    let source = audio.__loadlinkMediaSource;
+    if (!source) {
+      source = ctx.createMediaElementSource(audio);
+      audio.__loadlinkMediaSource = source;
+    }
+    const splitter = ctx.createChannelSplitter(2);
+    const lAnalyser = ctx.createAnalyser();
+    const rAnalyser = ctx.createAnalyser();
+    lAnalyser.fftSize = 1024;
+    rAnalyser.fftSize = 1024;
+    lAnalyser.smoothingTimeConstant = 0.2;
+    rAnalyser.smoothingTimeConstant = 0.2;
+    try { source.disconnect(); } catch (_) { /* may not be connected yet */ }
+    source.connect(splitter);
+    splitter.connect(lAnalyser, 0);
+    splitter.connect(rAnalyser, 1);
+    source.connect(ctx.destination);
+    audioMeterFor = audio;
+    audioMeterAnalysers = { lAnalyser, rAnalyser, source, splitter, audio };
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    if (!audioMeterRafId) audioMeterRafId = requestAnimationFrame(audioMeterLoop);
+  } catch (err) {
+    console.warn("[audio] master meter attach failed:", err);
   }
 }
 

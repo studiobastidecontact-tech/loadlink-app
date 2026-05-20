@@ -21,7 +21,11 @@
       "Bash(grep -nC1 \"audio-level-switch \\\\[data-audio-level\\\\]\" ../src/main.js)",
       "Bash(grep -nC1 \"data-beginner-preset\" ../src/main.js)",
       "Bash(grep -nC1 \"audio-amateur-targets\" ../src/main.js)",
-      "Bash(grep -nC2 \"audio-ab-toggle\\\\|data-audio-source\" ../src/main.js)"
+      "Bash(grep -nC2 \"audio-ab-toggle\\\\|data-audio-source\" ../src/main.js)",
+      "Bash(echo \"JS syntax: $?\")",
+      "Bash(grep -nA1 'audio-workspace' ../src/styles.css)",
+      "Bash(grep -nA1 '^.audio-studio-header' ../src/styles.css)",
+      "Bash(grep -nA1 'audio-library-body' ../src/styles.css)"
     ]
   }
 }
