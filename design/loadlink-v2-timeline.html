@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>LoadLink V2 — Timeline multi-pistes (Chantier 1)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", "DM Sans", sans-serif;
+    background: #0a0a0a;
+    color: #e5e5e5;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .app { display: grid; grid-template-columns: 220px 1fr 320px; height: 100vh; }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    background: #0f0f0f;
+    border-right: 1px solid #1a1a1a;
+    padding: 16px 12px;
+    overflow-y: auto;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 8px 18px;
+    font-weight: 600; font-size: 15px;
+  }
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: #2B6FE6;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sb-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    color: #888;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .sb-item:hover { background: #1a1a1a; color: #fff; }
+  .sb-item.active { background: #1a1a1a; color: #fff; }
+  .sb-section {
+    font-size: 10px; color: #555;
+    padding: 14px 10px 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ===== MAIN ===== */
+  .main { display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+  /* Header */
+  .header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 18px;
+    border-bottom: 1px solid #1a1a1a;
+    height: 56px; flex-shrink: 0;
+  }
+  .back-btn {
+    width: 30px; height: 30px;
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    border-radius: 7px;
+    color: #aaa;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .h-title { flex-grow: 1; min-width: 0; }
+  .h-title-main {
+    font-size: 14px; font-weight: 500; color: #fff;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .h-title-sub { font-size: 11px; color: #777; }
+  .level-switch {
+    display: inline-flex;
+    background: #1a1a1a;
+    border: 1px solid #252525;
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .level-btn {
+    background: transparent; color: #999;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px; font-weight: 500;
+  }
+  .level-btn.active { background: #2B6FE6; color: #fff; }
+
+  /* ===== VIDEO PREVIEW ===== */
+  .video-zone {
+    background: #000;
+    border-bottom: 1px solid #1a1a1a;
+    height: 200px;
+    flex-shrink: 0;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    color: #444;
+    font-size: 11px;
+    overflow: hidden;
+  }
+  .video-placeholder {
+    width: 280px; height: 158px;
+    background: #1a1a1a;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: #444;
+    position: relative;
+  }
+  .video-placeholder::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    border-style: solid;
+    border-width: 12px 0 12px 18px;
+    border-color: transparent transparent transparent #555;
+  }
+  .timecode-overlay {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: rgba(0,0,0,0.7);
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: #fff;
+    font-family: monospace;
+    font-size: 12px;
+  }
+  .video-controls {
+    position: absolute;
+    bottom: 10px;
+    display: flex; gap: 8px;
+    align-items: center;
+  }
+  .vc-btn {
+    width: 26px; height: 26px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid #333;
+    border-radius: 5px;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 11px;
+  }
+
+  /* ===== TIMELINE RULER ===== */
+  .timeline-ruler-wrapper {
+    display: flex;
+    background: #0f0f0f;
+    border-bottom: 1px solid #1a1a1a;
+    height: 30px;
+    flex-shrink: 0;
+  }
+  .track-header-spacer {
+    width: 180px;
+    border-right: 1px solid #1a1a1a;
+    background: #0d0d0d;
+    flex-shrink: 0;
+  }
+  .timeline-ruler {
+    flex-grow: 1;
+    overflow: hidden;
+    position: relative;
+  }
+  .ruler-svg {
+    width: 100%; height: 100%;
+    display: block;
+  }
+  .playhead-vertical {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    background: #E8390C;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .playhead-handle {
+    position: absolute;
+    top: -2px;
+    width: 12px; height: 14px;
+    background: #E8390C;
+    margin-left: -5px;
+    clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%);
+    pointer-events: auto;
+    cursor: ew-resize;
+  }
+
+  /* ===== TRACKS AREA ===== */
+  .tracks-area {
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .track-row {
+    display: flex;
+    height: 78px;
+    border-bottom: 1px solid #161616;
+    position: relative;
+  }
+  .track-row.selected .track-header { background: #15203a; }
+  .track-row.selected .track-canvas { background: #0d1525; }
+
+  .track-header {
+    width: 180px;
+    padding: 8px 10px;
+    background: #0f0f0f;
+    border-right: 1px solid #1a1a1a;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+  }
+  .track-name-row {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .track-color-dot {
+    width: 4px; height: 18px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .track-name {
+    font-size: 12px; color: #fff; font-weight: 500;
+    flex-grow: 1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .track-menu {
+    color: #555; font-size: 12px; padding: 2px;
+  }
+  .track-controls {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 10px;
+  }
+  .ms-btn {
+    width: 18px; height: 18px;
+    background: #1a1a1a;
+    border: 1px solid #252525;
+    border-radius: 3px;
+    color: #777;
+    font-size: 9px; font-weight: 600;
+    cursor: pointer;
+  }
+  .ms-btn.mute.active { background: #e24b4a; color: #fff; border-color: #e24b4a; }
+  .ms-btn.solo.active { background: #f5c842; color: #000; border-color: #f5c842; }
+  .ms-btn.rec.active { background: #e24b4a; color: #fff; border-color: #e24b4a; }
+  .gain-mini {
+    flex-grow: 1;
+    height: 3px;
+    background: #1a1a1a;
+    border-radius: 2px;
+    position: relative;
+    margin: 0 4px;
+  }
+  .gain-mini-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: #2B6FE6;
+    border-radius: 2px;
+  }
+  .gain-mini-fill::after {
+    content: '';
+    position: absolute;
+    right: -4px; top: -3px;
+    width: 8px; height: 9px;
+    background: #fff;
+    border-radius: 2px;
+  }
+  .gain-val { color: #888; min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; font-size: 9px; }
+  .track-meter-mini {
+    display: flex; gap: 2px;
+    margin-top: 2px;
+  }
+  .meter-bar-mini {
+    flex-grow: 1; height: 3px;
+    background: #1a1a1a;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .meter-bar-mini-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: linear-gradient(90deg, #1D9E75 0%, #BA7517 75%, #E24B4A 100%);
+  }
+
+  .track-canvas {
+    flex-grow: 1;
+    background: #0d0d0d;
+    position: relative;
+    overflow: hidden;
+    background-image: repeating-linear-gradient(
+      to right,
+      transparent 0,
+      transparent 79px,
+      #141414 79px,
+      #141414 80px
+    );
+  }
+
+  /* ===== AUDIO CLIPS ===== */
+  .clip {
+    position: absolute;
+    top: 8px;
+    height: 62px;
+    background: rgba(43, 111, 230, 0.18);
+    border: 1px solid rgba(43, 111, 230, 0.6);
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: move;
+    transition: border-color 0.1s;
+  }
+  .clip:hover { border-color: #2B6FE6; }
+  .clip.selected {
+    border-color: #fff;
+    box-shadow: 0 0 0 1px #2B6FE6;
+  }
+  .clip-label {
+    position: absolute;
+    top: 2px; left: 4px;
+    font-size: 10px;
+    color: #b4d1f5;
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 2;
+    text-shadow: 0 0 4px rgba(0,0,0,0.8);
+  }
+  .clip-wave {
+    position: absolute;
+    inset: 14px 4px 4px 4px;
+    pointer-events: none;
+  }
+  .clip-handle {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 6px;
+    cursor: ew-resize;
+    background: transparent;
+  }
+  .clip-handle.left { left: 0; }
+  .clip-handle.right { right: 0; }
+  .clip-handle:hover { background: rgba(255,255,255,0.15); }
+
+  .clip-fade-in {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    background: linear-gradient(to right, rgba(0,0,0,0.6), transparent);
+    pointer-events: none;
+  }
+  .clip-fade-out {
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    background: linear-gradient(to left, rgba(0,0,0,0.6), transparent);
+    pointer-events: none;
+  }
+  .fade-handle {
+    position: absolute;
+    top: 0;
+    width: 8px; height: 8px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: ew-resize;
+    z-index: 3;
+  }
+  .fade-handle.in { left: -4px; }
+  .fade-handle.out { right: -4px; }
+
+  /* Track color variants */
+  .clip.col-blue { background: rgba(43, 111, 230, 0.18); border-color: rgba(43, 111, 230, 0.6); }
+  .clip.col-teal { background: rgba(29, 158, 117, 0.18); border-color: rgba(29, 158, 117, 0.6); }
+  .clip.col-amber { background: rgba(239, 159, 39, 0.18); border-color: rgba(239, 159, 39, 0.6); }
+  .clip.col-purple { background: rgba(127, 119, 221, 0.18); border-color: rgba(127, 119, 221, 0.6); }
+  .clip.col-coral { background: rgba(216, 90, 48, 0.18); border-color: rgba(216, 90, 48, 0.6); }
+  .clip.col-pink { background: rgba(212, 83, 126, 0.18); border-color: rgba(212, 83, 126, 0.6); }
+  .clip.col-green { background: rgba(151, 196, 89, 0.18); border-color: rgba(151, 196, 89, 0.6); }
+  .clip.col-gray { background: rgba(136, 135, 128, 0.18); border-color: rgba(136, 135, 128, 0.6); }
+
+  /* ===== TRANSPORT ===== */
+  .transport {
+    display: flex; align-items: center;
+    gap: 16px;
+    padding: 12px 18px;
+    border-top: 1px solid #1a1a1a;
+    background: #0d0d0d;
+    flex-shrink: 0;
+  }
+  .transport-group {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .t-btn {
+    width: 34px; height: 34px;
+    background: #1a1a1a;
+    border: 1px solid #252525;
+    border-radius: 7px;
+    color: #ccc;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .t-btn:hover { background: #222; color: #fff; }
+  .t-btn.play { background: #2B6FE6; border-color: #2B6FE6; color: #fff; }
+  .t-btn.rec { background: transparent; }
+  .t-btn.rec.active { background: #e24b4a; border-color: #e24b4a; }
+  .timecode-big {
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 22px;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    padding: 0 14px;
+    background: #0a0a0a;
+    border: 1px solid #1f1f1f;
+    border-radius: 7px;
+    height: 36px;
+    display: flex; align-items: center;
+    letter-spacing: 0.04em;
+  }
+  .timecode-big .sec { color: #2B6FE6; }
+  .timecode-big .fr { color: #555; font-size: 14px; }
+  .t-label {
+    font-size: 10px; color: #555;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+  .bpm-tap {
+    display: flex; align-items: center;
+    gap: 6px;
+    background: #0a0a0a;
+    border: 1px solid #1f1f1f;
+    border-radius: 7px;
+    padding: 0 10px;
+    height: 36px;
+    font-size: 12px;
+    color: #ccc;
+    font-variant-numeric: tabular-nums;
+  }
+  .loop-region {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: #888;
+  }
+  .lufs-tag {
+    display: flex; flex-direction: column;
+    align-items: flex-end;
+    margin-left: auto;
+    gap: 1px;
+    font-size: 10px;
+    color: #666;
+  }
+  .lufs-tag .val { color: #fff; font-size: 13px; font-weight: 500; }
+  .lufs-tag .pk { color: #f5c842; }
+
+  /* ===== RIGHT INSPECTOR ===== */
+  .inspector {
+    background: #0f0f0f;
+    border-left: 1px solid #1a1a1a;
+    overflow-y: auto;
+    display: flex; flex-direction: column;
+  }
+  .ins-tabs {
+    display: flex;
+    border-bottom: 1px solid #1a1a1a;
+    padding: 0 14px;
+  }
+  .ins-tab {
+    padding: 12px 12px;
+    font-size: 12px;
+    color: #888;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    font-weight: 500;
+  }
+  .ins-tab.active { color: #fff; border-bottom-color: #2B6FE6; }
+
+  .ins-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .ins-section-title {
+    font-size: 10px;
+    color: #666;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .ins-section-title .meta { color: #2B6FE6; text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+  .ins-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #aaa;
+  }
+  .ins-row strong { color: #fff; font-weight: 500; }
+
+  .ins-input {
+    background: #1a1a1a;
+    border: 1px solid #252525;
+    color: #fff;
+    padding: 5px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: inherit;
+    width: 100px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .knob-row {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .knob-cell {
+    text-align: center;
+  }
+  .knob-cell-label {
+    font-size: 9px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .knob-svg {
+    width: 40px; height: 40px;
+    margin: 0 auto;
+  }
+  .knob-cell-val {
+    font-size: 11px;
+    color: #fff;
+    font-weight: 500;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fx-list { display: flex; flex-direction: column; gap: 4px; }
+  .fx-item {
+    display: flex; align-items: center;
+    gap: 8px;
+    background: #141414;
+    border: 1px solid #1f1f1f;
+    border-radius: 6px;
+    padding: 7px 10px;
+    cursor: pointer;
+  }
+  .fx-item:hover { border-color: #2a2a2a; }
+  .fx-item.selected { border-color: #2B6FE6; background: #15203a; }
+  .fx-drag { color: #444; font-size: 11px; cursor: grab; }
+  .fx-name { flex-grow: 1; font-size: 12px; color: #ddd; font-weight: 500; }
+  .fx-item.off .fx-name { color: #555; }
+  .switch-mini {
+    width: 22px; height: 12px;
+    background: #2B6FE6;
+    border-radius: 6px;
+    position: relative;
+    cursor: pointer;
+  }
+  .switch-mini.off { background: #2a2a2a; }
+  .switch-mini::after {
+    content: '';
+    position: absolute;
+    right: 2px; top: 2px;
+    width: 8px; height: 8px;
+    background: #fff;
+    border-radius: 50%;
+  }
+  .switch-mini.off::after { right: auto; left: 2px; }
+
+  .add-fx {
+    background: transparent;
+    border: 1px dashed #2a2a2a;
+    color: #777;
+    padding: 8px;
+    border-radius: 6px;
+    margin-top: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    width: 100%;
+  }
+  .add-fx:hover { border-color: #2B6FE6; color: #2B6FE6; }
+
+  /* ===== TOOLBAR ===== */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-bottom: 1px solid #1a1a1a;
+    background: #0d0d0d;
+    flex-shrink: 0;
+    height: 44px;
+  }
+  .tool-btn {
+    width: 28px; height: 28px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    color: #888;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .tool-btn:hover { background: #1a1a1a; color: #fff; }
+  .tool-btn.active { background: #1a1a1a; color: #2B6FE6; border-color: #2a2a2a; }
+  .tool-divider { width: 1px; height: 18px; background: #252525; margin: 0 4px; }
+  .zoom-controls {
+    display: flex; align-items: center; gap: 4px;
+    margin-left: auto;
+    font-size: 11px;
+    color: #888;
+  }
+  .zoom-controls input[type=range] {
+    width: 100px;
+  }
+
+  /* ===== SCROLLBARS ===== */
+  .tracks-area::-webkit-scrollbar, .inspector::-webkit-scrollbar, .sidebar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .tracks-area::-webkit-scrollbar-track, .inspector::-webkit-scrollbar-track {
+    background: #0a0a0a;
+  }
+  .tracks-area::-webkit-scrollbar-thumb, .inspector::-webkit-scrollbar-thumb {
+    background: #222;
+    border-radius: 4px;
+  }
+
+  /* ===== INFO BANNER ===== */
+  .info-banner {
+    background: #1a2540;
+    border-bottom: 1px solid #2B6FE6;
+    padding: 8px 18px;
+    color: #b4d1f5;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ========== SIDEBAR ========== -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">⬇</div>
+      LoadLink
+    </div>
+    <div class="sb-item">🏠 Accueil</div>
+    <div class="sb-section">Modules</div>
+    <div class="sb-item">⬇ Capturer</div>
+    <div class="sb-item">🎤 Transcrire</div>
+    <div class="sb-item">⧗ Compresser</div>
+    <div class="sb-item">↻ Convertir</div>
+    <div class="sb-item active">♪ Audio V2</div>
+    <div class="sb-item">📹 Vidéo</div>
+    <div class="sb-item">🧊 IA Studio</div>
+  </aside>
+
+  <!-- ========== MAIN ========== -->
+  <main class="main">
+
+    <div class="info-banner">
+      <span>🎯 <strong>Chantier 1 — Timeline multi-pistes</strong> · Drag clips · Trim edges · Click for selection · Scroll to scrub</span>
+      <span style="color:#888;font-size:11px">Maquette interactive — pas de vrai audio</span>
+    </div>
+
+    <!-- HEADER -->
+    <header class="header">
+      <button class="back-btn">←</button>
+      <div class="h-title">
+        <div class="h-title-main">Pub TV — Marie & Lucas — Master final</div>
+        <div class="h-title-sub">Modifié il y a 3 minutes · 8 pistes · Vidéo 25 fps</div>
+      </div>
+      <div class="level-switch">
+        <button class="level-btn">Débutant</button>
+        <button class="level-btn">Amateur</button>
+        <button class="level-btn active">Pro</button>
+      </div>
+      <button class="t-btn" style="margin-left:6px">⬇ Exporter</button>
+    </header>
+
+    <!-- VIDEO ZONE -->
+    <div class="video-zone">
+      <div class="video-placeholder">
+        Aperçu vidéo
+      </div>
+      <div class="timecode-overlay">00:00:12:08</div>
+      <div class="video-controls">
+        <button class="vc-btn">⛶</button>
+        <button class="vc-btn">−1f</button>
+        <button class="vc-btn">+1f</button>
+      </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <button class="tool-btn active" title="Smart tool : tout faire en un">▻</button>
+      <div class="tool-divider"></div>
+      <button class="tool-btn" title="Couper au playhead (S)">✂</button>
+      <button class="tool-btn" title="Fade in / out (F)">≈</button>
+      <button class="tool-btn" title="Marqueur (M)">⚑</button>
+      <div class="tool-divider"></div>
+      <button class="tool-btn" title="Aimanter à la grille (G)">⊞</button>
+      <button class="tool-btn active" title="Ripple edit">↔</button>
+      <button class="tool-btn" title="Boucle">↻</button>
+      <div class="zoom-controls">
+        <span>Zoom</span>
+        <button class="tool-btn">−</button>
+        <input type="range" min="50" max="300" value="100">
+        <button class="tool-btn">+</button>
+      </div>
+    </div>
+
+    <!-- TIMELINE RULER -->
+    <div class="timeline-ruler-wrapper">
+      <div class="track-header-spacer"></div>
+      <div class="timeline-ruler">
+        <svg class="ruler-svg" viewBox="0 0 1200 30" preserveAspectRatio="none">
+          <g fill="#444" font-size="10" font-family="monospace">
+            <line x1="0" y1="22" x2="1200" y2="22" stroke="#1a1a1a"/>
+            <line x1="0" y1="14" x2="0" y2="22" stroke="#333"/><text x="6" y="12" fill="#777">00:00</text>
+            <line x1="80" y1="18" x2="80" y2="22" stroke="#2a2a2a"/>
+            <line x1="160" y1="14" x2="160" y2="22" stroke="#333"/><text x="166" y="12" fill="#777">00:10</text>
+            <line x1="240" y1="18" x2="240" y2="22" stroke="#2a2a2a"/>
+            <line x1="320" y1="14" x2="320" y2="22" stroke="#333"/><text x="326" y="12" fill="#777">00:20</text>
+            <line x1="400" y1="18" x2="400" y2="22" stroke="#2a2a2a"/>
+            <line x1="480" y1="14" x2="480" y2="22" stroke="#333"/><text x="486" y="12" fill="#777">00:30</text>
+            <line x1="560" y1="18" x2="560" y2="22" stroke="#2a2a2a"/>
+            <line x1="640" y1="14" x2="640" y2="22" stroke="#333"/><text x="646" y="12" fill="#777">00:40</text>
+            <line x1="720" y1="18" x2="720" y2="22" stroke="#2a2a2a"/>
+            <line x1="800" y1="14" x2="800" y2="22" stroke="#333"/><text x="806" y="12" fill="#777">00:50</text>
+            <line x1="880" y1="18" x2="880" y2="22" stroke="#2a2a2a"/>
+            <line x1="960" y1="14" x2="960" y2="22" stroke="#333"/><text x="966" y="12" fill="#777">01:00</text>
+            <line x1="1040" y1="18" x2="1040" y2="22" stroke="#2a2a2a"/>
+            <line x1="1120" y1="14" x2="1120" y2="22" stroke="#333"/><text x="1126" y="12" fill="#777">01:10</text>
+          </g>
+          <!-- markers -->
+          <g>
+            <polygon points="200,2 210,2 205,8" fill="#f5c842"/>
+            <line x1="205" y1="8" x2="205" y2="22" stroke="#f5c842" stroke-width="0.5" stroke-dasharray="2,2" opacity="0.6"/>
+            <polygon points="640,2 650,2 645,8" fill="#1D9E75"/>
+            <line x1="645" y1="8" x2="645" y2="22" stroke="#1D9E75" stroke-width="0.5" stroke-dasharray="2,2" opacity="0.6"/>
+          </g>
+        </svg>
+        <!-- Playhead -->
+        <div class="playhead-vertical" id="playhead" style="left: 12%; height: calc(100vh);">
+          <div class="playhead-handle"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRACKS -->
+    <div class="tracks-area" id="tracksArea">
+
+      <!-- VIDEO TRACK -->
+      <div class="track-row" data-track="0">
+        <div class="track-header">
+          <div class="track-name-row">
+            <div class="track-color-dot" style="background: #888"></div>
+            <div class="track-name">📹 Vidéo source</div>
+            <span class="track-menu">⋯</span>
+          </div>
+          <div style="font-size:10px;color:#666;margin-top:2px">Lecture seule · 1080p25</div>
+        </div>
+        <div class="track-canvas">
+          <div class="clip col-gray" style="left: 0%; width: 95%; cursor: default;">
+            <span class="clip-label">pub_marie_lucas_master_v3.mp4</span>
+            <div class="clip-wave" style="background: repeating-linear-gradient(90deg, transparent 0, transparent 8px, rgba(255,255,255,0.04) 8px, rgba(255,255,255,0.04) 9px);"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIALOGUE 1 -->
+      <div class="track-row selected" data-track="1">
+        <div class="track-header">
+          <div class="track-name-row">
+            <div class="track-color-dot" style="background: #2B6FE6"></div>
+            <div class="track-name">Dialogue · Marie</div>
+            <span class="track-menu">⋯</span>
+          </div>
+          <div class="track-controls">
+            <button class="ms-btn mute">M</button>
+            <button class="ms-btn solo">S</button>
+            <button class="ms-btn rec">●</button>
+            <div class="gain-mini"><div class="gain-mini-fill" style="width: 65%"></div></div>
+            <span class="gain-val">+1.2</span>
+          </div>
+          <div class="track-meter-mini">
+            <div class="meter-bar-mini"><div class="meter-bar-mini-fill" style="width: 45%"></div></div>
+            <div class="meter-bar-mini"><div class="meter-bar-mini-fill" style="width: 42%"></div></div>
+          </div>
+        </div>
+        <div class="track-canvas">
+          <div class="clip col-blue selected" style="left: 5%; width: 22%;" data-clip-id="c1">
+            <div class="clip-handle left"></div>
+            <span class="clip-label">marie_take_03</span>
+            <svg class="clip-wave" viewBox="0 0 200 40" preserveAspectRatio="none">
+              <g fill="#2B6FE6" opacity="0.8" id="wave-c1"></g>
+            </svg>
+            <div class="clip-fade-in" style="width: 6%"></div>
+            <div class="fade-handle in" style="left: 6%"></div>
+            <div class="clip-fade-out" style="width: 8%"></div>
+            <div class="fade-handle out" style="right: 8%"></div>
+            <div class="clip-handle right"></div>
+          </div>
+          <div class="clip col-blue" style="left: 32%; width: 18%;" data-clip-id="c2">
+            <div class="clip-handle left"></div>
+            <span class="clip-label">marie_take_07</span>
+            <svg class="clip-wave" viewBox="0 0 200 40" preserveAspectRatio="none">
+              <g fill="#2B6FE6" opacity="0.7" id="wave-c2"></g>
+            </svg>
+            <div class="clip-handle right"></div>
+          </div>
+          <div class="clip col-blue" style="left: 55%; width: 25%;" data-clip-id="c3">
+            <div class="clip-handle left"></div>
+            <span class="clip-label">marie_take_11_final</span>
+            <svg class="clip-wave" viewBox="0 0 200 40" preserveAspectRatio="none">
+              <g fill="#2B6FE6" opacity="0.7" id="wave-c3"></g>
+            </svg>
+            <div class="clip-fade-out" style="width: 10%"></div>
+            <div class="fade-handle out" style="right: 10%"></div>
+            <div class="clip-handle right"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIALOGUE 2 -->
+      <div class="track-row" data-track="2">
+        <div class="track-header">
+          <div class="track-name-row">
+            <div class="track-color-dot" style="background: #1D9E75"></div>
+            <div class="track-name">Dialogue · Lucas</div>
+            <span class="track-menu">⋯</span>
+          </div>
+          <div class="track-controls">
+            <button class="ms-btn mute">M</button>
+            <button class="ms-btn solo">S</button>
+            <button class="ms-btn rec">●</button>
+            <div class="gain-mini"><div class="gain-mini-fill" style="width: 58%"></div></div>
+            <span class="gain-val">−0.8</span>
+          </div>
+        </div>
+        <div class="track-canvas">
+          <div class="clip col-teal" style="left: 28%; width: 12%;" data-clip-id="c4">
+            <div class="clip-handle left"></div>
+            <span class="clip-label">lucas_intro</span>
+            <svg class="clip-wave" viewBox="0 0 200 40" preserveAspectRatio="none">
+              <g fill="#1D9E75" opacity="0.7" id="wave-c4"></g>
+            </svg>
+            <div class="clip-handle right"></div>
+          </div>
+          <div class="clip col-teal" style="left: 50%; width: 20%;" data-clip-id="c5">
+            <div class="clip-handle left"></div>
+            <span class="clip-label">lucas_reponse_v2</span>
+            <svg class="clip-wave" viewBox="0 0 200 40" preserveAspectRatio="none">
+              <g fill="#1D9E75" opacity="0.7" id="wave-c5"></g>
+            </svg>
+            <div class="clip-fade-in" style="width: 5%"></div>
+            <div class="clip-handle right"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AMBIANCE -->
+      <div class="track-row" data-track="3">
+        <div class="track-header">
+          <div class="track-name-row">
+            <div class="track-color-dot" style="background: #EF9F27"></div>
+            <div class="track-name">Ambiance studio</div>
+            <span class="track-menu">⋯</span>
+          </div>
+          <div class="track-controls">
+            <button class="ms-btn mute">M</button>
+            <button class="ms-btn solo">S</button>
+            <button class="ms-btn rec">●</button>
+            <div class="gain-mini"><div class="gain-mini-fill" style="width: 25%"></div></div>
+            <span class="gain-val">−12</span>
+          </div>
+        </div>
+        <div class="track-canvas">
+          <div class="clip col-amber" style="left: 3%; width: 90%;" data-clip-id="c6">
+            <div class="clip-handle left"></div>
+            <span class="clip-label">room_tone_loop.wav</span>
+            <svg class="clip-wave" viewBox="0 0 200 40" preserveAspectRatio="none">
+              <g fill="#EF9F27" opacity="0.5" id="wave-c6"></g>
+            </svg>
+            <div class="clip-fade-in" style="width: 3%"></div>
+            <div class="clip-fade-out" style="width: 5%"></div>
+            <div class="clip-handle right"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MUSIQUE -->
+      <div class="track-row" data-track="4">
+        <div class="track-header">
+          <div class="track-name-row">
+            <div class="track-color-dot" style="background: #7F77DD"></div>
+            <div class="track-name">Musique</div>
+            <span class="track-menu">⋯</span>
+          </div>
+          <div class="track-controls">
+            <button class="ms-btn mute">M</button>
+            <button class="ms-btn solo">S</button>
+            <button class="ms-btn rec">●</button>
+            <div class="gain-mini"><div class="gain-mini-fill" style="width: 42%"></div></div>
+            <span class="gain-val">−6.5</span>
+          </div>
+        </div>
+        <div class="track-canvas">
+          <div class="clip col-purple" style="left: 0%; width: 78%;" data-clip-id="c7">
+            <div class="clip-handle left"></div>
+            <span class="clip-label">music_bed_uplifting_edit.mp3</span>
+            <svg class="clip-wave" viewBox="0 0 200 40" preserveAspectRatio="none">
+              <g fill="#7F77DD" opacity="0.7" id="wave-c7"></g>
+            </svg>
+            <div class="clip-fade-in" style="width: 4%"></div>
+            <div class="clip-fade-out" style="width: 12%"></div>
+            <div class="clip-handle right"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SFX -->
+      <div class="track-row" data-track="5">
+        <div class="track-header">
+          <div class="track-name-row">
+            <div class="track-color-dot" style="background: #D85A30"></div>
+            <div class="track-name">SFX / Foley</div>
+            <span class="track-menu">⋯</span>
+          </div>
+          <div class="track-controls">
+            <button class="ms-btn mute">M</button>
+            <button class="ms-btn solo">S</button>
+            <button class="ms-btn rec">●</button>
+            <div class="gain-mini"><div class="gain-mini-fill" style="width: 35%"></div></div>
+            <span class="gain-val">−9</span>
+          </div>
+        </div>
+        <div class="track-canvas">
+          <div class="clip col-coral" style="left: 16%; width: 4%;" data-clip-id="c8">
+            <span class="clip-label">whoosh</span>
+            <svg class="clip-wave" viewBox="0 0 80 40" preserveAspectRatio="none">
+              <g fill="#D85A30" opacity="0.7" id="wave-c8"></g>
+            </svg>
+          </div>
+          <div class="clip col-coral" style="left: 45%; width: 6%;" data-clip-id="c9">
+            <span class="clip-label">impact_low</span>
+            <svg class="clip-wave" viewBox="0 0 80 40" preserveAspectRatio="none">
+              <g fill="#D85A30" opacity="0.7" id="wave-c9"></g>
+            </svg>
+          </div>
+          <div class="clip col-coral" style="left: 78%; width: 5%;" data-clip-id="c10">
+            <span class="clip-label">ding_outro</span>
+            <svg class="clip-wave" viewBox="0 0 80 40" preserveAspectRatio="none">
+              <g fill="#D85A30" opacity="0.7" id="wave-c10"></g>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- BUS A -->
+      <div class="track-row" data-track="6">
+        <div class="track-header">
+          <div class="track-name-row">
+            <div class="track-color-dot" style="background: #D4537E"></div>
+            <div class="track-name">Bus voix (group)</div>
+            <span class="track-menu">⋯</span>
+          </div>
+          <div class="track-controls">
+            <button class="ms-btn mute">M</button>
+            <button class="ms-btn solo">S</button>
+            <div class="gain-mini"><div class="gain-mini-fill" style="width: 50%"></div></div>
+            <span class="gain-val">0.0</span>
+          </div>
+          <div style="font-size:9px;color:#555;margin-top:2px">Reçoit : Marie + Lucas</div>
+        </div>
+        <div class="track-canvas" style="background: repeating-linear-gradient(45deg, transparent 0, transparent 6px, rgba(212,83,126,0.03) 6px, rgba(212,83,126,0.03) 7px);">
+        </div>
+      </div>
+
+      <!-- PISTE VIDE -->
+      <div class="track-row" data-track="7">
+        <div class="track-header">
+          <div class="track-name-row">
+            <div class="track-color-dot" style="background: #444"></div>
+            <div class="track-name" style="color:#666">Piste 8 · vide</div>
+            <span class="track-menu">⋯</span>
+          </div>
+          <div style="font-size:10px;color:#555;margin-top:6px">Glisse un fichier ici</div>
+        </div>
+        <div class="track-canvas">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TRANSPORT -->
+    <div class="transport">
+      <div class="transport-group">
+        <button class="t-btn">⏮</button>
+        <button class="t-btn play" id="playBtn">▶</button>
+        <button class="t-btn">⏹</button>
+        <button class="t-btn rec">●</button>
+      </div>
+      <div>
+        <div class="t-label">Position</div>
+        <div class="timecode-big">
+          <span>00:00:</span><span class="sec">12</span><span class="fr">:08</span>
+        </div>
+      </div>
+      <div class="loop-region">
+        <button class="t-btn" style="width:28px;height:28px;font-size:11px">↻</button>
+        <span>Loop in 00:08 → out 00:24</span>
+      </div>
+      <div class="bpm-tap">
+        <span style="color:#666">BPM</span> 120.00
+      </div>
+      <div class="lufs-tag">
+        <span>LUFS · TRUE PEAK</span>
+        <span><span class="val">−14.1</span> · <span class="pk">−0.6</span></span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========== RIGHT INSPECTOR ========== -->
+  <aside class="inspector">
+    <div class="ins-tabs">
+      <div class="ins-tab active">Clip</div>
+      <div class="ins-tab">Piste</div>
+      <div class="ins-tab">Master</div>
+      <div class="ins-tab">Browser</div>
+    </div>
+
+    <div class="ins-section">
+      <div class="ins-section-title">
+        <span>Clip sélectionné</span>
+        <span class="meta">marie_take_03</span>
+      </div>
+      <div class="ins-row">
+        <span>Position</span>
+        <input class="ins-input" value="00:00:05.200">
+      </div>
+      <div class="ins-row">
+        <span>Durée</span>
+        <input class="ins-input" value="00:00:11.840">
+      </div>
+      <div class="ins-row">
+        <span>In source</span>
+        <input class="ins-input" value="00:00:00.800">
+      </div>
+      <div class="ins-row">
+        <span>Out source</span>
+        <input class="ins-input" value="00:00:12.640">
+      </div>
+    </div>
+
+    <div class="ins-section">
+      <div class="ins-section-title">
+        <span>Gain & enveloppe</span>
+      </div>
+      <div class="knob-row">
+        <div class="knob-cell">
+          <div class="knob-cell-label">Gain</div>
+          <svg class="knob-svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2a2a2a" stroke-width="3"/><path d="M 5.5 28 A 16 16 0 1 1 34.5 28" fill="none" stroke="#2B6FE6" stroke-width="3" stroke-dasharray="55" stroke-dashoffset="22" stroke-linecap="round"/><circle cx="20" cy="20" r="9" fill="#1a1a1a"/><line x1="20" y1="20" x2="28" y2="13" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+          <div class="knob-cell-val">+1.2 dB</div>
+        </div>
+        <div class="knob-cell">
+          <div class="knob-cell-label">Pan</div>
+          <svg class="knob-svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2a2a2a" stroke-width="3"/><path d="M 5.5 28 A 16 16 0 1 1 34.5 28" fill="none" stroke="#2B6FE6" stroke-width="3" stroke-dasharray="55" stroke-dashoffset="28" stroke-linecap="round"/><circle cx="20" cy="20" r="9" fill="#1a1a1a"/><line x1="20" y1="20" x2="20" y2="11" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+          <div class="knob-cell-val">C</div>
+        </div>
+        <div class="knob-cell">
+          <div class="knob-cell-label">Fade in</div>
+          <svg class="knob-svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2a2a2a" stroke-width="3"/><path d="M 5.5 28 A 16 16 0 1 1 34.5 28" fill="none" stroke="#2B6FE6" stroke-width="3" stroke-dasharray="55" stroke-dashoffset="42" stroke-linecap="round"/><circle cx="20" cy="20" r="9" fill="#1a1a1a"/><line x1="20" y1="20" x2="13" y2="14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+          <div class="knob-cell-val">250 ms</div>
+        </div>
+        <div class="knob-cell">
+          <div class="knob-cell-label">Fade out</div>
+          <svg class="knob-svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2a2a2a" stroke-width="3"/><path d="M 5.5 28 A 16 16 0 1 1 34.5 28" fill="none" stroke="#2B6FE6" stroke-width="3" stroke-dasharray="55" stroke-dashoffset="20" stroke-linecap="round"/><circle cx="20" cy="20" r="9" fill="#1a1a1a"/><line x1="20" y1="20" x2="28" y2="13" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+          <div class="knob-cell-val">800 ms</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ins-section">
+      <div class="ins-section-title">
+        <span>Effets sur la piste</span>
+        <span class="meta">Dialogue · Marie</span>
+      </div>
+      <div class="fx-list">
+        <div class="fx-item selected">
+          <span class="fx-drag">⋮⋮</span>
+          <span class="fx-name">EQ Paramétrique</span>
+          <div class="switch-mini"></div>
+        </div>
+        <div class="fx-item">
+          <span class="fx-drag">⋮⋮</span>
+          <span class="fx-name">De-esser</span>
+          <div class="switch-mini"></div>
+        </div>
+        <div class="fx-item">
+          <span class="fx-drag">⋮⋮</span>
+          <span class="fx-name">Compresseur</span>
+          <div class="switch-mini"></div>
+        </div>
+        <div class="fx-item off">
+          <span class="fx-drag">⋮⋮</span>
+          <span class="fx-name">Reverb</span>
+          <div class="switch-mini off"></div>
+        </div>
+      </div>
+      <button class="add-fx">+ Ajouter un effet</button>
+    </div>
+
+    <div class="ins-section">
+      <div class="ins-section-title">
+        <span>Routing</span>
+      </div>
+      <div class="ins-row">
+        <span>Entrée</span>
+        <strong>marie_takes/</strong>
+      </div>
+      <div class="ins-row">
+        <span>Envoi vers</span>
+        <strong>Bus voix</strong>
+      </div>
+      <div class="ins-row">
+        <span>Sortie</span>
+        <strong>Master bus</strong>
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+
+<script>
+  // ===== GÉNÉRATION WAVEFORMS =====
+  function genWaveBars(id, color, count, baseHeight) {
+    const g = document.getElementById(id);
+    if (!g) return;
+    let html = '';
+    const w = 200;
+    const step = w / count;
+    for (let i = 0; i < count; i++) {
+      const x = i * step;
+      const h = baseHeight + Math.abs(Math.sin(i * 0.3 + Math.random() * 0.5) * 14) + Math.random() * 6;
+      const y = (40 - h) / 2;
+      html += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(step * 0.6).toFixed(1)}" height="${h.toFixed(1)}"/>`;
+    }
+    g.innerHTML = html;
+  }
+
+  ['wave-c1','wave-c2','wave-c3','wave-c4','wave-c5'].forEach(id => genWaveBars(id, '', 60, 8));
+  genWaveBars('wave-c6', '', 200, 3); // ambiance plate
+  genWaveBars('wave-c7', '', 100, 6); // musique
+  ['wave-c8','wave-c9','wave-c10'].forEach(id => genWaveBars(id, '', 20, 12));
+
+  // ===== CLIP SELECTION =====
+  document.querySelectorAll('.clip').forEach(clip => {
+    clip.addEventListener('mousedown', (e) => {
+      if (e.target.classList.contains('clip-handle') || e.target.classList.contains('fade-handle')) return;
+      document.querySelectorAll('.clip').forEach(c => c.classList.remove('selected'));
+      clip.classList.add('selected');
+
+      // Aussi sélectionner la piste parente
+      document.querySelectorAll('.track-row').forEach(r => r.classList.remove('selected'));
+      const trackRow = clip.closest('.track-row');
+      if (trackRow) trackRow.classList.add('selected');
+
+      // Update inspector title
+      const label = clip.querySelector('.clip-label');
+      const metaSpan = document.querySelector('.ins-section-title .meta');
+      if (label && metaSpan) metaSpan.textContent = label.textContent;
+    });
+  });
+
+  // ===== DRAG CLIPS =====
+  let dragState = null;
+  document.querySelectorAll('.clip').forEach(clip => {
+    clip.addEventListener('mousedown', (e) => {
+      if (e.target.classList.contains('clip-handle') || e.target.classList.contains('fade-handle')) return;
+      const canvas = clip.parentElement;
+      const startX = e.clientX;
+      const startLeft = parseFloat(clip.style.left);
+      const canvasW = canvas.offsetWidth;
+      dragState = { clip, startX, startLeft, canvasW };
+    });
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragState) return;
+    const dx = e.clientX - dragState.startX;
+    const dxPct = (dx / dragState.canvasW) * 100;
+    const newLeft = Math.max(0, Math.min(95, dragState.startLeft + dxPct));
+    dragState.clip.style.left = newLeft + '%';
+  });
+
+  document.addEventListener('mouseup', () => { dragState = null; });
+
+  // ===== TRIM HANDLES =====
+  let trimState = null;
+  document.querySelectorAll('.clip-handle').forEach(handle => {
+    handle.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      const clip = handle.parentElement;
+      const canvas = clip.parentElement;
+      const isLeft = handle.classList.contains('left');
+      trimState = {
+        clip, isLeft,
+        startX: e.clientX,
+        startLeft: parseFloat(clip.style.left),
+        startWidth: parseFloat(clip.style.width),
+        canvasW: canvas.offsetWidth
+      };
+    });
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!trimState) return;
+    const dx = e.clientX - trimState.startX;
+    const dxPct = (dx / trimState.canvasW) * 100;
+    if (trimState.isLeft) {
+      const newLeft = Math.max(0, trimState.startLeft + dxPct);
+      const newWidth = Math.max(2, trimState.startWidth - dxPct);
+      trimState.clip.style.left = newLeft + '%';
+      trimState.clip.style.width = newWidth + '%';
+    } else {
+      const newWidth = Math.max(2, Math.min(100 - trimState.startLeft, trimState.startWidth + dxPct));
+      trimState.clip.style.width = newWidth + '%';
+    }
+  });
+
+  document.addEventListener('mouseup', () => { trimState = null; });
+
+  // ===== PLAYHEAD =====
+  const playhead = document.getElementById('playhead');
+  const tracksArea = document.getElementById('tracksArea');
+  let playing = false;
+  let playInterval = null;
+
+  document.getElementById('playBtn').addEventListener('click', function() {
+    playing = !playing;
+    this.textContent = playing ? '⏸' : '▶';
+    if (playing) {
+      playInterval = setInterval(() => {
+        const current = parseFloat(playhead.style.left);
+        const next = current + 0.3;
+        if (next > 100) {
+          playhead.style.left = '0%';
+        } else {
+          playhead.style.left = next + '%';
+        }
+      }, 100);
+    } else {
+      clearInterval(playInterval);
+    }
+  });
+
+  // ===== TIMELINE CLICK = SEEK =====
+  document.querySelector('.timeline-ruler').addEventListener('click', (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = ((e.clientX - rect.left) / rect.width) * 100;
+    playhead.style.left = pct + '%';
+  });
+
+  // ===== TRACK SELECTION ON HEADER CLICK =====
+  document.querySelectorAll('.track-header').forEach(h => {
+    h.addEventListener('click', (e) => {
+      if (e.target.closest('.ms-btn')) return;
+      document.querySelectorAll('.track-row').forEach(r => r.classList.remove('selected'));
+      h.closest('.track-row').classList.add('selected');
+    });
+  });
+
+  // ===== M/S/R BUTTONS =====
+  document.querySelectorAll('.ms-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      btn.classList.toggle('active');
+    });
+  });
+
+  // ===== TAB SWITCHING =====
+  document.querySelectorAll('.ins-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.ins-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('.level-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  // ===== TOOL BUTTONS =====
+  document.querySelectorAll('.tool-btn, .vc-btn, .t-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!btn.classList.contains('play') && !btn.classList.contains('rec')) {
+        btn.classList.toggle('active');
+      }
+    });
+  });
+
+  document.querySelectorAll('.switch-mini').forEach(s => {
+    s.addEventListener('click', (e) => {
+      e.stopPropagation();
+      s.classList.toggle('off');
+      const item = s.closest('.fx-item');
+      if (item) item.classList.toggle('off');
+    });
+  });
+
+  // FX items selection
+  document.querySelectorAll('.fx-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      if (e.target.classList.contains('switch-mini')) return;
+      document.querySelectorAll('.fx-item').forEach(i => i.classList.remove('selected'));
+      item.classList.add('selected');
+    });
+  });
+
+  // Fade handles
+  let fadeState = null;
+  document.querySelectorAll('.fade-handle').forEach(h => {
+    h.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      const clip = h.parentElement;
+      const isIn = h.classList.contains('in');
+      const fade = clip.querySelector(isIn ? '.clip-fade-in' : '.clip-fade-out');
+      if (!fade) return;
+      fadeState = { h, fade, isIn, startX: e.clientX, startW: parseFloat(fade.style.width), clipW: clip.offsetWidth };
+    });
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!fadeState) return;
+    const dx = e.clientX - fadeState.startX;
+    const dxPct = (dx / fadeState.clipW) * 100 * (fadeState.isIn ? 1 : -1);
+    const newW = Math.max(0, Math.min(40, fadeState.startW + dxPct));
+    fadeState.fade.style.width = newW + '%';
+    if (fadeState.isIn) {
+      fadeState.h.style.left = newW + '%';
+    } else {
+      fadeState.h.style.right = newW + '%';
+    }
+  });
+  document.addEventListener('mouseup', () => { fadeState = null; });
+</script>
+</body>
+</html>
