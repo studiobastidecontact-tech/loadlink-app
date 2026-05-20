@@ -1159,6 +1159,10 @@ function bindAudioModuleHandlers(appState) {
 
   audioRecordingCheckCrashRecovery().catch(() => {});
 
+  document.getElementById("audio-master-render-btn")?.addEventListener("click", audioMasterRender);
+  document.getElementById("audio-master-export-btn")?.addEventListener("click", audioMasterExportFinal);
+  document.getElementById("audio-master-undo-preset")?.addEventListener("click", audioMasterUndoPreset);
+
   urlLink?.addEventListener("click", () => {
     showToast("URL audio disponible en Phase H", 2500);
   });
@@ -1229,6 +1233,449 @@ function bindAudioTrackControls() {
       applyAudioTrackGainToPlayers();
     });
   }
+}
+
+// ============================================
+// CHANTIER C — Mastering studio
+// ============================================
+const AUDIO_MASTER_PRESETS = [
+  {
+    key: "podcast_pro",
+    label: "Podcast professionnel",
+    description: "EBU R128 -16 LUFS · voix présente",
+    target: "Voix podcast / interview",
+    chain: {
+      eq: { enabled: true, lowShelfGain: 1, lowMidGain: -2, highMidGain: 2, highShelfGain: 0 },
+      compressor: { enabled: true, threshold: -18, ratio: 3, attack: 10, release: 80, makeup: 2 },
+      stereo: { enabled: true, width: 100 },
+      saturation: { enabled: false, drive: 0 },
+      limiter: { ceiling: -1, attack: 5, release: 50, targetLufs: -16 },
+    },
+  },
+  {
+    key: "music_streaming",
+    label: "Musique streaming",
+    description: "-14 LUFS · Spotify/Apple Music",
+    target: "Musique illustrée / publication",
+    chain: {
+      eq: { enabled: true, lowShelfGain: 1.5, lowMidGain: 0, highMidGain: 1, highShelfGain: 1 },
+      compressor: { enabled: true, threshold: -16, ratio: 4, attack: 5, release: 150, makeup: 2.5 },
+      stereo: { enabled: true, width: 110 },
+      saturation: { enabled: true, drive: 10 },
+      limiter: { ceiling: -1, attack: 4, release: 80, targetLufs: -14 },
+    },
+  },
+  {
+    key: "voiceover_video",
+    label: "Voix off vidéo",
+    description: "-23 LUFS · broadcast TV / YouTube",
+    target: "Narration vidéo · standard EBU",
+    chain: {
+      eq: { enabled: true, lowShelfGain: 2, lowMidGain: -1, highMidGain: 3, highShelfGain: -1 },
+      compressor: { enabled: true, threshold: -20, ratio: 2.5, attack: 15, release: 100, makeup: 3 },
+      stereo: { enabled: true, width: 95 },
+      saturation: { enabled: false, drive: 0 },
+      limiter: { ceiling: -2, attack: 7, release: 60, targetLufs: -23 },
+    },
+  },
+  {
+    key: "loud_master",
+    label: "Loud master",
+    description: "-9 LUFS · clubs / mobile · attention saturation",
+    target: "Master agressif radio commerciale",
+    chain: {
+      eq: { enabled: true, lowShelfGain: 2, lowMidGain: 1, highMidGain: 2, highShelfGain: 2 },
+      compressor: { enabled: true, threshold: -12, ratio: 6, attack: 3, release: 60, makeup: 4 },
+      stereo: { enabled: true, width: 120 },
+      saturation: { enabled: true, drive: 20 },
+      limiter: { ceiling: -0.1, attack: 2, release: 30, targetLufs: -9 },
+    },
+  },
+];
+
+const audioMasterState = {
+  eq: { enabled: true, lowShelfGain: 0, lowMidGain: 0, highMidGain: 0, highShelfGain: 0 },
+  compressor: { enabled: true, threshold: -16, ratio: 3, attack: 8, release: 80, makeup: 2 },
+  stereo: { enabled: false, width: 100 },
+  saturation: { enabled: false, drive: 0 },
+  limiter: { ceiling: -1, attack: 5, release: 50, targetLufs: -16 },
+  activePreset: null,
+  previousChain: null,
+  finalPath: null,
+  finalAnalysis: null,
+  processing: false,
+};
+
+function audioMasterInputPath() {
+  // Mastering source: full chain output if available, otherwise current preset result
+  if (audioState.fullChainPath) return audioState.fullChainPath;
+  if (audioState.resultPath && !audioState.resultIsPreview) return audioState.resultPath;
+  return null;
+}
+
+function renderAudioMasteringView() {
+  renderAudioMasterEqControls();
+  renderAudioMasterCompControls();
+  renderAudioMasterStereoControls();
+  renderAudioMasterSaturationControls();
+  renderAudioMasterLimiterControls();
+  renderAudioMasterToggles();
+  renderAudioMasterPresets();
+  renderAudioMasterSource();
+  renderAudioMasterVerdict();
+}
+
+function renderAudioMasterSource() {
+  const nameEl = document.getElementById("audio-mastering-source-name");
+  const renderBtn = document.getElementById("audio-master-render-btn");
+  const exportBtn = document.getElementById("audio-master-export-btn");
+  const path = audioMasterInputPath();
+  if (nameEl) nameEl.textContent = path ? getPathName(path) : "aucune (applique d'abord la chaîne au fichier complet)";
+  if (renderBtn) renderBtn.disabled = !path || audioMasterState.processing;
+  if (exportBtn) exportBtn.disabled = !audioMasterState.finalPath || audioMasterState.processing;
+}
+
+function renderAudioMasterEqControls() {
+  const root = document.getElementById("audio-master-eq-controls");
+  if (!root) return;
+  const bands = [
+    { key: "lowShelfGain", label: "80 Hz Low Shelf" },
+    { key: "lowMidGain", label: "250 Hz Low Mid" },
+    { key: "highMidGain", label: "3 kHz High Mid" },
+    { key: "highShelfGain", label: "12 kHz High Shelf" },
+  ];
+  root.innerHTML = bands.map((band) => `
+    <label class="audio-master-eq-band">
+      <span>${band.label}</span>
+      <input type="range" min="-12" max="12" step="0.5" value="${audioMasterState.eq[band.key]}" data-master-eq="${band.key}" />
+      <strong data-master-eq-display="${band.key}">${formatMasterDb(audioMasterState.eq[band.key])}</strong>
+    </label>
+  `).join("");
+  root.querySelectorAll("[data-master-eq]").forEach((input) => {
+    input.addEventListener("input", () => {
+      const key = input.dataset.masterEq;
+      audioMasterState.eq[key] = Number(input.value);
+      const display = root.querySelector(`[data-master-eq-display="${key}"]`);
+      if (display) display.textContent = formatMasterDb(audioMasterState.eq[key]);
+      audioMasterState.activePreset = null;
+      renderAudioMasterPresets();
+    });
+  });
+  root.querySelector ? null : null;
+  root.parentElement?.querySelector("[data-master-reset='eq']")?.addEventListener("click", () => {
+    Object.assign(audioMasterState.eq, { lowShelfGain: 0, lowMidGain: 0, highMidGain: 0, highShelfGain: 0 });
+    renderAudioMasterEqControls();
+    audioMasterState.activePreset = null;
+    renderAudioMasterPresets();
+  });
+}
+
+function renderAudioMasterCompControls() {
+  const root = document.getElementById("audio-master-comp-controls");
+  if (!root) return;
+  const ctrls = [
+    { key: "threshold", label: "Threshold", min: -60, max: 0, step: 1, unit: "dB" },
+    { key: "ratio", label: "Ratio", min: 1, max: 20, step: 0.1, unit: ":1" },
+    { key: "attack", label: "Attack", min: 1, max: 100, step: 1, unit: "ms" },
+    { key: "release", label: "Release", min: 10, max: 500, step: 5, unit: "ms" },
+    { key: "makeup", label: "Makeup", min: 0, max: 12, step: 0.5, unit: "dB" },
+  ];
+  root.innerHTML = ctrls.map((c) => `
+    <label class="audio-master-comp-control">
+      <span>${c.label}</span>
+      <input type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${audioMasterState.compressor[c.key]}" data-master-comp="${c.key}" />
+      <strong data-master-comp-display="${c.key}">${formatAudioCompressorValue(audioMasterState.compressor[c.key], c.unit)}</strong>
+    </label>
+  `).join("");
+  root.querySelectorAll("[data-master-comp]").forEach((input) => {
+    input.addEventListener("input", () => {
+      const key = input.dataset.masterComp;
+      audioMasterState.compressor[key] = Number(input.value);
+      const unit = key === "ratio" ? ":1" : (key === "attack" || key === "release" ? "ms" : "dB");
+      const display = root.querySelector(`[data-master-comp-display="${key}"]`);
+      if (display) display.textContent = formatAudioCompressorValue(audioMasterState.compressor[key], unit);
+      audioMasterState.activePreset = null;
+      renderAudioMasterPresets();
+      updateAudioMasterGrEstimate();
+    });
+  });
+  root.parentElement?.querySelector("[data-master-reset='compressor']")?.addEventListener("click", () => {
+    Object.assign(audioMasterState.compressor, { enabled: audioMasterState.compressor.enabled, threshold: -16, ratio: 3, attack: 8, release: 80, makeup: 2 });
+    renderAudioMasterCompControls();
+    audioMasterState.activePreset = null;
+    renderAudioMasterPresets();
+  });
+  updateAudioMasterGrEstimate();
+}
+
+function updateAudioMasterGrEstimate() {
+  const peak = audioMasterState.finalAnalysis?.peakDbfs ?? audioState.analysis?.peakDbfs ?? -6;
+  const c = audioMasterState.compressor;
+  let reduction = 0;
+  if (c.enabled && peak > c.threshold) {
+    const above = peak - c.threshold;
+    reduction = clampNumber((above * (c.ratio - 1)) / c.ratio, 0, 24);
+  }
+  const fill = document.getElementById("audio-master-comp-gr-fill");
+  const value = document.getElementById("audio-master-comp-gr-value");
+  if (fill) fill.style.width = `${(reduction / 24) * 100}%`;
+  if (value) value.textContent = reduction > 0 ? `−${reduction.toFixed(1)} dB` : "−0.0 dB";
+}
+
+function renderAudioMasterStereoControls() {
+  const slider = document.getElementById("audio-master-stereo-width");
+  const value = document.getElementById("audio-master-stereo-value");
+  if (slider) {
+    slider.value = audioMasterState.stereo.width;
+    slider.addEventListener("input", () => {
+      let raw = Number(slider.value);
+      if (Math.abs(raw - 100) < 3) raw = 100;
+      audioMasterState.stereo.width = raw;
+      if (value) value.textContent = `${raw}%`;
+      slider.value = raw;
+      audioMasterState.activePreset = null;
+      renderAudioMasterPresets();
+    });
+  }
+  if (value) value.textContent = `${audioMasterState.stereo.width}%`;
+}
+
+function renderAudioMasterSaturationControls() {
+  const slider = document.getElementById("audio-master-sat-drive");
+  const value = document.getElementById("audio-master-sat-value");
+  if (slider) {
+    slider.value = audioMasterState.saturation.drive;
+    slider.addEventListener("input", () => {
+      audioMasterState.saturation.drive = Number(slider.value);
+      if (value) value.textContent = audioMasterState.saturation.drive;
+      audioMasterState.activePreset = null;
+      renderAudioMasterPresets();
+    });
+  }
+  if (value) value.textContent = audioMasterState.saturation.drive;
+}
+
+function renderAudioMasterLimiterControls() {
+  const root = document.getElementById("audio-master-lim-controls");
+  if (!root) return;
+  const ctrls = [
+    { key: "ceiling", label: "Plafond (dBFS)", min: -3, max: 0, step: 0.1, unit: " dB" },
+    { key: "attack", label: "Attack (ms)", min: 1, max: 50, step: 1, unit: " ms" },
+    { key: "release", label: "Release (ms)", min: 10, max: 500, step: 5, unit: " ms" },
+    { key: "targetLufs", label: "Cible LUFS", min: -30, max: -8, step: 0.5, unit: " LUFS" },
+  ];
+  root.innerHTML = ctrls.map((c) => `
+    <label class="audio-master-comp-control">
+      <span>${c.label}</span>
+      <input type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${audioMasterState.limiter[c.key]}" data-master-lim="${c.key}" />
+      <strong data-master-lim-display="${c.key}">${Number(audioMasterState.limiter[c.key]).toFixed(1)}${c.unit}</strong>
+    </label>
+  `).join("");
+  root.querySelectorAll("[data-master-lim]").forEach((input) => {
+    input.addEventListener("input", () => {
+      const key = input.dataset.masterLim;
+      audioMasterState.limiter[key] = Number(input.value);
+      const display = root.querySelector(`[data-master-lim-display="${key}"]`);
+      const unit = key === "ceiling" ? " dB" : (key === "targetLufs" ? " LUFS" : " ms");
+      if (display) display.textContent = `${Number(audioMasterState.limiter[key]).toFixed(1)}${unit}`;
+      audioMasterState.activePreset = null;
+      renderAudioMasterPresets();
+    });
+  });
+}
+
+function renderAudioMasterToggles() {
+  document.querySelectorAll("[data-master-toggle]").forEach((btn) => {
+    const key = btn.dataset.masterToggle;
+    const section = audioMasterState[key];
+    if (!section) return;
+    btn.setAttribute("aria-pressed", section.enabled ? "true" : "false");
+    btn.classList.toggle("on", section.enabled);
+    const sectionEl = document.getElementById(`audio-master-section-${key === "compressor" ? "comp" : key === "saturation" ? "sat" : key === "limiter" ? "lim" : "eq"}`);
+    if (sectionEl) sectionEl.classList.toggle("disabled", !section.enabled);
+    btn.onclick = () => {
+      section.enabled = !section.enabled;
+      audioMasterState.activePreset = null;
+      renderAudioMasterToggles();
+      renderAudioMasterPresets();
+    };
+  });
+}
+
+function renderAudioMasterPresets() {
+  const root = document.getElementById("audio-master-presets");
+  if (!root) return;
+  root.innerHTML = AUDIO_MASTER_PRESETS.map((preset) => {
+    const active = audioMasterState.activePreset === preset.key;
+    return `
+      <button type="button" class="audio-master-preset-card${active ? " active" : ""}" data-master-preset="${preset.key}">
+        ${active ? '<span class="audio-master-preset-check">✓</span>' : ""}
+        <span class="audio-master-preset-label">${preset.label}</span>
+        <span class="audio-master-preset-desc">${preset.description}</span>
+        <span class="audio-master-preset-target">${preset.target}</span>
+      </button>
+    `;
+  }).join("");
+  root.querySelectorAll("[data-master-preset]").forEach((card) => {
+    card.addEventListener("click", () => audioMasterApplyPreset(card.dataset.masterPreset));
+  });
+  const undoBtn = document.getElementById("audio-master-undo-preset");
+  if (undoBtn) undoBtn.disabled = !audioMasterState.previousChain;
+}
+
+function audioMasterApplyPreset(presetKey) {
+  const preset = AUDIO_MASTER_PRESETS.find((p) => p.key === presetKey);
+  if (!preset) return;
+  audioMasterState.previousChain = JSON.parse(JSON.stringify({
+    eq: audioMasterState.eq,
+    compressor: audioMasterState.compressor,
+    stereo: audioMasterState.stereo,
+    saturation: audioMasterState.saturation,
+    limiter: audioMasterState.limiter,
+  }));
+  audioMasterState.eq = { ...audioMasterState.eq, ...preset.chain.eq };
+  audioMasterState.compressor = { ...audioMasterState.compressor, ...preset.chain.compressor };
+  audioMasterState.stereo = { ...audioMasterState.stereo, ...preset.chain.stereo };
+  audioMasterState.saturation = { ...audioMasterState.saturation, ...preset.chain.saturation };
+  audioMasterState.limiter = { ...audioMasterState.limiter, ...preset.chain.limiter };
+  audioMasterState.activePreset = presetKey;
+  renderAudioMasteringView();
+  showToast(`Preset "${preset.label}" appliqué`, 1800);
+}
+
+function audioMasterUndoPreset() {
+  if (!audioMasterState.previousChain) return;
+  Object.assign(audioMasterState.eq, audioMasterState.previousChain.eq);
+  Object.assign(audioMasterState.compressor, audioMasterState.previousChain.compressor);
+  Object.assign(audioMasterState.stereo, audioMasterState.previousChain.stereo);
+  Object.assign(audioMasterState.saturation, audioMasterState.previousChain.saturation);
+  Object.assign(audioMasterState.limiter, audioMasterState.previousChain.limiter);
+  audioMasterState.previousChain = null;
+  audioMasterState.activePreset = null;
+  renderAudioMasteringView();
+}
+
+async function audioMasterRender() {
+  const input = audioMasterInputPath();
+  if (!input || audioMasterState.processing) return;
+  audioMasterState.processing = true;
+  audioMasterState.finalPath = null;
+  audioMasterState.finalAnalysis = null;
+  renderAudioMasterSource();
+  renderAudioMasterVerdict();
+  const renderBtn = document.getElementById("audio-master-render-btn");
+  if (renderBtn) renderBtn.textContent = "Rendu en cours…";
+
+  try {
+    const req = {
+      input,
+      outputDir: null,
+      format: "wav",
+      eq: { ...audioMasterState.eq },
+      compressor: { ...audioMasterState.compressor },
+      stereo: { ...audioMasterState.stereo },
+      saturation: { ...audioMasterState.saturation },
+      limiter: { ...audioMasterState.limiter },
+    };
+    const result = await invoke("audio_apply_master", { req });
+    if (!result || result.success === false) {
+      throw new Error((result && result.error) || "Mastering échoué");
+    }
+    const outPath = result.outputPath || result.output_path;
+    audioMasterState.finalPath = outPath;
+    audioMasterState.finalAnalysis = await invoke("audio_analyze", { input: outPath }).catch(() => null);
+    showToast("Mastering terminé", 2400);
+  } catch (err) {
+    console.error("[master] failed:", err);
+    showToast("Erreur mastering : " + (err.message || err), 5000);
+  } finally {
+    audioMasterState.processing = false;
+    if (renderBtn) renderBtn.textContent = "Rendre le master";
+    renderAudioMasterSource();
+    renderAudioMasterVerdict();
+    updateAudioMasterGrEstimate();
+  }
+}
+
+function renderAudioMasterVerdict() {
+  const lufsEl = document.getElementById("audio-master-verdict-lufs");
+  const peakEl = document.getElementById("audio-master-verdict-peak");
+  const drEl = document.getElementById("audio-master-verdict-dr");
+  const badge = document.getElementById("audio-master-verdict-badge");
+  const exportBtn = document.getElementById("audio-master-export-btn");
+  const analysis = audioMasterState.finalAnalysis;
+  if (!analysis) {
+    if (lufsEl) lufsEl.textContent = "--";
+    if (peakEl) peakEl.textContent = "--";
+    if (drEl) drEl.textContent = "--";
+    if (badge) {
+      badge.textContent = audioMasterState.processing ? "Analyse en cours…" : "Lance le rendu pour analyser";
+      badge.className = "audio-master-verdict-badge";
+    }
+    if (exportBtn) exportBtn.disabled = true;
+    return;
+  }
+  const lufs = analysis.loudnessLufs ?? analysis.loudness_lufs;
+  const peak = analysis.peakDbfs ?? analysis.peak_dbfs;
+  if (lufsEl) lufsEl.textContent = Number.isFinite(lufs) ? `${lufs.toFixed(1)} LUFS` : "--";
+  if (peakEl) peakEl.textContent = Number.isFinite(peak) ? `${peak.toFixed(1)} dBFS` : "--";
+  const dr = Number.isFinite(lufs) && Number.isFinite(peak) ? Math.abs(peak - lufs) : null;
+  if (drEl) drEl.textContent = dr !== null ? `${dr.toFixed(1)} DR` : "--";
+
+  if (badge) {
+    const target = audioMasterState.limiter.targetLufs;
+    const ceiling = audioMasterState.limiter.ceiling;
+    let cls = "ok";
+    let text = "Conforme broadcast";
+    if (Number.isFinite(peak) && peak > -0.1) {
+      cls = "danger"; text = "Risque de clipping (peak > -0.1 dB)";
+    } else if (Number.isFinite(lufs) && lufs < -20) {
+      cls = "warn"; text = "Trop calme pour streaming (< -20 LUFS)";
+    } else if (Number.isFinite(lufs) && Math.abs(lufs - target) > 2) {
+      cls = "soft"; text = `Hors cible (${lufs.toFixed(1)} vs ${target} LUFS)`;
+    } else if (Number.isFinite(peak) && peak > ceiling + 0.5) {
+      cls = "soft"; text = "Marge serrée — vérifier limiter";
+    }
+    badge.textContent = text;
+    badge.className = `audio-master-verdict-badge ${cls}`;
+  }
+  if (exportBtn) exportBtn.disabled = false;
+}
+
+function renderAudioMixingView() {
+  // Stub — populated by Chantier B implementation
+  renderAudioMixingStrips();
+  updateAudioMixInsights();
+}
+
+function renderAudioMixingStrips() {
+  const root = document.getElementById("audio-mixing-strips");
+  if (!root) return;
+  // Lazy initial render placeholder; Chantier B fills this in.
+  if (!root.dataset.bound) {
+    root.dataset.bound = "1";
+  }
+}
+
+function updateAudioMixInsights() {
+  // Stub
+}
+
+function audioMasterExportFinal() {
+  if (!audioMasterState.finalPath) return;
+  // Reuse the existing export modal but point its source to the master file.
+  audioState.fullChainPath = audioMasterState.finalPath;
+  audioState.resultPath = audioMasterState.finalPath;
+  audioState.resultIsPreview = false;
+  audioState.currentPreset = "master";
+  audioUpdateUI();
+  openAudioExportModal();
+}
+
+function formatMasterDb(value) {
+  const v = Number(value);
+  if (Math.abs(v) < 0.05) return "0 dB";
+  return `${v > 0 ? "+" : ""}${v.toFixed(1)} dB`;
 }
 
 // ============================================
@@ -2236,10 +2683,33 @@ function loadAudioFile(path) {
 
 function audioUpdateUI() {
   const hasMedia = Boolean(audioState.mediaPath);
-  const isEditTab = audioState.studioTab === "edit";
+  const tab = audioState.studioTab;
+  const isEditTab = tab === "edit";
+  const isMixTab = tab === "mix";
+  const isMasterTab = tab === "master";
   document.getElementById("audio-empty")?.classList.toggle("hidden", !isEditTab || hasMedia);
   document.getElementById("audio-workspace")?.classList.toggle("hidden", !isEditTab || !hasMedia);
-  document.getElementById("audio-studio-placeholder")?.classList.toggle("hidden", isEditTab);
+  const placeholder = document.getElementById("audio-studio-placeholder");
+  if (placeholder) placeholder.classList.add("hidden");
+  const mixView = document.getElementById("audio-mixing-view");
+  const masterView = document.getElementById("audio-mastering-view");
+  if (mixView) mixView.classList.toggle("hidden", !isMixTab || !hasMedia);
+  if (masterView) masterView.classList.toggle("hidden", !isMasterTab || !hasMedia);
+  if (isMixTab && !hasMedia) {
+    if (placeholder) {
+      placeholder.classList.remove("hidden");
+      document.getElementById("audio-studio-placeholder-title").textContent = "Mixage";
+      document.getElementById("audio-studio-placeholder-text").textContent = "Importe ou enregistre un fichier pour ouvrir la console.";
+    }
+  } else if (isMasterTab && !hasMedia) {
+    if (placeholder) {
+      placeholder.classList.remove("hidden");
+      document.getElementById("audio-studio-placeholder-title").textContent = "Mastering";
+      document.getElementById("audio-studio-placeholder-text").textContent = "Importe ou enregistre un fichier pour finaliser le master.";
+    }
+  }
+  if (isMasterTab && hasMedia) renderAudioMasteringView();
+  if (isMixTab && hasMedia) renderAudioMixingView();
   document.getElementById("audio-file-chip")?.classList.toggle("hidden", !hasMedia);
 
   renderAudioStudioHeader(hasMedia);
@@ -3206,13 +3676,6 @@ function applyAudioVoiceRefine(bands, value) {
 function setAudioStudioTab(tab) {
   if (!["edit", "mix", "master"].includes(tab)) return;
   audioState.studioTab = tab;
-  if (tab !== "edit") {
-    const label = tab === "mix" ? "Mixage" : "Mastering";
-    const title = document.getElementById("audio-studio-placeholder-title");
-    const text = document.getElementById("audio-studio-placeholder-text");
-    if (title) title.textContent = `${label} disponible bientot`;
-    if (text) text.textContent = "Cette vue arrive dans une prochaine phase.";
-  }
   audioUpdateUI();
 }
 

@@ -1379,6 +1379,139 @@
               </div>
             </aside>
           </div>
+          <section class="audio-mastering-view hidden" id="audio-mastering-view">
+            <header class="audio-mastering-head">
+              <div>
+                <div class="audio-mastering-title">Mastering final</div>
+                <div class="audio-mastering-subtitle">Dernière étape avant export — chaîne globale appliquée au mix complet</div>
+              </div>
+              <div class="audio-mastering-source" id="audio-mastering-source">Source : <strong id="audio-mastering-source-name">aucune</strong></div>
+            </header>
+
+            <div class="audio-mastering-body">
+              <main class="audio-mastering-chain">
+
+                <div class="audio-master-section" id="audio-master-section-eq" data-section="eq">
+                  <div class="audio-master-section-head">
+                    <h3>EQ Master 4 bandes</h3>
+                    <button type="button" class="audio-master-toggle" data-master-toggle="eq" aria-pressed="true"><span></span></button>
+                  </div>
+                  <div class="audio-master-eq-controls" id="audio-master-eq-controls"></div>
+                  <button type="button" class="audio-effect-reset" data-master-reset="eq">Reset EQ Master</button>
+                </div>
+
+                <div class="audio-master-section" id="audio-master-section-comp" data-section="compressor">
+                  <div class="audio-master-section-head">
+                    <h3>Compresseur Master</h3>
+                    <button type="button" class="audio-master-toggle" data-master-toggle="compressor" aria-pressed="true"><span></span></button>
+                  </div>
+                  <div class="audio-master-comp-gr">
+                    <span>Gain reduction</span>
+                    <div class="audio-master-comp-gr-bar"><div id="audio-master-comp-gr-fill"></div></div>
+                    <strong id="audio-master-comp-gr-value">-- dB</strong>
+                  </div>
+                  <div class="audio-master-comp-controls" id="audio-master-comp-controls"></div>
+                  <button type="button" class="audio-effect-reset" data-master-reset="compressor">Reset Compresseur</button>
+                </div>
+
+                <div class="audio-master-section" id="audio-master-section-stereo" data-section="stereo">
+                  <div class="audio-master-section-head">
+                    <h3>Stereo Imager</h3>
+                    <button type="button" class="audio-master-toggle" data-master-toggle="stereo" aria-pressed="false"><span></span></button>
+                  </div>
+                  <label class="audio-master-slider">
+                    <span>Largeur stéréo <strong id="audio-master-stereo-value">100%</strong></span>
+                    <input type="range" id="audio-master-stereo-width" min="50" max="200" step="1" value="100" />
+                    <small>50% = quasi mono · 100% = neutre · 200% = très large</small>
+                  </label>
+                </div>
+
+                <div class="audio-master-section" id="audio-master-section-sat" data-section="saturation">
+                  <div class="audio-master-section-head">
+                    <h3>Saturation harmonique</h3>
+                    <button type="button" class="audio-master-toggle" data-master-toggle="saturation" aria-pressed="false"><span></span></button>
+                  </div>
+                  <label class="audio-master-slider">
+                    <span>Drive <strong id="audio-master-sat-value">0</strong></span>
+                    <input type="range" id="audio-master-sat-drive" min="0" max="100" step="1" value="0" />
+                    <small>0 = neutre · 100 = caractère prononcé (excitateur d'harmoniques)</small>
+                  </label>
+                </div>
+
+                <div class="audio-master-section audio-master-section-locked" id="audio-master-section-lim" data-section="limiter">
+                  <div class="audio-master-section-head">
+                    <h3>Limiter Final <span class="audio-master-locked-tag">toujours actif</span></h3>
+                  </div>
+                  <div class="audio-master-lim-controls" id="audio-master-lim-controls"></div>
+                </div>
+
+              </main>
+
+              <aside class="audio-mastering-side">
+                <div class="audio-master-side-panel">
+                  <h3>Presets mastering</h3>
+                  <div class="audio-master-presets" id="audio-master-presets"></div>
+                  <button type="button" class="audio-master-undo" id="audio-master-undo-preset" disabled>Annuler dernier preset</button>
+                </div>
+
+                <div class="audio-master-side-panel audio-master-verdict">
+                  <h3>Validation finale</h3>
+                  <div class="audio-master-verdict-row">
+                    <span>LUFS intégré</span>
+                    <strong id="audio-master-verdict-lufs">--</strong>
+                  </div>
+                  <div class="audio-master-verdict-row">
+                    <span>True Peak</span>
+                    <strong id="audio-master-verdict-peak">--</strong>
+                  </div>
+                  <div class="audio-master-verdict-row">
+                    <span>Dynamic Range</span>
+                    <strong id="audio-master-verdict-dr">--</strong>
+                  </div>
+                  <div class="audio-master-verdict-badge" id="audio-master-verdict-badge">Lance le rendu master pour analyser</div>
+                  <button type="button" class="btn-primary audio-master-render-btn" id="audio-master-render-btn" disabled>Rendre le master</button>
+                  <button type="button" class="audio-master-export-btn" id="audio-master-export-btn" disabled>Exporter le master final</button>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="audio-mixing-view hidden" id="audio-mixing-view">
+            <header class="audio-mastering-head">
+              <div>
+                <div class="audio-mastering-title">Console de mixage</div>
+                <div class="audio-mastering-subtitle">Tranches multi-pistes — gain, pan, mute, solo + master bus</div>
+              </div>
+            </header>
+            <div class="audio-mixing-body">
+              <main class="audio-mixing-strips" id="audio-mixing-strips"></main>
+              <aside class="audio-mixing-insights">
+                <div class="audio-master-side-panel">
+                  <h3>Niveaux</h3>
+                  <div class="audio-master-verdict-row"><span>Headroom restant</span><strong id="audio-mix-headroom">-- dB</strong></div>
+                  <div class="audio-master-verdict-row"><span>Peak final</span><strong id="audio-mix-peak">--</strong></div>
+                  <div class="audio-mix-warning hidden" id="audio-mix-clip-warning">⚠ Clipping détecté — réduis le master</div>
+                  <div class="audio-mix-advice" id="audio-mix-advice">Lance "Appliquer au fichier complet" pour analyser.</div>
+                </div>
+                <div class="audio-master-side-panel">
+                  <h3>Balance</h3>
+                  <div class="audio-mix-balance">
+                    <div class="audio-mix-balance-bar">
+                      <div class="audio-mix-balance-fill" id="audio-mix-balance-fill"></div>
+                      <div class="audio-mix-balance-center"></div>
+                    </div>
+                    <div class="audio-mix-balance-legend"><span>L</span><span>Centre</span><span>R</span></div>
+                  </div>
+                  <div class="audio-master-verdict-row"><span>Largeur estimée</span><strong id="audio-mix-width">--</strong></div>
+                </div>
+                <div class="audio-master-side-panel">
+                  <h3>Suggestions</h3>
+                  <div class="audio-mix-suggestion" id="audio-mix-suggestion">Aucune suggestion pour l'instant.</div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
           <footer class="audio-meter-footer" id="audio-meter-footer">
             <div class="audio-meter-block audio-meter-levels">
               <div class="audio-meter-title">Niveaux</div>

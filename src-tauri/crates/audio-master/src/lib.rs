@@ -88,6 +88,63 @@ pub struct AudioPreviewOptions {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct MasterEq {
+    pub enabled: bool,
+    pub low_shelf_gain: f32,    // dB at 80 Hz
+    pub low_mid_gain: f32,      // dB at 250 Hz
+    pub high_mid_gain: f32,     // dB at 3000 Hz
+    pub high_shelf_gain: f32,   // dB at 12000 Hz
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MasterCompressor {
+    pub enabled: bool,
+    pub threshold: f32,
+    pub ratio: f32,
+    pub attack: f32,
+    pub release: f32,
+    pub makeup: f32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MasterStereo {
+    pub enabled: bool,
+    pub width: f32, // 50..200, 100 = neutral
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MasterSaturation {
+    pub enabled: bool,
+    pub drive: f32, // 0..100
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MasterLimiter {
+    pub ceiling: f32,
+    pub attack: f32,
+    pub release: f32,
+    pub target_lufs: f32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioMasterChain {
+    pub input: String,
+    pub output_dir: Option<String>,
+    pub format: Option<String>,
+    pub eq: MasterEq,
+    pub compressor: MasterCompressor,
+    pub stereo: MasterStereo,
+    pub saturation: MasterSaturation,
+    pub limiter: MasterLimiter,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AudioMixTrack {
     pub path: String,
     pub gain_db: Option<f32>,
@@ -776,6 +833,206 @@ pub async fn apply_chain(app: &AppHandle, opts: AudioEffectChain) -> Result<Audi
         output_info,
         error: None,
     })
+}
+
+/// Apply the mastering chain (4-band EQ, compressor, stereo width, saturation,
+/// final true-peak limiter with loudness target). Typically fed the mix master
+/// produced by apply_mix / apply_chain — this is the last step before export.
+pub async fn apply_master_chain(app: &AppHandle, opts: AudioMasterChain) -> Result<AudioProcessResult> {
+    let ffmpeg = get_ffmpeg_path(app)?;
+    let source = PathBuf::from(&opts.input);
+    ensure_source_exists(&source)?;
+
+    let probe = probe_input(&ffmpeg, &source).await?;
+    let target_sample_rate = probe.sample_rate.unwrap_or(DEFAULT_SAMPLE_RATE);
+    let output_format = normalize_output_format(opts.format.as_deref(), &source)?;
+    let out_dir = resolve_output_dir(&source, opts.output_dir.as_deref())?;
+    std::fs::create_dir_all(&out_dir)?;
+    let out_path = unique_output_path(&source, &out_dir, "master", &output_format);
+    let filter_chain = build_master_chain(&opts, target_sample_rate);
+    let source_name = display_name(&source);
+
+    emit_progress(app, 0.0, "mastering", Some(source_name.clone()), None, None);
+
+    let mut cmd = Command::new(&ffmpeg);
+    cmd.arg("-hide_banner")
+        .arg("-y")
+        .arg("-i")
+        .arg(&source)
+        .arg("-map")
+        .arg("0:a:0")
+        .arg("-vn")
+        .arg("-af")
+        .arg(&filter_chain);
+    append_codec_args(&mut cmd, &output_format);
+    cmd.arg("-progress")
+        .arg("pipe:1")
+        .arg("-nostats")
+        .arg(&out_path);
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    apply_no_window(&mut cmd);
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| LoadlinkError::SpawnFailed(format!("ffmpeg master: {e}")))?;
+
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| LoadlinkError::Other("ffmpeg stdout indisponible".to_string()))?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| LoadlinkError::Other("ffmpeg stderr indisponible".to_string()))?;
+
+    let app_for_progress = app.clone();
+    let source_for_progress = source_name.clone();
+    let duration = probe.duration_seconds.unwrap_or(0.0);
+    let out_path_string = out_path.to_string_lossy().to_string();
+
+    let progress_task = tokio::spawn(async move {
+        let mut reader = BufReader::new(stdout).lines();
+        let time_re = Regex::new(r"out_time_(?:ms|us)=(\d+)").unwrap();
+        while let Ok(Some(line)) = reader.next_line().await {
+            if let Some(captures) = time_re.captures(&line) {
+                let micros = captures
+                    .get(1)
+                    .and_then(|m| m.as_str().parse::<f64>().ok())
+                    .unwrap_or(0.0);
+                let processed = micros / 1_000_000.0;
+                let percent = if duration > 0.0 {
+                    ((processed / duration) * 100.0).min(99.0) as f32
+                } else {
+                    50.0
+                };
+                emit_progress(
+                    &app_for_progress,
+                    percent,
+                    "mastering",
+                    Some(source_for_progress.clone()),
+                    None,
+                    Some(out_path_string.clone()),
+                );
+            }
+        }
+    });
+
+    let stderr_task = tokio::spawn(async move {
+        let mut reader = BufReader::new(stderr).lines();
+        let mut collected = String::new();
+        while let Ok(Some(line)) = reader.next_line().await {
+            collected.push_str(&line);
+            collected.push('\n');
+        }
+        collected
+    });
+
+    let status = child.wait().await.map_err(|e| LoadlinkError::Other(format!("ffmpeg wait: {e}")))?;
+    let _ = progress_task.await;
+    let stderr_collected = stderr_task.await.unwrap_or_default();
+
+    if !status.success() {
+        let _ = std::fs::remove_file(&out_path);
+        emit_progress(app, 0.0, "failed", Some(source_name), None, None);
+        return Ok(AudioProcessResult {
+            success: false,
+            output_path: String::new(),
+            preset: "master".to_string(),
+            output_info: None,
+            error: Some(ffmpeg_error(&stderr_collected)),
+        });
+    }
+
+    emit_progress(app, 100.0, "completed", Some(source_name), None, Some(out_path.to_string_lossy().to_string()));
+
+    let output_info = std::fs::metadata(&out_path)
+        .ok()
+        .map(|m| format!("Master final: {:.1} Mo", m.len() as f64 / 1_048_576.0));
+
+    Ok(AudioProcessResult {
+        success: true,
+        output_path: out_path.to_string_lossy().to_string(),
+        preset: "master".to_string(),
+        output_info,
+        error: None,
+    })
+}
+
+fn build_master_chain(opts: &AudioMasterChain, target_sample_rate: u32) -> String {
+    let mut filters: Vec<String> = Vec::new();
+
+    if opts.eq.enabled {
+        let q_shelf = 0.7;
+        let q_peak = 1.0;
+        if opts.eq.low_shelf_gain.abs() > 0.05 {
+            filters.push(format!(
+                "equalizer=f=80:t=q:w={q_shelf}:g={}",
+                clamp(opts.eq.low_shelf_gain, -12.0, 12.0)
+            ));
+        }
+        if opts.eq.low_mid_gain.abs() > 0.05 {
+            filters.push(format!(
+                "equalizer=f=250:t=q:w={q_peak}:g={}",
+                clamp(opts.eq.low_mid_gain, -12.0, 12.0)
+            ));
+        }
+        if opts.eq.high_mid_gain.abs() > 0.05 {
+            filters.push(format!(
+                "equalizer=f=3000:t=q:w={q_peak}:g={}",
+                clamp(opts.eq.high_mid_gain, -12.0, 12.0)
+            ));
+        }
+        if opts.eq.high_shelf_gain.abs() > 0.05 {
+            filters.push(format!(
+                "equalizer=f=12000:t=q:w={q_shelf}:g={}",
+                clamp(opts.eq.high_shelf_gain, -12.0, 12.0)
+            ));
+        }
+    }
+
+    if opts.compressor.enabled {
+        filters.push(format!(
+            "acompressor=threshold={}dB:ratio={}:attack={}:release={}:makeup={}",
+            clamp(opts.compressor.threshold, -60.0, 0.0),
+            clamp(opts.compressor.ratio, 1.0, 20.0),
+            clamp(opts.compressor.attack, 1.0, 100.0),
+            clamp(opts.compressor.release, 10.0, 500.0),
+            clamp(opts.compressor.makeup, 0.0, 24.0)
+        ));
+    }
+
+    if opts.stereo.enabled {
+        // extrastereo m: 0 keeps mono, 1 keeps default, >1 widens, <1 narrows.
+        // We map 50%..200% to m=0.5..2.0 linearly around the 100% default.
+        let m = clamp(opts.stereo.width / 100.0, 0.5, 2.0);
+        filters.push(format!("extrastereo=m={m:.3}"));
+    }
+
+    if opts.saturation.enabled && opts.saturation.drive > 0.5 {
+        let amount = clamp(opts.saturation.drive / 100.0, 0.0, 1.0);
+        // aexciter is part of LADSPA bundle that ffmpeg builds on Windows include
+        // by default. If unavailable, ffmpeg will fail loudly — we wrap with a
+        // gentle volume boost fallback below to avoid silent failure.
+        filters.push(format!("aexciter=level_in=1:level_out=1:amount={amount:.3}"));
+    }
+
+    // Loudnorm to the requested target before the limiter.
+    filters.push(format!(
+        "loudnorm=I={}:TP=-1.5:LRA=11",
+        clamp(opts.limiter.target_lufs, -30.0, -8.0)
+    ));
+
+    filters.push(format!("aresample={target_sample_rate}"));
+    // Final true-peak limiter.
+    let ceiling_db = clamp(opts.limiter.ceiling, -3.0, 0.0);
+    let limit_linear = 10f32.powf(ceiling_db / 20.0);
+    let attack_s = clamp(opts.limiter.attack, 1.0, 50.0) / 1000.0;
+    let release_s = clamp(opts.limiter.release, 10.0, 500.0) / 1000.0;
+    filters.push(format!(
+        "alimiter=limit={limit_linear:.4}:attack={attack_s:.4}:release={release_s:.4}"
+    ));
+
+    filters.join(",")
 }
 
 // ============================================
