@@ -40,7 +40,13 @@ export class AudioV2App {
     timelineScroll.append(timelineInner);
     center.append(
       VideoPreview(this.store, () => this.playback.getPlayhead()),
-      Toolbar(this.store, this.selection, () => void this.importAudio()),
+      Toolbar(
+        this.store,
+        this.selection,
+        () => void this.importAudio(),
+        () => void this.importVideo(),
+        () => this.splitSelectedAtPlayhead(),
+      ),
       timelineScroll,
     );
     main.append(center, Inspector(this.store, this.selection));
@@ -52,6 +58,7 @@ export class AudioV2App {
     );
 
     this.bindDrop(timelineScroll);
+    void this.bindNativeDrop();
     this.bindKeyboard();
     this.store.subscribe((project) => this.renderPlayhead(project));
     this.playback.subscribe((time) => this.movePlayhead(time));
@@ -68,6 +75,12 @@ export class AudioV2App {
 
   private async importAudio(): Promise<void> {
     const selected = await this.openFile(['wav', 'mp3', 'm4a', 'aac', 'flac', 'ogg', 'opus', 'aiff', 'aif', 'wma']);
+    if (!selected) return;
+    await this.addMediaPath(selected);
+  }
+
+  private async importVideo(): Promise<void> {
+    const selected = await this.openFile(['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v']);
     if (!selected) return;
     await this.addMediaPath(selected);
   }
@@ -133,6 +146,19 @@ export class AudioV2App {
     });
   }
 
+  private async bindNativeDrop(): Promise<void> {
+    const getCurrentWebview = window.__TAURI__?.webview?.getCurrentWebview;
+    if (!getCurrentWebview) return;
+    const webview = getCurrentWebview();
+    await webview.onDragDropEvent((event) => {
+      const payload = event.payload;
+      if (!payload || payload.type !== 'drop') return;
+      const path = payload.paths?.[0];
+      if (!path) return;
+      void this.addMediaPath(path, this.store.getPlayhead());
+    });
+  }
+
   private bindKeyboard(): void {
     window.addEventListener('keydown', (event) => {
       if (event.code === 'Space') {
@@ -142,10 +168,15 @@ export class AudioV2App {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') this.store.undo();
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') this.store.redo();
       if (event.key.toLowerCase() === 's' && this.selection.getState().selectedClipId) {
-        const id = this.selection.getState().selectedClipId;
-        if (id) this.store.splitClip(id, this.store.getPlayhead());
+        this.splitSelectedAtPlayhead();
       }
     });
+  }
+
+  private splitSelectedAtPlayhead(): void {
+    const id = this.selection.getState().selectedClipId;
+    if (!id) return;
+    this.store.splitClip(id, this.store.getPlayhead());
   }
 
   private renderPlayhead(project: Project): void {

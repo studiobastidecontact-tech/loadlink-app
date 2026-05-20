@@ -44,6 +44,10 @@ export function ClipView(
     root.setPointerCapture(event.pointerId);
     selection.selectClip(clip.id, trackId);
     const target = event.target as HTMLElement;
+    if (selection.getState().tool === 'split' && !target.classList.contains('v2-clip-handle') && !target.classList.contains('v2-fade-handle')) {
+      store.splitClip(clip.id, store.getPlayhead());
+      return;
+    }
     const mode: DragState['mode'] = target.classList.contains('left')
       ? 'trim-left'
       : target.classList.contains('right')
