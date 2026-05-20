@@ -1153,6 +1153,7 @@ function bindAudioModuleHandlers(appState) {
   document.getElementById("audio-record-rec")?.addEventListener("click", audioRecordingStart);
   document.getElementById("audio-record-stop")?.addEventListener("click", () => audioRecordingStop());
   document.getElementById("audio-recording-done-discard")?.addEventListener("click", audioRecordingDiscard);
+  document.getElementById("audio-recording-done-delete")?.addEventListener("click", audioRecordingDelete);
   document.getElementById("audio-recording-done-save")?.addEventListener("click", () => audioRecordingFinalize("save"));
   document.getElementById("audio-recording-done-load")?.addEventListener("click", () => audioRecordingFinalize("load"));
   document.getElementById("audio-recording-done-folder-btn")?.addEventListener("click", audioRecordingChooseFolder);
@@ -2466,6 +2467,25 @@ async function audioRecordingDiscard() {
   }
   audioRecordState.savedWebmPath = null;
   audioRecordState.savedBlob = null;
+}
+
+async function audioRecordingDelete() {
+  const ok = await audioConfirm("Supprimer définitivement cet enregistrement ? Le fichier temporaire sera effacé et ne pourra plus être récupéré.", {
+    title: "Supprimer l'enregistrement",
+    confirmLabel: "Supprimer",
+  });
+  if (!ok) return;
+  if (audioRecordState.savedWebmPath) {
+    try {
+      await invoke("audio_discard_pending_recording", { path: audioRecordState.savedWebmPath });
+    } catch (err) {
+      console.warn("[record] delete failed:", err);
+    }
+  }
+  audioRecordState.savedWebmPath = null;
+  audioRecordState.savedBlob = null;
+  closeAudioRecordingDoneModal();
+  showToast("Enregistrement supprimé", 1800);
 }
 
 async function audioRecordingChooseFolder() {

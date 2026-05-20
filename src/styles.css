@@ -3674,6 +3674,31 @@ body.dark .libreoffice-warning {
   flex-wrap: wrap;
 }
 
+.btn-danger,
+.audio-recording-done-delete {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #ef4444;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.btn-danger:hover,
+.audio-recording-done-delete:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.audio-recording-done-delete {
+  margin-right: auto;
+}
+
 .audio-library-panel {
   background: var(--surface);
   border: 1px solid var(--border);
