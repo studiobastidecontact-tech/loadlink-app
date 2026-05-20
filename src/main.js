@@ -1096,6 +1096,7 @@ function bindAudioModuleHandlers(appState) {
   bindAudioTrackControls();
   bindAudioKeyboardShortcuts(appState);
   bindAudioTimelineTools();
+  document.getElementById("audio-add-track-btn")?.addEventListener("click", addAudioExtraTrack);
   importCard?.addEventListener("click", pickAudioFile);
   playBtn?.addEventListener("click", audioTogglePlayback);
   timeline?.addEventListener("click", audioSeekFromTimelineEvent);
@@ -1269,49 +1270,37 @@ function updateAudioExtraTrack(id, updates) {
 }
 
 function renderAudioExtraTracks() {
-  const sidebar = document.getElementById("audio-tracks-sidebar");
-  if (!sidebar) return;
-  let extraList = document.getElementById("audio-extra-tracks-list");
-  if (!extraList) {
-    extraList = document.createElement("div");
-    extraList.id = "audio-extra-tracks-list";
-    extraList.className = "audio-extra-tracks-list";
-    sidebar.appendChild(extraList);
-  }
-  let addBtn = document.getElementById("audio-add-track-btn");
-  if (!addBtn) {
-    addBtn = document.createElement("button");
-    addBtn.type = "button";
-    addBtn.id = "audio-add-track-btn";
-    addBtn.className = "audio-add-track-btn";
-    addBtn.textContent = "+ Ajouter une piste";
-    addBtn.addEventListener("click", addAudioExtraTrack);
-    sidebar.appendChild(addBtn);
-  } else {
-    sidebar.appendChild(addBtn); // ensure it stays at bottom
-  }
+  const extraList = document.getElementById("audio-extra-tracks-list");
+  if (!extraList) return;
 
-  extraList.innerHTML = audioState.extraTracks.map((track) => `
-    <div class="audio-extra-track-card" data-track-id="${track.id}" style="--track-color:${track.color}">
-      <div class="audio-extra-track-head">
-        <span class="audio-extra-track-color">${(track.label || "").charAt(0).toUpperCase()}</span>
-        <div class="audio-extra-track-meta">
-          <div class="audio-extra-track-name" title="${track.path.replace(/"/g, "&quot;")}">${track.name}</div>
-          <div class="audio-extra-track-type">${track.label}</div>
+  const tracks = Array.isArray(audioState.extraTracks) ? audioState.extraTracks : [];
+  extraList.innerHTML = tracks.map((track) => {
+    const safeName = String(track.name || "Piste").replace(/[<>&"]/g, (c) => ({
+      "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;",
+    }[c]));
+    const initial = (track.label || track.name || "?").charAt(0).toUpperCase();
+    return `
+      <div class="audio-extra-track-card" data-track-id="${track.id}" style="--track-color:${track.color}">
+        <div class="audio-extra-track-head">
+          <span class="audio-extra-track-color">${initial}</span>
+          <div class="audio-extra-track-meta">
+            <div class="audio-extra-track-name" title="${String(track.path || "").replace(/"/g, "&quot;")}">${safeName}</div>
+            <div class="audio-extra-track-type">${track.label || ""}</div>
+          </div>
+          <button type="button" class="audio-extra-track-remove" data-action="remove" title="Retirer">×</button>
         </div>
-        <button type="button" class="audio-extra-track-remove" data-action="remove" title="Retirer">×</button>
+        <div class="audio-extra-track-ctrls">
+          <button type="button" class="audio-track-btn${track.mute ? " active" : ""}" data-action="mute">M</button>
+          <button type="button" class="audio-track-btn${track.solo ? " active" : ""}" data-action="solo">S</button>
+          <label class="audio-extra-track-gain-wrap">
+            <span>Gain</span>
+            <input type="range" min="-24" max="12" step="0.5" value="${track.gainDb}" data-action="gain" />
+            <strong>${track.gainDb > 0 ? "+" : ""}${Number(track.gainDb).toFixed(1)} dB</strong>
+          </label>
+        </div>
       </div>
-      <div class="audio-extra-track-ctrls">
-        <button type="button" class="audio-track-btn${track.mute ? " active" : ""}" data-action="mute">M</button>
-        <button type="button" class="audio-track-btn${track.solo ? " active" : ""}" data-action="solo">S</button>
-        <label class="audio-extra-track-gain-wrap">
-          <span>Gain</span>
-          <input type="range" min="-24" max="12" step="0.5" value="${track.gainDb}" data-action="gain" />
-          <strong>${track.gainDb > 0 ? "+" : ""}${Number(track.gainDb).toFixed(1)} dB</strong>
-        </label>
-      </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 
   extraList.querySelectorAll(".audio-extra-track-card").forEach((card) => {
     const id = card.dataset.trackId;
@@ -2989,21 +2978,44 @@ function loadAudioWaveform(source, path, options = {}) {
 
   try {
     container.textContent = "";
-    const wave = WaveSurferCtor.create({
-      container,
-      url: src,
-      height: 100,
-      waveColor: getCssVar("--text2", "#8a8f98"),
-      progressColor: getCssVar("--accent", "#2563eb"),
-      cursorColor: "#E8390C",
-      cursorWidth: 2,
-      barWidth: 2,
-      barRadius: 2,
-      barGap: 2,
-      normalize: true,
-      interact: true,
-    });
-    setAudioWave(source, wave);
+    // Wavesurfer.renderMultiCanvas throws RangeError("Invalid array length") when the
+    // container width is 0 (hidden/just-attached panel). Defer creation until layout
+    // settles to keep the multi-track sidebar refresh from killing the primary wave.
+    const startCreate = () => {
+      if (token !== audioLoadTokens[source]) return;
+      const width = container.clientWidth || container.getBoundingClientRect().width || 0;
+      if (!width) {
+        requestAnimationFrame(startCreate);
+        return;
+      }
+      const wave = WaveSurferCtor.create({
+        container,
+        url: src,
+        height: 100,
+        waveColor: getCssVar("--text2", "#8a8f98"),
+        progressColor: getCssVar("--accent", "#2563eb"),
+        cursorColor: "#E8390C",
+        cursorWidth: 2,
+        barWidth: 2,
+        barRadius: 2,
+        barGap: 2,
+        normalize: true,
+        interact: true,
+      });
+      setAudioWave(source, wave);
+      hookAudioWaveListeners(source, wave, container, token, options, src);
+    };
+    startCreate();
+    return;
+  } catch (err) {
+    console.error("[audio] wavesurfer init failed:", err);
+    renderAudioWaveFallback(source, src, "Impossible d'afficher ce fichier audio", options);
+  }
+}
+
+function hookAudioWaveListeners(source, wave, container, token, options, src) {
+  try {
+    const seekTime = Number(options.seekTime || 0);
 
     trackAudioWaveSubscription(wave, wave.on("ready", () => {
       if (token !== audioLoadTokens[source]) return;
