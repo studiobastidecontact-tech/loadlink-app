@@ -89,12 +89,14 @@ MODULE_INFO.audio.ready = true;
 const loadAudioV2Frame = () => {
   const frame = $("audio-v2-frame");
   if (!frame) return;
-  if (!frame.src) frame.src = "audio-v2-bundle/audio-v2.html";
+  if (frame.getAttribute("src") !== "audio-v2-bundle/audio-v2.html") {
+    frame.setAttribute("src", "audio-v2-bundle/audio-v2.html");
+  }
 };
 
 const unloadAudioV2Frame = () => {
   const frame = $("audio-v2-frame");
-  if (frame) frame.src = "";
+  if (frame) frame.removeAttribute("src");
 };
 
 // ============================================
