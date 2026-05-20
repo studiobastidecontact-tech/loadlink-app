@@ -11,6 +11,7 @@ node_modules
 # Build outputs
 dist
 dist-ssr
+dist-v2
 *.local
 
 # Rust build outputs (HUGE — never commit)
@@ -52,6 +53,7 @@ src-tauri/binaries/ffmpeg-x86_64-apple-darwin
 
 src-tauri/binaries/test.mp4
 src-tauri/binaries/*.mp4
+src-tauri/Music/
 
 # Phase 1 migration backup
 src-tauri/src/lib.rs.OLD
