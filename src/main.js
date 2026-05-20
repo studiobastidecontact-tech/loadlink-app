@@ -1330,28 +1330,49 @@ function renderAudioBeginnerPanel() {
   const root = document.getElementById("audio-beginner-presets");
   if (!root) return;
   const activePreset = audioState.currentPreset;
-  root.innerHTML = AUDIO_BEGINNER_PRESETS.map((p) => `
-    <button type="button" class="audio-beginner-preset${p.presetKey === activePreset ? " active" : ""}" data-beginner-preset="${p.key}">
-      <span class="audio-beginner-preset-icon">${p.icon}</span>
-      <span class="audio-beginner-preset-name">${p.label}</span>
-      <span class="audio-beginner-preset-desc">${p.description}</span>
-      <span class="audio-beginner-preset-status">${p.presetKey === activePreset ? "✓ Appliqué" : "Appliquer"}</span>
-    </button>
-  `).join("");
+  const processingPreset = audioState.processingPreset;
+  root.innerHTML = AUDIO_BEGINNER_PRESETS.map((p) => {
+    const isActive = p.presetKey === activePreset && !processingPreset;
+    const isProcessing = p.presetKey === processingPreset;
+    const status = isProcessing ? "⟳ Application…" : (isActive ? "✓ Appliqué" : "Appliquer");
+    const cls = `audio-beginner-preset${isActive ? " active" : ""}${isProcessing ? " processing" : ""}`;
+    return `
+      <button type="button" class="${cls}" data-beginner-preset="${p.key}"${isProcessing ? " disabled" : ""}>
+        <span class="audio-beginner-preset-icon">${p.icon}</span>
+        <span class="audio-beginner-preset-name">${p.label}</span>
+        <span class="audio-beginner-preset-desc">${p.description}</span>
+        <span class="audio-beginner-preset-status">${status}</span>
+      </button>
+    `;
+  }).join("");
   root.querySelectorAll("[data-beginner-preset]").forEach((btn) => {
     btn.addEventListener("click", () => audioBeginnerApplyPreset(btn.dataset.beginnerPreset));
   });
 
   const volumeSlider = document.getElementById("audio-beginner-volume");
   const volumeValue = document.getElementById("audio-beginner-volume-value");
+  // Map masterGainDb back to a 0..100 percent for the slider so reopening the
+  // panel or switching levels reflects the current state.
+  const currentLinear = Math.pow(10, (audioState.masterGainDb || 0) / 20);
+  const currentPct = Math.max(0, Math.min(100, Math.round(currentLinear * 100)));
+  if (volumeSlider && document.activeElement !== volumeSlider) {
+    volumeSlider.value = currentPct;
+  }
+  if (volumeValue) volumeValue.textContent = `${currentPct}%`;
   if (volumeSlider && !volumeSlider.dataset.bound) {
     volumeSlider.dataset.bound = "1";
     volumeSlider.addEventListener("input", () => {
       const pct = Number(volumeSlider.value);
       if (volumeValue) volumeValue.textContent = `${pct}%`;
-      // Map 0..100% → -24..+6 dB on master bus
-      const dB = pct === 0 ? -24 : (pct >= 100 ? 6 : -24 + (pct / 100) * 30);
-      audioState.masterGainDb = clampNumber(dB, -24, 6);
+      // Map 0..100% → log-scaled dB (-60 at 0, 0 dB at 100). Beginner can only
+      // attenuate; boost > 0 dB stays in Amateur/Pro modes.
+      const dB = pct <= 0 ? -60 : 20 * Math.log10(pct / 100);
+      audioState.masterGainDb = clampNumber(dB, -24, 0);
+      // Live preview: apply the gain immediately to the playing wavesurfer so
+      // the user actually hears the volume change. The same value also goes to
+      // ffmpeg at "Exporter" time via masterGainDb.
+      audioState.track.gainDb = audioState.masterGainDb;
+      applyAudioTrackGainToPlayers();
       audioState.fullChainStale = Boolean(audioState.fullChainPath);
       renderAudioApplyFullButton();
     });
@@ -1365,7 +1386,9 @@ function renderAudioBeginnerPanel() {
   if (hint) {
     if (!audioState.mediaPath) {
       hint.textContent = "Charge ou enregistre un fichier audio pour commencer.";
-    } else if (!audioState.fullChainPath) {
+    } else if (processingPreset) {
+      hint.textContent = "Application du preset en cours…";
+    } else if (!audioState.fullChainPath && !audioState.resultPath) {
       hint.textContent = "Clique un preset, puis Exporter pour générer ton fichier final.";
     } else {
       hint.textContent = "Fichier prêt à exporter.";

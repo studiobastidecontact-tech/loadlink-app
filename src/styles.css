@@ -2612,6 +2612,23 @@ body.dark .libreoffice-warning {
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 
+.audio-beginner-preset.processing {
+  border-color: var(--accent);
+  background: var(--surface2);
+  cursor: progress;
+  opacity: 0.9;
+}
+
+.audio-beginner-preset.processing .audio-beginner-preset-status {
+  color: var(--accent);
+  animation: audioBeginnerStatusBlink 1.1s ease-in-out infinite;
+}
+
+@keyframes audioBeginnerStatusBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
 .audio-beginner-preset-icon {
   font-size: 32px;
 }
