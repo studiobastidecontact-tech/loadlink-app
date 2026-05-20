@@ -43,14 +43,16 @@ export class AudioEngine {
     await Promise.all([...new Set(paths)].map((path) => this.decoder.decodeFile(path)));
   }
 
-  async scheduleProject(project: Project, startTime: number): Promise<void> {
+  async scheduleProject(project: Project, startTime: number): Promise<number> {
     this.stop();
     await this.resume();
     const hasSolo = project.tracks.some((track) => track.solo);
     const tracks = project.tracks.filter((track) => this.shouldPlayTrack(track, hasSolo));
-    const contextStart = this.context.currentTime + 0.04;
 
+    await this.preloadProject({ ...project, tracks });
+    const contextStart = this.context.currentTime + 0.08;
     await Promise.all(tracks.map((track) => this.scheduleTrack(track, startTime, contextStart)));
+    return contextStart;
   }
 
   private shouldPlayTrack(track: Track, hasSolo: boolean): boolean {

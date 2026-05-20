@@ -35,9 +35,9 @@ export class PlaybackController {
     if (this.playing) return;
     const project = this.store.getProject();
     this.playheadAtStart = project.playhead;
-    this.contextStartedAt = this.engine.context.currentTime + 0.04;
-    await this.engine.scheduleProject(project, project.playhead);
+    this.contextStartedAt = await this.engine.scheduleProject(project, project.playhead);
     this.playing = true;
+    this.emit(project.playhead);
     this.tick();
   }
 
