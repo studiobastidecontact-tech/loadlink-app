@@ -89,8 +89,9 @@ MODULE_INFO.audio.ready = true;
 const loadAudioV2Frame = () => {
   const frame = $("audio-v2-frame");
   if (!frame) return;
-  if (frame.getAttribute("src") !== "audio-v2-bundle/audio-v2.html") {
-    frame.setAttribute("src", "audio-v2-bundle/audio-v2.html");
+  const src = "audio-v2-bundle/audio-v2.html?embedded=1";
+  if (frame.getAttribute("src") !== src) {
+    frame.setAttribute("src", src);
   }
 };
 

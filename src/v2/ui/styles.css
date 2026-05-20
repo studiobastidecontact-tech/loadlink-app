@@ -12,6 +12,10 @@ button, input { font: inherit; }
   color: #e5e5e5;
 }
 
+.v2-app.embedded {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
 .v2-sidebar {
   background: #0f0f0f;
   border-right: 1px solid #1a1a1a;

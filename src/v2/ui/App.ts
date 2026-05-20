@@ -18,13 +18,14 @@ export class AudioV2App {
   private readonly selection = createSelectionStore();
   private readonly engine = new AudioEngine();
   private readonly playback = new PlaybackController(this.store, this.engine);
+  private readonly embedded = this.isEmbedded();
   private playheadEl: HTMLElement | null = null;
 
   constructor(private readonly root: HTMLElement) {}
 
   mount(): void {
     this.ensureInitialTracks();
-    this.root.className = 'v2-app v2-mockup';
+    this.root.className = `v2-app v2-mockup${this.embedded ? ' embedded' : ''}`;
     this.root.innerHTML = '';
 
     const main = el('main', 'v2-main');
@@ -52,7 +53,11 @@ export class AudioV2App {
       Transport(this.store, this.playback),
     );
 
-    this.root.append(this.renderSidebar(), main, Inspector(this.store, this.selection));
+    if (this.embedded) {
+      this.root.append(main, Inspector(this.store, this.selection));
+    } else {
+      this.root.append(this.renderSidebar(), main, Inspector(this.store, this.selection));
+    }
 
     this.bindDrop(tracksArea);
     void this.bindNativeDrop();
@@ -84,6 +89,16 @@ export class AudioV2App {
     });
 
     return sidebar;
+  }
+
+  private isEmbedded(): boolean {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('embedded') === '1') return true;
+    try {
+      return window.parent !== window;
+    } catch {
+      return false;
+    }
   }
 
   private renderInfoBanner(): HTMLElement {
