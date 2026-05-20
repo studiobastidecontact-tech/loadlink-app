@@ -4332,11 +4332,9 @@ function audioMeterLoop() {
   const peakL = computeAudioMeterPeak(bufL);
   const peakR = computeAudioMeterPeak(bufR);
 
-  // Smooth attack, slower release
   audioMeterPeakL = peakL > audioMeterPeakL ? peakL : audioMeterPeakL * 0.86;
   audioMeterPeakR = peakR > audioMeterPeakR ? peakR : audioMeterPeakR * 0.86;
 
-  // Peak-hold markers decay slowly (~1.5 s)
   audioMeterPeakHoldL = peakL > audioMeterPeakHoldL ? peakL : audioMeterPeakHoldL - 0.005;
   audioMeterPeakHoldR = peakR > audioMeterPeakHoldR ? peakR : audioMeterPeakHoldR - 0.005;
 
@@ -4344,8 +4342,14 @@ function audioMeterLoop() {
   const rFill = document.getElementById("audio-meter-r-fill");
   const lPeak = document.getElementById("audio-meter-l-peak");
   const rPeak = document.getElementById("audio-meter-r-peak");
-  if (lFill) lFill.style.width = `${(audioMeterPeakL * 100).toFixed(1)}%`;
-  if (rFill) rFill.style.width = `${(audioMeterPeakR * 100).toFixed(1)}%`;
+  if (lFill) {
+    lFill.style.width = `${(audioMeterPeakL * 100).toFixed(1)}%`;
+    lFill.className = `audio-meter-fill ${audioRecordLevelClass(audioMeterPeakL)}`;
+  }
+  if (rFill) {
+    rFill.style.width = `${(audioMeterPeakR * 100).toFixed(1)}%`;
+    rFill.className = `audio-meter-fill ${audioRecordLevelClass(audioMeterPeakR)}`;
+  }
   if (lPeak) lPeak.style.left = `${Math.min(100, (audioMeterPeakHoldL * 100)).toFixed(1)}%`;
   if (rPeak) rPeak.style.left = `${Math.min(100, (audioMeterPeakHoldR * 100)).toFixed(1)}%`;
 
