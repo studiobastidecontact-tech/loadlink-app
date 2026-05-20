@@ -2169,7 +2169,7 @@ function loadAudioWaveform(source, path, options = {}) {
     });
     setAudioWave(source, wave);
 
-    wave.on("ready", () => {
+    trackAudioWaveSubscription(wave, wave.on("ready", () => {
       if (token !== audioLoadTokens[source]) return;
       container.classList.remove("loading");
       const duration = wave.getDuration();
@@ -2179,36 +2179,36 @@ function loadAudioWaveform(source, path, options = {}) {
       if (options.activate || audioState.currentSrc === source) {
         setActiveAudioSource(source, { preservePosition: false });
       }
-    });
+    }));
 
-    wave.on("timeupdate", (time) => {
+    trackAudioWaveSubscription(wave, wave.on("timeupdate", (time) => {
       if (source !== audioState.currentSrc || token !== audioLoadTokens[source]) return;
       updateAudioTransport(time, wave.getDuration());
-    });
-    wave.on("audioprocess", (time) => {
+    }));
+    trackAudioWaveSubscription(wave, wave.on("audioprocess", (time) => {
       if (source !== audioState.currentSrc || token !== audioLoadTokens[source]) return;
       updateAudioTransport(time, wave.getDuration());
-    });
-    wave.on("seeking", (time) => {
+    }));
+    trackAudioWaveSubscription(wave, wave.on("seeking", (time) => {
       if (source !== audioState.currentSrc || token !== audioLoadTokens[source]) return;
       updateAudioTransport(time, wave.getDuration());
-    });
-    wave.on("play", () => {
+    }));
+    trackAudioWaveSubscription(wave, wave.on("play", () => {
       if (source === audioState.currentSrc) setAudioPlayButton(true);
-    });
-    wave.on("pause", () => {
+    }));
+    trackAudioWaveSubscription(wave, wave.on("pause", () => {
       if (source === audioState.currentSrc) setAudioPlayButton(false);
-    });
-    wave.on("finish", () => {
+    }));
+    trackAudioWaveSubscription(wave, wave.on("finish", () => {
       if (source !== audioState.currentSrc) return;
       setAudioPlayButton(false);
       updateAudioTransport(wave.getDuration(), wave.getDuration());
-    });
-    wave.on("error", (err) => {
+    }));
+    trackAudioWaveSubscription(wave, wave.on("error", (err) => {
       if (token !== audioLoadTokens[source]) return;
       console.error("[audio] wavesurfer load error:", err);
       renderAudioWaveFallback(source, src, "Impossible d'afficher ce fichier audio", options);
-    });
+    }));
   } catch (err) {
     console.error("[audio] wavesurfer init failed:", err);
     renderAudioWaveFallback(source, src, "Impossible d'afficher ce fichier audio", options);
@@ -2221,11 +2221,12 @@ function destroyAudioPlayer(source) {
   const player = getAudioPlayer(source);
   if (player.wave) {
     try {
-      player.wave.destroy();
+      destroyAudioWaveInstance(player.wave);
     } catch (err) {
       console.warn("[audio] wavesurfer destroy failed:", err);
+    } finally {
+      setAudioWave(source, null);
     }
-    setAudioWave(source, null);
   }
 
   if (player.fallback) {
@@ -2241,9 +2242,48 @@ function destroyAudioPlayer(source) {
 
   const container = getAudioWaveContainer(source);
   if (container) {
+    container.replaceChildren();
     container.classList.remove("loading", "error");
-    container.innerHTML = "";
   }
+}
+
+function trackAudioWaveSubscription(wave, unsubscribe) {
+  if (typeof unsubscribe !== "function") return;
+  if (!wave.__loadlinkUnsubs) wave.__loadlinkUnsubs = [];
+  wave.__loadlinkUnsubs.push(unsubscribe);
+}
+
+function destroyAudioWaveInstance(wave) {
+  if (!wave) return;
+  try {
+    if (typeof wave.pause === "function") wave.pause();
+  } catch (err) {
+    console.warn("[audio] wavesurfer pause before destroy failed:", err);
+  }
+  if (Array.isArray(wave.__loadlinkUnsubs)) {
+    wave.__loadlinkUnsubs.splice(0).forEach((unsubscribe) => {
+      try {
+        unsubscribe();
+      } catch (err) {
+        console.warn("[audio] wavesurfer listener cleanup failed:", err);
+      }
+    });
+  }
+  if (typeof wave.unAll === "function") {
+    try {
+      wave.unAll();
+    } catch (err) {
+      console.warn("[audio] wavesurfer unAll failed:", err);
+    }
+  }
+  if (typeof wave.empty === "function") {
+    try {
+      wave.empty();
+    } catch (err) {
+      console.warn("[audio] wavesurfer empty failed:", err);
+    }
+  }
+  wave.destroy();
 }
 
 function renderAudioWaveFallback(source, src, message, options = {}) {
@@ -2253,7 +2293,7 @@ function renderAudioWaveFallback(source, src, message, options = {}) {
   const player = getAudioPlayer(source);
   if (player.wave) {
     try {
-      player.wave.destroy();
+      destroyAudioWaveInstance(player.wave);
     } catch (err) {
       console.warn("[audio] wavesurfer fallback destroy failed:", err);
     }
