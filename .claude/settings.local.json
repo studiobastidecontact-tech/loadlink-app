@@ -20,7 +20,8 @@
       "Bash(grep -c '^function __TRACKED_VAR__\\\\|^async function __TRACKED_VAR__' ../src/main.js)",
       "Bash(grep -nC1 \"audio-level-switch \\\\[data-audio-level\\\\]\" ../src/main.js)",
       "Bash(grep -nC1 \"data-beginner-preset\" ../src/main.js)",
-      "Bash(grep -nC1 \"audio-amateur-targets\" ../src/main.js)"
+      "Bash(grep -nC1 \"audio-amateur-targets\" ../src/main.js)",
+      "Bash(grep -nC2 \"audio-ab-toggle\\\\|data-audio-source\" ../src/main.js)"
     ]
   }
 }

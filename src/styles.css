@@ -5313,6 +5313,11 @@ body.dark .audio-waveform {
   color: var(--accent);
 }
 
+.audio-ab-toggle button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .audio-actions {
   display: flex;
   align-items: center;

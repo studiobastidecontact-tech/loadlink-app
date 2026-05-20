@@ -3301,7 +3301,17 @@ function audioUpdateUI() {
 
   document.getElementById("audio-result-panel")?.classList.toggle("hidden", !audioState.resultPath);
   document.getElementById("audio-result-panel")?.classList.toggle("chain-processing", audioState.chainProcessing);
-  document.getElementById("audio-ab-toggle")?.classList.toggle("hidden", !audioState.resultPath);
+  const abToggle = document.getElementById("audio-ab-toggle");
+  if (abToggle) {
+    abToggle.classList.toggle("hidden", !hasMedia);
+    const resultBtn = abToggle.querySelector("[data-audio-source='result']");
+    if (resultBtn) {
+      resultBtn.disabled = !audioState.resultPath;
+      resultBtn.title = audioState.resultPath ? "Écouter le résultat traité" : "Applique un preset d'abord";
+    }
+    const originalBtn = abToggle.querySelector("[data-audio-source='original']");
+    if (originalBtn) originalBtn.title = "Écouter le son brut original";
+  }
   renderAudioRefinePanel();
 
   const hasFullResult = Boolean(audioState.resultPath) && !audioState.resultIsPreview;
@@ -4919,7 +4929,10 @@ function setAudioFallback(source, fallback) {
 }
 
 function setActiveAudioSource(source, options = {}) {
-  if (source === "result" && !audioState.resultPath) return;
+  if (source === "result" && !audioState.resultPath) {
+    showToast("Applique un preset d'abord pour entendre le résultat", 2400);
+    return;
+  }
   if (source === audioState.currentSrc) {
     if (Number.isFinite(options.seekTime) && options.seekTime > 0) {
       seekAudioSource(source, options.seekTime);
@@ -4928,15 +4941,46 @@ function setActiveAudioSource(source, options = {}) {
     syncAudioTransportFromPlayer();
     return;
   }
-  const previousTime = options.preservePosition === false ? 0 : getAudioSourceCurrentTime(audioState.currentSrc);
+  const previousSrc = audioState.currentSrc;
+  const wasPlaying = isAudioSourcePlaying(previousSrc);
+  const previousTime = options.preservePosition === false ? 0 : getAudioSourceCurrentTime(previousSrc);
   const nextTime = Number.isFinite(options.seekTime) ? options.seekTime : previousTime;
-  pauseAudioSource(audioState.currentSrc);
+  pauseAudioSource(previousSrc);
   audioState.currentSrc = source;
   if (nextTime > 0) seekAudioSource(source, nextTime);
   renderAudioAbToggle();
   syncAudioTransportFromPlayer();
   const activeWave = getAudioPlayer(source).wave;
   if (activeWave) attachAudioLiveMeter(activeWave);
+  // Seamless A/B: if playback was running, resume on the new source at the same
+  // position so the user can hear the difference without a play-button round trip.
+  if (wasPlaying) {
+    const player = getAudioPlayer(source);
+    try {
+      if (player.wave && typeof player.wave.play === "function") {
+        player.wave.play();
+      } else if (player.fallback && player.fallback.paused) {
+        player.fallback.play().catch(() => {});
+      }
+    } catch (err) {
+      console.warn("[audio] resume after A/B switch failed:", err);
+    }
+    setAudioPlayButton(true);
+  }
+  // Keep the FX toggle in sync with the active source (Fix 3 — to be wired below)
+  syncAudioFxToggle();
+}
+
+function syncAudioFxToggle() {
+  const fxBtn = document.getElementById("audio-shared-fx-toggle");
+  if (!fxBtn) return;
+  const playingResult = audioState.currentSrc === "result";
+  audioState.fxOnPreview = playingResult;
+  fxBtn.classList.toggle("active", playingResult);
+  fxBtn.disabled = !audioState.resultPath;
+  fxBtn.title = audioState.resultPath
+    ? "Preview rapide : alterne entre son brut et son traité"
+    : "Applique d'abord un preset pour activer le preview FX";
 }
 
 function getAudioSourceCurrentTime(source) {
