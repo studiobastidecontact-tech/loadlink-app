@@ -2134,6 +2134,47 @@ body.dark .libreoffice-warning {
   background: var(--accent-light);
 }
 
+.audio-apply-full-wrap {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.audio-apply-full-btn {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: filter 120ms ease;
+}
+
+.audio-apply-full-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.audio-apply-full-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.audio-apply-full-hint {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11.5px;
+  color: var(--text2);
+  text-align: center;
+  line-height: 1.35;
+}
+
 .audio-effect-detail {
   margin-top: 16px;
   background: var(--surface2);

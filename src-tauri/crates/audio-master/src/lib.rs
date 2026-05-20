@@ -78,6 +78,15 @@ pub struct AudioEffectChain {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioPreviewOptions {
+    pub input: String,
+    pub effects: Vec<AudioEffect>,
+    pub start_seconds: f64,
+    pub duration_seconds: f64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AudioEffect {
     Eq {
@@ -545,6 +554,83 @@ pub async fn apply_chain(app: &AppHandle, opts: AudioEffectChain) -> Result<Audi
     })
 }
 
+/// Generate a short audio preview of an effect chain.
+///
+/// Used by the frontend for low-latency parameter feedback: takes a `duration_seconds`
+/// window starting at `start_seconds` and processes it with the same effects as
+/// `apply_chain`, except `loudnorm` is skipped (single-pass on a 5 s clip is meaningless
+/// and adds noise). Output goes to `%TEMP%/loadlink-preview/preview_<ts>.wav` (PCM 16-bit
+/// for speed) and old previews are pruned to keep the temp dir small.
+pub async fn apply_preview(_app: &AppHandle, opts: AudioPreviewOptions) -> Result<AudioProcessResult> {
+    let ffmpeg = get_ffmpeg_path(_app)?;
+    let source = PathBuf::from(&opts.input);
+    ensure_source_exists(&source)?;
+
+    let probe = probe_input(&ffmpeg, &source).await?;
+    let target_sample_rate = probe.sample_rate.unwrap_or(DEFAULT_SAMPLE_RATE);
+
+    let start = clamp(opts.start_seconds as f32, 0.0, f32::MAX) as f64;
+    let duration = clamp(opts.duration_seconds as f32, 0.5, 30.0) as f64;
+    let filter_chain = build_effect_chain_preview(&opts.effects, target_sample_rate);
+
+    let out_dir = std::env::temp_dir().join("loadlink-preview");
+    std::fs::create_dir_all(&out_dir)?;
+
+    let token = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let out_path = out_dir.join(format!("preview_{token}.wav"));
+
+    let mut cmd = Command::new(&ffmpeg);
+    cmd.arg("-hide_banner")
+        .arg("-y")
+        // -ss before -i = fast keyframe seek
+        .arg("-ss")
+        .arg(format!("{start:.3}"))
+        .arg("-t")
+        .arg(format!("{duration:.3}"))
+        .arg("-i")
+        .arg(&source)
+        .arg("-map")
+        .arg("0:a:0")
+        .arg("-vn")
+        .arg("-af")
+        .arg(&filter_chain)
+        .arg("-c:a")
+        .arg("pcm_s16le")
+        .arg(&out_path);
+    cmd.stdout(Stdio::null()).stderr(Stdio::piped());
+    apply_no_window(&mut cmd);
+
+    let output = cmd
+        .output()
+        .await
+        .map_err(|e| LoadlinkError::SpawnFailed(format!("ffmpeg audio preview: {e}")))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let _ = std::fs::remove_file(&out_path);
+        return Ok(AudioProcessResult {
+            success: false,
+            output_path: String::new(),
+            preset: "preview".to_string(),
+            output_info: None,
+            error: Some(ffmpeg_error(&stderr)),
+        });
+    }
+
+    cleanup_excess_previews(&out_dir, &out_path, 10);
+
+    Ok(AudioProcessResult {
+        success: true,
+        output_path: out_path.to_string_lossy().to_string(),
+        preset: "preview".to_string(),
+        output_info: None,
+        error: None,
+    })
+}
+
 #[derive(Debug, Clone, Default)]
 struct InputProbe {
     duration_seconds: Option<f64>,
@@ -822,6 +908,55 @@ fn append_codec_args(cmd: &mut Command, format: &str) {
         _ => {
             cmd.arg("-c:a").arg("pcm_s16le");
         }
+    }
+}
+
+fn build_effect_chain_preview(effects: &[AudioEffect], target_sample_rate: u32) -> String {
+    // Preview skips loudnorm (1-pass on a tiny window is meaningless) and silenceremove
+    // (which can collapse a 5 s preview to nothing). Everything else mirrors apply_chain.
+    let filtered: Vec<AudioEffect> = effects
+        .iter()
+        .cloned()
+        .filter(|effect| {
+            !matches!(
+                effect,
+                AudioEffect::Loudnorm { .. } | AudioEffect::Silence { .. }
+            )
+        })
+        .collect();
+    build_effect_chain(&filtered, target_sample_rate)
+}
+
+fn cleanup_excess_previews(out_dir: &Path, current_output: &Path, keep: usize) {
+    let entries = match std::fs::read_dir(out_dir) {
+        Ok(entries) => entries,
+        Err(_) => return,
+    };
+
+    let mut candidates = entries
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.path())
+        .filter(|path| path.is_file())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with("preview_") && name.ends_with(".wav"))
+        })
+        .filter_map(|path| {
+            let modified = std::fs::metadata(&path)
+                .and_then(|metadata| metadata.modified())
+                .ok()?;
+            Some((path, modified))
+        })
+        .collect::<Vec<_>>();
+
+    candidates.sort_by_key(|(_, modified)| Reverse(*modified));
+
+    for (path, _) in candidates.into_iter().skip(keep) {
+        if same_path(&path, current_output) {
+            continue;
+        }
+        let _ = std::fs::remove_file(&path);
     }
 }
 

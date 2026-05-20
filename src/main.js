@@ -995,6 +995,12 @@ const audioState = {
   resultPath: null,
   resultFormat: null,
   resultOutputDir: null,
+  resultIsPreview: false,
+  previewStartSeconds: 0,
+  previewDurationSeconds: 5,
+  previewProcessing: false,
+  fullChainPath: null,
+  fullChainStale: false,
   currentSrc: "original",
   lastErrorPreset: null,
   exportDir: null,
@@ -1028,6 +1034,9 @@ let audioOperationToken = 0;
 let audioAnalyzeToken = 0;
 let audioChainDebounce = null;
 let audioChainToken = 0;
+let audioPreviewDebounce = null;
+let audioPreviewToken = 0;
+let audioPreviewPending = false;
 let audioEqDrag = null;
 let audioLoadTokens = {
   original: 0,
@@ -1112,6 +1121,7 @@ function bindAudioModuleHandlers(appState) {
   document.getElementById("audio-add-effect-btn")?.addEventListener("click", () => {
     showToast("Ajout d'effet disponible en Phase D", 2500);
   });
+  document.getElementById("audio-apply-full-btn")?.addEventListener("click", applyChainToFullFile);
   refineToggle?.addEventListener("click", toggleAudioRefinePanel);
   refineReset?.addEventListener("click", resetAudioRefineSliders);
   document.querySelectorAll("[data-audio-refine]").forEach((input) => {
@@ -1220,6 +1230,11 @@ function loadAudioFile(path) {
   audioState.chainProcessing = false;
   audioState.chainPending = false;
   audioState.resultPath = null;
+  audioState.resultIsPreview = false;
+  audioState.previewProcessing = false;
+  audioState.previewStartSeconds = 0;
+  audioState.fullChainPath = null;
+  audioState.fullChainStale = false;
   audioState.resultFormat = null;
   audioState.resultOutputDir = null;
   audioState.currentSrc = "original";
@@ -1265,20 +1280,21 @@ function audioUpdateUI() {
   document.getElementById("audio-ab-toggle")?.classList.toggle("hidden", !audioState.resultPath);
   renderAudioRefinePanel();
 
+  const hasFullResult = Boolean(audioState.resultPath) && !audioState.resultIsPreview;
   const exportBtn = document.getElementById("audio-export-btn");
-  if (exportBtn) exportBtn.disabled = !audioState.resultPath || audioState.processing;
-
-  const resultMeta = document.getElementById("audio-result-meta");
-  if (resultMeta) {
-    const presetLabel = AUDIO_PRESET_LABELS[audioState.currentPreset] || "Preset applique";
-    const resultName = audioState.resultPath ? getPathName(audioState.resultPath) : "";
-    resultMeta.textContent = audioState.resultPath ? `${presetLabel} · ${resultName}` : "Preset applique";
+  if (exportBtn) {
+    exportBtn.disabled = !hasFullResult || audioState.processing;
+    exportBtn.title = audioState.resultIsPreview
+      ? "Applique la chaîne au fichier complet avant d'exporter"
+      : "Exporter le résultat";
   }
 
   renderAudioPresetCards();
   renderAudioAbToggle();
   renderAudioEffectsSidebar();
   renderAudioMeters();
+  renderAudioApplyFullButton();
+  renderAudioResultHeader();
   updateAudioExportModal();
 
   if (hasMedia) {
@@ -1576,16 +1592,92 @@ function eqBandToPoint(band) {
   };
 }
 
-function scheduleAudioChainRender(delay = 500) {
-  if (!audioState.mediaPath || !audioState.resultPath) return;
-  if (audioState.processing) {
-    audioState.chainPending = true;
+function scheduleAudioChainRender(delay = 400) {
+  if (!audioState.mediaPath) return;
+  audioState.fullChainStale = Boolean(audioState.fullChainPath);
+  renderAudioApplyFullButton();
+  if (audioState.previewProcessing) {
+    audioPreviewPending = true;
     return;
   }
-  clearTimeout(audioChainDebounce);
-  audioChainDebounce = window.setTimeout(() => {
-    runAudioEffectChain();
+  clearTimeout(audioPreviewDebounce);
+  audioPreviewDebounce = window.setTimeout(() => {
+    runAudioPreviewChain();
   }, delay);
+}
+
+function getAudioPreviewStartSeconds() {
+  const duration = audioState.mediaDuration || 0;
+  const dur = audioState.previewDurationSeconds || 5;
+  const cursor = getAudioSourceCurrentTime("original") || 0;
+  if (!duration) return Math.max(0, cursor);
+  return Math.max(0, Math.min(cursor, Math.max(0, duration - dur)));
+}
+
+async function runAudioPreviewChain() {
+  if (!audioState.mediaPath) return null;
+  const startSeconds = getAudioPreviewStartSeconds();
+  const durationSeconds = audioState.previewDurationSeconds || 5;
+  const token = ++audioPreviewToken;
+  audioPreviewPending = false;
+  audioState.previewProcessing = true;
+  audioState.previewStartSeconds = startSeconds;
+  renderAudioApplyFullButton();
+  renderAudioResultHeader();
+
+  try {
+    const result = await invoke("audio_preview_chain", {
+      req: {
+        input: audioState.mediaPath,
+        startSeconds,
+        durationSeconds,
+        effects: buildAudioEffectPayload(),
+      },
+    });
+
+    if (token !== audioPreviewToken) return null;
+    if (!result || result.success === false) {
+      throw new Error((result && result.error) || "Aperçu impossible");
+    }
+    const outputPath = result.outputPath || result.output_path;
+    if (!outputPath) throw new Error("Aucun fichier d'aperçu retourné");
+
+    destroyAudioPlayer("result");
+    audioState.resultPath = outputPath;
+    audioState.resultIsPreview = true;
+    audioState.resultFormat = "wav";
+    audioState.resultOutputDir = null;
+    audioState.resultDuration = null;
+    if (!audioState.currentPreset) audioState.currentPreset = "chain";
+    audioState.previewProcessing = false;
+    audioUpdateUI();
+    requestAnimationFrame(() => loadAudioWaveform("result", outputPath, {
+      activate: false,
+      seekTime: 0,
+    }));
+    return outputPath;
+  } catch (err) {
+    if (token === audioPreviewToken) {
+      audioState.previewProcessing = false;
+      const message = err && err.message ? err.message : String(err);
+      console.warn("[audio] preview failed:", message);
+      audioUpdateUI();
+    }
+    return null;
+  } finally {
+    if (token === audioPreviewToken) {
+      audioState.previewProcessing = false;
+      renderAudioApplyFullButton();
+      if (audioPreviewPending) {
+        scheduleAudioChainRender(200);
+      }
+    }
+  }
+}
+
+async function applyChainToFullFile() {
+  if (!audioState.mediaPath || audioState.processing) return;
+  await runAudioEffectChain();
 }
 
 async function runAudioEffectChain(options = {}) {
@@ -1629,6 +1721,7 @@ async function runAudioEffectChain(options = {}) {
 
     destroyAudioPlayer("result");
     audioState.resultPath = outputPath;
+    audioState.resultIsPreview = false;
     audioState.resultFormat = format;
     audioState.resultOutputDir = outputDir || getAudioDefaultOutputDir();
     audioState.resultDuration = null;
@@ -1638,6 +1731,8 @@ async function runAudioEffectChain(options = {}) {
     audioState.processing = false;
     audioState.chainProcessing = false;
     audioState.processingPreset = null;
+    audioState.fullChainPath = outputPath;
+    audioState.fullChainStale = false;
     audioUpdateUI();
     requestAnimationFrame(() => loadAudioWaveform("result", outputPath, {
       activate: true,
@@ -1959,6 +2054,61 @@ function renderAudioAbToggle() {
   });
 }
 
+function renderAudioApplyFullButton() {
+  const btn = document.getElementById("audio-apply-full-btn");
+  const hint = document.getElementById("audio-apply-full-hint");
+  if (!btn) return;
+  const hasMedia = Boolean(audioState.mediaPath);
+  const isPreviewing = audioState.resultIsPreview;
+  const fullStale = audioState.fullChainStale && Boolean(audioState.fullChainPath);
+  const visible = hasMedia && (isPreviewing || fullStale);
+  btn.classList.toggle("hidden", !visible);
+  btn.disabled = audioState.processing || audioState.previewProcessing;
+  if (audioState.processing) {
+    btn.textContent = "Rendu en cours…";
+  } else if (audioState.previewProcessing) {
+    btn.textContent = "Aperçu en cours…";
+  } else {
+    btn.textContent = "Appliquer au fichier complet";
+  }
+  if (hint) {
+    if (audioState.processing) {
+      hint.textContent = "Traitement du fichier complet en cours…";
+    } else if (audioState.previewProcessing) {
+      hint.textContent = `Aperçu ${audioState.previewDurationSeconds || 5} s en cours…`;
+    } else if (isPreviewing) {
+      const start = formatAudioTime(audioState.previewStartSeconds || 0);
+      hint.textContent = `Aperçu ${audioState.previewDurationSeconds || 5} s depuis ${start}`;
+    } else if (fullStale) {
+      hint.textContent = "Chaîne modifiée — rendu complet à refaire";
+    } else {
+      hint.textContent = "";
+    }
+    hint.classList.toggle("hidden", !visible);
+  }
+}
+
+function renderAudioResultHeader() {
+  const meta = document.getElementById("audio-result-meta");
+  const title = document.querySelector("#audio-result-panel .audio-wave-title");
+  if (!meta) return;
+  if (!audioState.resultPath) {
+    meta.textContent = "Preset appliqué";
+    if (title) title.textContent = "Résultat";
+    return;
+  }
+  if (audioState.resultIsPreview) {
+    const start = formatAudioTime(audioState.previewStartSeconds || 0);
+    meta.textContent = `Aperçu ${audioState.previewDurationSeconds || 5} s depuis ${start}`;
+    if (title) title.textContent = "Aperçu";
+    return;
+  }
+  const presetLabel = AUDIO_PRESET_LABELS[audioState.currentPreset] || "Preset appliqué";
+  const resultName = getPathName(audioState.resultPath);
+  meta.textContent = `${presetLabel} · ${resultName}`;
+  if (title) title.textContent = "Résultat";
+}
+
 function renderAudioRefinePanel() {
   const panel = document.getElementById("audio-refine-panel");
   const body = document.getElementById("audio-refine-body");
@@ -2050,11 +2200,14 @@ async function runAudioPreset(presetKey, options = {}) {
     audioState.processingPreset = null;
     audioState.processingProgress = 100;
     audioState.resultPath = outputPath;
+    audioState.resultIsPreview = false;
     audioState.resultFormat = format;
     audioState.resultOutputDir = outputDir || getAudioDefaultOutputDir();
     audioState.resultDuration = null;
     audioState.currentPreset = presetKey;
     audioState.lastErrorPreset = null;
+    audioState.fullChainPath = outputPath;
+    audioState.fullChainStale = false;
     resetAudioEffectChainForPreset(presetKey);
     resetAudioRefineState(false);
     audioUpdateUI();
@@ -2591,6 +2744,9 @@ function resetAudioWithConfirm() {
 function resetAudioState() {
   audioOperationToken += 1;
   audioAnalyzeToken += 1;
+  audioPreviewToken += 1;
+  audioPreviewPending = false;
+  clearTimeout(audioPreviewDebounce);
   stopAudioProgressListener();
   destroyAudioPlayer("original");
   destroyAudioPlayer("result");
@@ -2606,6 +2762,11 @@ function resetAudioState() {
   audioState.chainProcessing = false;
   audioState.chainPending = false;
   audioState.resultPath = null;
+  audioState.resultIsPreview = false;
+  audioState.previewProcessing = false;
+  audioState.previewStartSeconds = 0;
+  audioState.fullChainPath = null;
+  audioState.fullChainStale = false;
   audioState.resultFormat = null;
   audioState.resultOutputDir = null;
   audioState.currentSrc = "original";

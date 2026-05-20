@@ -2,8 +2,9 @@
 
 use loadlink_audio_master::{
     analyze as audio_analyze_run, apply_chain as audio_apply_chain_run,
-    apply_preset as audio_apply_preset_run, list_presets as audio_list_presets_run, AudioAnalysis,
-    AudioEffectChain, AudioPresetInfo, AudioPresetOptions, AudioProcessResult,
+    apply_preset as audio_apply_preset_run, apply_preview as audio_apply_preview_run,
+    list_presets as audio_list_presets_run, AudioAnalysis, AudioEffectChain, AudioPresetInfo,
+    AudioPresetOptions, AudioPreviewOptions, AudioProcessResult,
 };
 use loadlink_compressor::{
     compress_chunked_session, compress_dropped_files as compressor_dropped,
@@ -687,6 +688,16 @@ async fn audio_apply_chain(
 
     result.map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+async fn audio_preview_chain(
+    app: AppHandle,
+    req: AudioPreviewOptions,
+) -> Result<AudioProcessResult, String> {
+    audio_apply_preview_run(&app, req)
+        .await
+        .map_err(|e| e.to_string())
+}
 // ============================================
 // Misc commands
 // ============================================
@@ -870,6 +881,7 @@ pub fn run() {
             audio_analyze,
             audio_apply_preset,
             audio_apply_chain,
+            audio_preview_chain,
             // Phase 4.5 Lire (player)
             read_text_file,
             write_text_file,
