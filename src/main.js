@@ -924,6 +924,29 @@ function saveAudioUserLevel(level) {
 
 function setAudioUserLevel(level) {
   if (!AUDIO_USER_LEVELS.includes(level) || level === audioState.userLevel) return;
+  const previous = audioState.userLevel;
+  // Bug E — Pro tweaks must survive a detour through Amateur/Beginner. Amateur
+  // sliders deliberately overwrite effectChain.eq.bands; if the user had hand-
+  // edited the Pro EQ first, those edits would be lost on level swap. Snapshot
+  // the Pro state when leaving Pro and restore it on return.
+  if (previous === "pro" && level !== "pro") {
+    try {
+      audioState.proChainSnapshot = JSON.parse(JSON.stringify(audioState.effectChain));
+      audioState.proMasterSnapshot = JSON.parse(JSON.stringify(audioMasterState));
+    } catch (err) {
+      console.warn("[audio] Pro snapshot failed:", err);
+    }
+  }
+  if (level === "pro" && audioState.proChainSnapshot) {
+    try {
+      audioState.effectChain = JSON.parse(JSON.stringify(audioState.proChainSnapshot));
+      if (audioState.proMasterSnapshot) {
+        Object.assign(audioMasterState, JSON.parse(JSON.stringify(audioState.proMasterSnapshot)));
+      }
+    } catch (err) {
+      console.warn("[audio] Pro restore failed:", err);
+    }
+  }
   audioState.userLevel = level;
   saveAudioUserLevel(level);
   audioUpdateUI();
@@ -5595,6 +5618,8 @@ function resetAudioState() {
   audioState.track = { mute: false, solo: false, gainDb: 0, pan: 0 };
   audioState.extraTracks = [];
   audioState.masterGainDb = 0;
+  audioState.proChainSnapshot = null;
+  audioState.proMasterSnapshot = null;
   resetAudioHistory();
   detachAudioLiveMeter();
   ["audio-meter-l-fill", "audio-meter-r-fill"].forEach((id) => {
