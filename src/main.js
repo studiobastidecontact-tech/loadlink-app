@@ -1054,6 +1054,14 @@ let audioPreviewPending = false;
 let audioEqDrag = null;
 let audioHistoryDebounce = null;
 const AUDIO_HISTORY_MAX = 20;
+let audioMeterCtx = null;
+let audioMeterFor = null; // wave instance the meter is wired to
+let audioMeterAnalysers = null; // { left, right, audio }
+let audioMeterRafId = null;
+let audioMeterPeakL = 0;
+let audioMeterPeakR = 0;
+let audioMeterPeakHoldL = 0;
+let audioMeterPeakHoldR = 0;
 let audioLoadTokens = {
   original: 0,
   result: 0,
@@ -3027,6 +3035,7 @@ function hookAudioWaveListeners(source, wave, container, token, options, src) {
       if (options.activate || audioState.currentSrc === source) {
         setActiveAudioSource(source, { preservePosition: false });
       }
+      if (source === audioState.currentSrc) attachAudioLiveMeter(wave);
     }));
 
     trackAudioWaveSubscription(wave, wave.on("timeupdate", (time) => {
@@ -3068,6 +3077,7 @@ function destroyAudioPlayer(source) {
 
   const player = getAudioPlayer(source);
   if (player.wave) {
+    if (audioMeterFor === player.wave) detachAudioLiveMeter();
     try {
       destroyAudioWaveInstance(player.wave);
     } catch (err) {
@@ -3231,6 +3241,8 @@ function setActiveAudioSource(source, options = {}) {
   if (nextTime > 0) seekAudioSource(source, nextTime);
   renderAudioAbToggle();
   syncAudioTransportFromPlayer();
+  const activeWave = getAudioPlayer(source).wave;
+  if (activeWave) attachAudioLiveMeter(activeWave);
 }
 
 function getAudioSourceCurrentTime(source) {
@@ -3594,6 +3606,123 @@ function dbToPercent(db) {
   return ((clamped + 60) / 60) * 100;
 }
 
+function ensureAudioMeterContext() {
+  if (audioMeterCtx && audioMeterCtx.state !== "closed") return audioMeterCtx;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    audioMeterCtx = new Ctx();
+    return audioMeterCtx;
+  } catch (err) {
+    console.warn("[audio] AudioContext init failed:", err);
+    return null;
+  }
+}
+
+function attachAudioLiveMeter(wave) {
+  try {
+    if (!wave || typeof wave.getMediaElement !== "function") return;
+    if (audioMeterFor === wave) {
+      if (audioMeterCtx?.state === "suspended") audioMeterCtx.resume().catch(() => {});
+      return;
+    }
+    detachAudioLiveMeter();
+    const audio = wave.getMediaElement();
+    if (!audio) return;
+    const ctx = ensureAudioMeterContext();
+    if (!ctx) return;
+
+    // An HTMLMediaElement can be wrapped in a MediaElementSource only once across
+    // the document. Cache the node on the element itself so swapping back to a
+    // previously analysed wave reuses the same source instead of throwing.
+    let source = audio.__loadlinkMediaSource;
+    if (!source) {
+      source = ctx.createMediaElementSource(audio);
+      audio.__loadlinkMediaSource = source;
+    }
+    const splitter = ctx.createChannelSplitter(2);
+    const lAnalyser = ctx.createAnalyser();
+    const rAnalyser = ctx.createAnalyser();
+    lAnalyser.fftSize = 1024;
+    rAnalyser.fftSize = 1024;
+    lAnalyser.smoothingTimeConstant = 0.2;
+    rAnalyser.smoothingTimeConstant = 0.2;
+    try { source.disconnect(); } catch (_) { /* may not be connected yet */ }
+    source.connect(splitter);
+    splitter.connect(lAnalyser, 0);
+    splitter.connect(rAnalyser, 1);
+    source.connect(ctx.destination);
+
+    audioMeterFor = wave;
+    audioMeterAnalysers = { lAnalyser, rAnalyser, source, splitter, audio };
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    if (!audioMeterRafId) audioMeterRafId = requestAnimationFrame(audioMeterLoop);
+  } catch (err) {
+    console.warn("[audio] meter attach failed:", err);
+  }
+}
+
+function detachAudioLiveMeter() {
+  if (audioMeterRafId) {
+    cancelAnimationFrame(audioMeterRafId);
+    audioMeterRafId = null;
+  }
+  if (audioMeterAnalysers) {
+    try {
+      audioMeterAnalysers.splitter?.disconnect();
+      audioMeterAnalysers.lAnalyser?.disconnect();
+      audioMeterAnalysers.rAnalyser?.disconnect();
+    } catch (_) { /* ignore */ }
+  }
+  audioMeterAnalysers = null;
+  audioMeterFor = null;
+  audioMeterPeakL = 0;
+  audioMeterPeakR = 0;
+  audioMeterPeakHoldL = 0;
+  audioMeterPeakHoldR = 0;
+}
+
+function audioMeterLoop() {
+  audioMeterRafId = null;
+  if (!audioMeterAnalysers) return;
+  const { lAnalyser, rAnalyser } = audioMeterAnalysers;
+  const bufL = new Uint8Array(lAnalyser.fftSize);
+  const bufR = new Uint8Array(rAnalyser.fftSize);
+  lAnalyser.getByteTimeDomainData(bufL);
+  rAnalyser.getByteTimeDomainData(bufR);
+
+  const peakL = computeAudioMeterPeak(bufL);
+  const peakR = computeAudioMeterPeak(bufR);
+
+  // Smooth attack, slower release
+  audioMeterPeakL = peakL > audioMeterPeakL ? peakL : audioMeterPeakL * 0.86;
+  audioMeterPeakR = peakR > audioMeterPeakR ? peakR : audioMeterPeakR * 0.86;
+
+  // Peak-hold markers decay slowly (~1.5 s)
+  audioMeterPeakHoldL = peakL > audioMeterPeakHoldL ? peakL : audioMeterPeakHoldL - 0.005;
+  audioMeterPeakHoldR = peakR > audioMeterPeakHoldR ? peakR : audioMeterPeakHoldR - 0.005;
+
+  const lFill = document.getElementById("audio-meter-l-fill");
+  const rFill = document.getElementById("audio-meter-r-fill");
+  const lPeak = document.getElementById("audio-meter-l-peak");
+  const rPeak = document.getElementById("audio-meter-r-peak");
+  if (lFill) lFill.style.width = `${(audioMeterPeakL * 100).toFixed(1)}%`;
+  if (rFill) rFill.style.width = `${(audioMeterPeakR * 100).toFixed(1)}%`;
+  if (lPeak) lPeak.style.left = `${Math.min(100, (audioMeterPeakHoldL * 100)).toFixed(1)}%`;
+  if (rPeak) rPeak.style.left = `${Math.min(100, (audioMeterPeakHoldR * 100)).toFixed(1)}%`;
+
+  audioMeterRafId = requestAnimationFrame(audioMeterLoop);
+}
+
+function computeAudioMeterPeak(buffer) {
+  let peak = 0;
+  for (let i = 0; i < buffer.length; i++) {
+    const v = Math.abs(buffer[i] - 128) / 128;
+    if (v > peak) peak = v;
+  }
+  return peak;
+}
+
 function audioStopTransientListeners() {
   stopAudioProgressListener();
 }
@@ -3651,6 +3780,15 @@ function resetAudioState() {
   audioState.track = { mute: false, solo: false, gainDb: 0 };
   audioState.extraTracks = [];
   resetAudioHistory();
+  detachAudioLiveMeter();
+  ["audio-meter-l-fill", "audio-meter-r-fill"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.style.width = "0%";
+  });
+  ["audio-meter-l-peak", "audio-meter-r-peak"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.style.left = "0%";
+  });
   document.getElementById("audio-export-modal")?.classList.add("hidden");
   audioUpdateUI();
 }
