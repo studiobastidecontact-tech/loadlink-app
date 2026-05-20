@@ -1012,12 +1012,12 @@
 
         <section class="audio-empty" id="audio-empty">
           <div class="audio-entry-grid">
-            <button type="button" class="audio-entry-card disabled" id="audio-record-card" aria-disabled="true" title="Disponible en Phase F">
+            <button type="button" class="audio-entry-card" id="audio-record-card">
               <span class="audio-entry-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
               </span>
               <span class="audio-entry-title">Enregistrer</span>
-              <span class="audio-entry-subtitle">Disponible en Phase F</span>
+              <span class="audio-entry-subtitle">Capture micro · Volt 1 / AT2020</span>
             </button>
 
             <button type="button" class="audio-entry-card primary" id="audio-import-card">
@@ -1033,6 +1033,129 @@
             <span>ou coller une URL audio</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
+        </section>
+
+        <section class="audio-recording-view hidden" id="audio-recording-view">
+          <header class="audio-recording-header">
+            <button type="button" class="audio-record-back" id="audio-record-back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+              <span>Retour</span>
+            </button>
+            <div class="audio-recording-title-block">
+              <div class="audio-recording-title">Enregistrement studio</div>
+              <div class="audio-recording-subtitle">Capture audio temps réel via ton interface (UA Volt 1, AT2020, USB)</div>
+            </div>
+          </header>
+
+          <div class="audio-recording-body">
+            <aside class="audio-recording-setup">
+              <div class="audio-recording-section">
+                <h3>Configuration</h3>
+                <label class="audio-record-field">
+                  <span>Entrée audio</span>
+                  <select id="audio-record-device-select"></select>
+                </label>
+                <button type="button" class="audio-record-refresh" id="audio-record-refresh">↻ Rafraîchir la liste</button>
+
+                <label class="audio-record-field">
+                  <span>Gain numérique <strong id="audio-record-gain-value">100%</strong></span>
+                  <input type="range" id="audio-record-gain" min="0" max="200" step="1" value="100" />
+                </label>
+
+                <label class="audio-record-toggle">
+                  <input type="checkbox" id="audio-record-monitor" checked />
+                  <span>Monitoring casque</span>
+                </label>
+                <small class="audio-record-hint">Sur Volt 1, active aussi le Direct Monitor (zéro latence).</small>
+
+                <label class="audio-record-field">
+                  <span>Format de sortie</span>
+                  <select id="audio-record-format">
+                    <option value="16/44100">WAV 16-bit · 44.1 kHz (compatible)</option>
+                    <option value="24/48000" selected>WAV 24-bit · 48 kHz (broadcast)</option>
+                    <option value="24/96000">WAV 24-bit · 96 kHz (studio)</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="audio-recording-section audio-recording-controls">
+                <h3>Contrôles</h3>
+                <div class="audio-record-buttons">
+                  <button type="button" class="audio-record-btn audio-record-rec" id="audio-record-rec" disabled title="Démarrer l'enregistrement">
+                    <span class="audio-record-rec-dot"></span>
+                  </button>
+                  <button type="button" class="audio-record-btn audio-record-stop" id="audio-record-stop" disabled title="Arrêter">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                  </button>
+                </div>
+                <div class="audio-record-timer" id="audio-record-timer">00:00:00.00</div>
+                <div class="audio-record-state" id="audio-record-state"></div>
+                <div class="audio-record-permission hidden" id="audio-record-permission">
+                  Permission micro refusée. Va dans Paramètres Windows → Confidentialité → Microphone et autorise LoadLink.
+                </div>
+              </div>
+            </aside>
+
+            <main class="audio-recording-viz">
+              <div class="audio-recording-vu" id="audio-recording-vu">
+                <div class="audio-recording-vu-channel">
+                  <div class="audio-recording-vu-bar">
+                    <div class="audio-recording-vu-fill" id="audio-record-vu-l-fill"></div>
+                    <div class="audio-recording-vu-peak" id="audio-record-vu-l-peak"></div>
+                    <div class="audio-recording-vu-clip" id="audio-record-vu-l-clip">CLIP</div>
+                  </div>
+                  <div class="audio-recording-vu-label">L</div>
+                </div>
+                <div class="audio-recording-vu-channel">
+                  <div class="audio-recording-vu-bar">
+                    <div class="audio-recording-vu-fill" id="audio-record-vu-r-fill"></div>
+                    <div class="audio-recording-vu-peak" id="audio-record-vu-r-peak"></div>
+                    <div class="audio-recording-vu-clip" id="audio-record-vu-r-clip">CLIP</div>
+                  </div>
+                  <div class="audio-recording-vu-label">R</div>
+                </div>
+                <div class="audio-recording-vu-scale">
+                  <span>0</span><span>-6</span><span>-12</span><span>-18</span><span>-24</span><span>-36</span><span>-60</span>
+                </div>
+              </div>
+
+              <div class="audio-recording-readout">
+                <div class="audio-recording-readout-cell">
+                  <span>Peak L</span>
+                  <strong id="audio-record-peak-l">-∞</strong>
+                </div>
+                <div class="audio-recording-readout-cell">
+                  <span>Peak R</span>
+                  <strong id="audio-record-peak-r">-∞</strong>
+                </div>
+                <div class="audio-recording-readout-cell">
+                  <span>RMS L</span>
+                  <strong id="audio-record-rms-l">-∞</strong>
+                </div>
+                <div class="audio-recording-readout-cell">
+                  <span>RMS R</span>
+                  <strong id="audio-record-rms-r">-∞</strong>
+                </div>
+                <div class="audio-recording-readout-cell audio-recording-readout-lufs">
+                  <span>Short-term</span>
+                  <strong id="audio-record-lufs">--</strong>
+                </div>
+              </div>
+
+              <canvas class="audio-recording-scroll" id="audio-record-scroll" width="900" height="120"></canvas>
+            </main>
+          </div>
+        </section>
+
+        <section class="audio-recording-recover hidden" id="audio-recording-recover">
+          <div class="audio-recording-recover-card">
+            <h3>Enregistrement précédent récupéré</h3>
+            <p id="audio-recording-recover-text">Un enregistrement non sauvegardé a été retrouvé. Veux-tu le récupérer ?</p>
+            <div class="audio-recording-recover-actions">
+              <button type="button" class="btn-secondary" id="audio-recording-recover-discard">Supprimer</button>
+              <button type="button" class="btn-primary" id="audio-recording-recover-load" style="width:auto;margin-top:0;padding:9px 18px;">Récupérer</button>
+            </div>
+          </div>
         </section>
 
         <section class="audio-workspace hidden" id="audio-workspace">
@@ -1426,6 +1549,49 @@
     <div class="modal-actions">
       <button type="button" class="btn-secondary" id="audio-export-cancel">Annuler</button>
       <button type="button" class="btn-primary" id="audio-export-confirm" style="width:auto;margin-top:0;padding:9px 18px;">Exporter</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="audio-recording-done-modal">
+  <div class="modal-card audio-recording-done-card">
+    <h2>Enregistrement terminé</h2>
+    <div class="audio-recording-done-summary">
+      <div>
+        <span class="audio-recording-done-label">Durée</span>
+        <strong id="audio-recording-done-duration">00:00</strong>
+      </div>
+      <div>
+        <span class="audio-recording-done-label">Taille</span>
+        <strong id="audio-recording-done-size">0 Mo</strong>
+      </div>
+      <div>
+        <span class="audio-recording-done-label">Format</span>
+        <strong id="audio-recording-done-format">WAV 24-bit · 48 kHz</strong>
+      </div>
+    </div>
+
+    <label class="audio-recording-done-field">
+      <span>Nom du fichier</span>
+      <input type="text" id="audio-recording-done-name" autocomplete="off" />
+    </label>
+
+    <label class="audio-recording-done-field">
+      <span>Dossier</span>
+      <div class="audio-folder-picker">
+        <input type="text" id="audio-recording-done-folder" readonly />
+        <button type="button" class="audio-folder-btn" id="audio-recording-done-folder-btn">Choisir</button>
+      </div>
+    </label>
+
+    <div class="audio-recording-done-preview">
+      <audio id="audio-recording-done-audio" controls preload="auto"></audio>
+    </div>
+
+    <div class="audio-recording-done-actions">
+      <button type="button" class="btn-secondary" id="audio-recording-done-discard">Recommencer</button>
+      <button type="button" class="btn-secondary" id="audio-recording-done-save">Enregistrer dans…</button>
+      <button type="button" class="btn-primary" id="audio-recording-done-load" style="width:auto;margin-top:0;padding:9px 18px;">Charger dans Studio</button>
     </div>
   </div>
 </div>

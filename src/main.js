@@ -1130,9 +1130,34 @@ function bindAudioModuleHandlers(appState) {
     btn.textContent = wasHidden ? "− Masquer" : "+ Ajouter";
   });
 
-  recordCard?.addEventListener("click", () => {
-    showToast("Enregistrement disponible en Phase F", 2500);
+  recordCard?.addEventListener("click", showAudioRecordingView);
+
+  document.getElementById("audio-record-back")?.addEventListener("click", hideAudioRecordingView);
+  document.getElementById("audio-record-refresh")?.addEventListener("click", audioPopulateDevices);
+  document.getElementById("audio-record-device-select")?.addEventListener("change", (event) => {
+    audioRecordState.deviceId = event.target.value;
   });
+  document.getElementById("audio-record-gain")?.addEventListener("input", (event) => {
+    const pct = Number(event.target.value);
+    audioRecordState.digitalGain = pct / 100;
+    document.getElementById("audio-record-gain-value").textContent = `${pct}%`;
+    if (audioRecordState.gainNode) audioRecordState.gainNode.gain.value = audioRecordState.digitalGain;
+  });
+  document.getElementById("audio-record-monitor")?.addEventListener("change", (event) => {
+    audioRecordState.monitor = event.target.checked;
+    if (audioRecordState.monitorNode) audioRecordState.monitorNode.gain.value = audioRecordState.monitor ? 0.6 : 0;
+  });
+  document.getElementById("audio-record-format")?.addEventListener("change", (event) => {
+    audioRecordState.format = event.target.value;
+  });
+  document.getElementById("audio-record-rec")?.addEventListener("click", audioRecordingStart);
+  document.getElementById("audio-record-stop")?.addEventListener("click", () => audioRecordingStop());
+  document.getElementById("audio-recording-done-discard")?.addEventListener("click", audioRecordingDiscard);
+  document.getElementById("audio-recording-done-save")?.addEventListener("click", () => audioRecordingFinalize("save"));
+  document.getElementById("audio-recording-done-load")?.addEventListener("click", () => audioRecordingFinalize("load"));
+  document.getElementById("audio-recording-done-folder-btn")?.addEventListener("click", audioRecordingChooseFolder);
+
+  audioRecordingCheckCrashRecovery().catch(() => {});
 
   urlLink?.addEventListener("click", () => {
     showToast("URL audio disponible en Phase H", 2500);
@@ -1203,6 +1228,619 @@ function bindAudioTrackControls() {
       audioState.track.gainDb = clampNumber(Number(gainInput.value), -24, 12);
       applyAudioTrackGainToPlayers();
     });
+  }
+}
+
+// ============================================
+// CHANTIER E — Recording studio
+// ============================================
+const audioRecordState = {
+  view: "hidden",
+  devices: [],
+  deviceId: null,
+  format: "24/48000",
+  digitalGain: 1.0,
+  monitor: true,
+  stream: null,
+  recorder: null,
+  recorderMime: "audio/webm",
+  chunks: [],
+  startTime: 0,
+  pausedTime: 0,
+  isRecording: false,
+  isPaused: false,
+  audioCtx: null,
+  sourceNode: null,
+  gainNode: null,
+  monitorNode: null,
+  analyserNode: null,
+  splitterNode: null,
+  lAnalyser: null,
+  rAnalyser: null,
+  rafId: null,
+  timerId: null,
+  peakL: 0,
+  peakR: 0,
+  peakHoldL: 0,
+  peakHoldR: 0,
+  peakHoldTimerL: 0,
+  peakHoldTimerR: 0,
+  scrollCanvas: null,
+  scrollCtx: null,
+  scrollX: 0,
+  loudnessHistory: [],
+  savedBlob: null,
+  savedWebmPath: null,
+  savedDurationMs: 0,
+  savedSizeBytes: 0,
+};
+
+function showAudioRecordingView() {
+  document.getElementById("audio-empty")?.classList.add("hidden");
+  document.getElementById("audio-recording-view")?.classList.remove("hidden");
+  audioRecordState.view = "recording";
+  audioPopulateDevices().catch((err) => console.warn("[record] devices enum failed:", err));
+}
+
+function hideAudioRecordingView() {
+  audioRecordingStop({ silent: true }).catch(() => {});
+  audioRecordingTeardownStream();
+  document.getElementById("audio-recording-view")?.classList.add("hidden");
+  document.getElementById("audio-empty")?.classList.remove("hidden");
+  audioRecordState.view = "hidden";
+}
+
+async function audioPopulateDevices() {
+  const select = document.getElementById("audio-record-device-select");
+  if (!select) return;
+  try {
+    // Trigger getUserMedia once so device labels become visible (browser policy).
+    if (!audioRecordState.permissionPrimed) {
+      try {
+        const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
+        probe.getTracks().forEach((t) => t.stop());
+        audioRecordState.permissionPrimed = true;
+      } catch (err) {
+        console.warn("[record] permission probe failed:", err);
+      }
+    }
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const inputs = devices.filter((d) => d.kind === "audioinput");
+    audioRecordState.devices = inputs;
+    if (!inputs.length) {
+      select.innerHTML = `<option value="">Aucune entrée détectée</option>`;
+      select.disabled = true;
+      const recBtn = document.getElementById("audio-record-rec");
+      if (recBtn) recBtn.disabled = true;
+      return;
+    }
+    select.disabled = false;
+    const preferred = inputs.find((d) => /volt|universal audio|at2020|focusrite|scarlett/i.test(d.label));
+    const previous = audioRecordState.deviceId;
+    const chosen = previous && inputs.find((d) => d.deviceId === previous)
+      ? previous
+      : (preferred?.deviceId || inputs[0].deviceId);
+    audioRecordState.deviceId = chosen;
+    select.innerHTML = inputs.map((d) => {
+      const label = d.label || `Entrée ${d.deviceId.slice(0, 8)}`;
+      return `<option value="${d.deviceId}"${d.deviceId === chosen ? " selected" : ""}>${label}</option>`;
+    }).join("");
+    const recBtn = document.getElementById("audio-record-rec");
+    if (recBtn) recBtn.disabled = false;
+  } catch (err) {
+    console.error("[record] enumerateDevices failed:", err);
+    select.innerHTML = `<option value="">Erreur d'énumération</option>`;
+    select.disabled = true;
+  }
+}
+
+function audioRecordingPickRecorderMime() {
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    "audio/mp4",
+  ];
+  for (const mime of candidates) {
+    if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(mime)) {
+      return mime;
+    }
+  }
+  return "";
+}
+
+async function audioRecordingStart() {
+  if (audioRecordState.isRecording) return;
+  const permissionMsg = document.getElementById("audio-record-permission");
+  permissionMsg?.classList.add("hidden");
+
+  const [bitDepthRaw, sampleRateRaw] = (audioRecordState.format || "24/48000").split("/");
+  const sampleRate = Number(sampleRateRaw) || 48000;
+  const deviceId = audioRecordState.deviceId;
+  if (!deviceId) {
+    showToast("Choisis une entrée audio", 2200);
+    return;
+  }
+
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        deviceId: { exact: deviceId },
+        channelCount: { ideal: 2 },
+        sampleRate: { ideal: sampleRate },
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
+    });
+  } catch (err) {
+    console.error("[record] getUserMedia failed:", err);
+    permissionMsg?.classList.remove("hidden");
+    showToast("Permission micro refusée — autorise dans Windows", 4500);
+    return;
+  }
+
+  audioRecordState.stream = stream;
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  audioRecordState.audioCtx = ctx;
+  const source = ctx.createMediaStreamSource(stream);
+  const gain = ctx.createGain();
+  gain.gain.value = audioRecordState.digitalGain;
+  const splitter = ctx.createChannelSplitter(2);
+  const lAnalyser = ctx.createAnalyser();
+  const rAnalyser = ctx.createAnalyser();
+  lAnalyser.fftSize = 2048;
+  rAnalyser.fftSize = 2048;
+  lAnalyser.smoothingTimeConstant = 0.2;
+  rAnalyser.smoothingTimeConstant = 0.2;
+  const monitor = ctx.createGain();
+  monitor.gain.value = audioRecordState.monitor ? 0.6 : 0;
+
+  source.connect(gain);
+  gain.connect(splitter);
+  splitter.connect(lAnalyser, 0);
+  splitter.connect(rAnalyser, 1);
+  gain.connect(monitor);
+  monitor.connect(ctx.destination);
+
+  audioRecordState.sourceNode = source;
+  audioRecordState.gainNode = gain;
+  audioRecordState.splitterNode = splitter;
+  audioRecordState.lAnalyser = lAnalyser;
+  audioRecordState.rAnalyser = rAnalyser;
+  audioRecordState.monitorNode = monitor;
+
+  // MediaRecorder takes the gain-processed stream so the gain slider audibly applies.
+  const dest = ctx.createMediaStreamDestination();
+  gain.connect(dest);
+
+  const mime = audioRecordingPickRecorderMime();
+  audioRecordState.recorderMime = mime || "audio/webm";
+  let recorder;
+  try {
+    recorder = mime
+      ? new MediaRecorder(dest.stream, { mimeType: mime })
+      : new MediaRecorder(dest.stream);
+  } catch (err) {
+    console.error("[record] MediaRecorder init failed:", err);
+    showToast("MediaRecorder indisponible : " + err.message, 4500);
+    audioRecordingTeardownStream();
+    return;
+  }
+
+  audioRecordState.recorder = recorder;
+  audioRecordState.chunks = [];
+  recorder.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) audioRecordState.chunks.push(event.data);
+  };
+  recorder.onerror = (event) => {
+    console.error("[record] MediaRecorder error:", event.error);
+    showToast("Erreur d'enregistrement : " + (event.error?.message || event.error), 4500);
+  };
+  recorder.onstop = audioRecordingHandleStop;
+
+  recorder.start(250);
+  audioRecordState.isRecording = true;
+  audioRecordState.startTime = performance.now();
+  audioRecordState.pausedTime = 0;
+  audioRecordState.peakL = 0;
+  audioRecordState.peakR = 0;
+  audioRecordState.peakHoldL = 0;
+  audioRecordState.peakHoldR = 0;
+  audioRecordState.scrollX = 0;
+  audioRecordState.loudnessHistory = [];
+
+  updateAudioRecordingButtons();
+  document.getElementById("audio-record-state").innerHTML = `<span class="audio-record-badge rec">● ENREGISTREMENT</span>`;
+  audioRecordingTickTimer();
+  audioRecordingTick();
+  if (audioRecordState.scrollCanvas) audioRecordingScrollReset();
+}
+
+async function audioRecordingStop(opts = {}) {
+  if (!audioRecordState.isRecording) return;
+  return new Promise((resolve) => {
+    const recorder = audioRecordState.recorder;
+    if (!recorder) {
+      audioRecordState.isRecording = false;
+      resolve();
+      return;
+    }
+    const finalize = () => {
+      audioRecordState.isRecording = false;
+      audioRecordState.isPaused = false;
+      if (audioRecordState.rafId) {
+        cancelAnimationFrame(audioRecordState.rafId);
+        audioRecordState.rafId = null;
+      }
+      if (audioRecordState.timerId) {
+        clearInterval(audioRecordState.timerId);
+        audioRecordState.timerId = null;
+      }
+      updateAudioRecordingButtons();
+      if (!opts.silent) document.getElementById("audio-record-state").innerHTML = "";
+      audioRecordingTeardownStream();
+      resolve();
+    };
+    recorder.onstop = () => {
+      audioRecordingHandleStop().finally(finalize);
+    };
+    try { recorder.stop(); } catch (_) { finalize(); }
+  });
+}
+
+async function audioRecordingHandleStop() {
+  if (!audioRecordState.chunks.length) return;
+  const mime = audioRecordState.recorderMime || "audio/webm";
+  const blob = new Blob(audioRecordState.chunks, { type: mime });
+  audioRecordState.savedBlob = blob;
+  audioRecordState.savedDurationMs = performance.now() - audioRecordState.startTime;
+  audioRecordState.savedSizeBytes = blob.size;
+
+  try {
+    const arrayBuffer = await blob.arrayBuffer();
+    const base64 = audioRecordingArrayBufferToBase64(arrayBuffer);
+    const ext = mime.includes("ogg") ? "ogg" : mime.includes("mp4") ? "m4a" : "webm";
+    const filename = `recording_${Date.now()}.${ext}`;
+    const result = await invoke("audio_save_recording_blob", { filename, bytesBase64: base64 });
+    audioRecordState.savedWebmPath = result.path;
+    openAudioRecordingDoneModal();
+  } catch (err) {
+    console.error("[record] save blob failed:", err);
+    showToast("Erreur sauvegarde : " + (err.message || err), 5000);
+  }
+}
+
+function audioRecordingArrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 32768;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function audioRecordingTeardownStream() {
+  if (audioRecordState.stream) {
+    audioRecordState.stream.getTracks().forEach((t) => t.stop());
+    audioRecordState.stream = null;
+  }
+  try {
+    audioRecordState.sourceNode?.disconnect();
+    audioRecordState.gainNode?.disconnect();
+    audioRecordState.splitterNode?.disconnect();
+    audioRecordState.lAnalyser?.disconnect();
+    audioRecordState.rAnalyser?.disconnect();
+    audioRecordState.monitorNode?.disconnect();
+  } catch (_) { /* ignore */ }
+  if (audioRecordState.audioCtx && audioRecordState.audioCtx.state !== "closed") {
+    audioRecordState.audioCtx.close().catch(() => {});
+  }
+  audioRecordState.audioCtx = null;
+  audioRecordState.sourceNode = null;
+  audioRecordState.gainNode = null;
+  audioRecordState.splitterNode = null;
+  audioRecordState.lAnalyser = null;
+  audioRecordState.rAnalyser = null;
+  audioRecordState.monitorNode = null;
+  audioRecordState.recorder = null;
+  audioRecordState.chunks = [];
+}
+
+function audioRecordingTick() {
+  if (!audioRecordState.lAnalyser || !audioRecordState.rAnalyser) return;
+  const fft = audioRecordState.lAnalyser.fftSize;
+  const bufL = new Uint8Array(fft);
+  const bufR = new Uint8Array(fft);
+  audioRecordState.lAnalyser.getByteTimeDomainData(bufL);
+  audioRecordState.rAnalyser.getByteTimeDomainData(bufR);
+
+  let peakL = 0; let rmsLSum = 0;
+  let peakR = 0; let rmsRSum = 0;
+  for (let i = 0; i < fft; i++) {
+    const l = (bufL[i] - 128) / 128;
+    const r = (bufR[i] - 128) / 128;
+    const al = Math.abs(l), ar = Math.abs(r);
+    if (al > peakL) peakL = al;
+    if (ar > peakR) peakR = ar;
+    rmsLSum += l * l;
+    rmsRSum += r * r;
+  }
+  const rmsL = Math.sqrt(rmsLSum / fft);
+  const rmsR = Math.sqrt(rmsRSum / fft);
+
+  audioRecordState.peakL = peakL > audioRecordState.peakL ? peakL : audioRecordState.peakL * 0.88;
+  audioRecordState.peakR = peakR > audioRecordState.peakR ? peakR : audioRecordState.peakR * 0.88;
+
+  const now = performance.now();
+  if (peakL >= audioRecordState.peakHoldL) {
+    audioRecordState.peakHoldL = peakL;
+    audioRecordState.peakHoldTimerL = now;
+  } else if (now - audioRecordState.peakHoldTimerL > 1500) {
+    audioRecordState.peakHoldL = Math.max(0, audioRecordState.peakHoldL - 0.012);
+  }
+  if (peakR >= audioRecordState.peakHoldR) {
+    audioRecordState.peakHoldR = peakR;
+    audioRecordState.peakHoldTimerR = now;
+  } else if (now - audioRecordState.peakHoldTimerR > 1500) {
+    audioRecordState.peakHoldR = Math.max(0, audioRecordState.peakHoldR - 0.012);
+  }
+
+  const peakLdb = peakL > 0 ? 20 * Math.log10(peakL) : -Infinity;
+  const peakRdb = peakR > 0 ? 20 * Math.log10(peakR) : -Infinity;
+  const rmsLdb = rmsL > 0 ? 20 * Math.log10(rmsL) : -Infinity;
+  const rmsRdb = rmsR > 0 ? 20 * Math.log10(rmsR) : -Infinity;
+
+  audioRecordRenderVu();
+  audioRecordRenderReadout(peakLdb, peakRdb, rmsLdb, rmsRdb);
+  audioRecordPushLoudness(rmsL, rmsR);
+  audioRecordingScrollPush(audioRecordState.peakL, audioRecordState.peakR);
+
+  audioRecordState.rafId = requestAnimationFrame(audioRecordingTick);
+}
+
+function audioRecordRenderVu() {
+  const lFill = document.getElementById("audio-record-vu-l-fill");
+  const rFill = document.getElementById("audio-record-vu-r-fill");
+  const lPeak = document.getElementById("audio-record-vu-l-peak");
+  const rPeak = document.getElementById("audio-record-vu-r-peak");
+  const lClip = document.getElementById("audio-record-vu-l-clip");
+  const rClip = document.getElementById("audio-record-vu-r-clip");
+  if (lFill) {
+    lFill.style.height = `${(audioRecordState.peakL * 100).toFixed(1)}%`;
+    lFill.className = `audio-recording-vu-fill ${audioRecordLevelClass(audioRecordState.peakL)}`;
+  }
+  if (rFill) {
+    rFill.style.height = `${(audioRecordState.peakR * 100).toFixed(1)}%`;
+    rFill.className = `audio-recording-vu-fill ${audioRecordLevelClass(audioRecordState.peakR)}`;
+  }
+  if (lPeak) lPeak.style.bottom = `${(audioRecordState.peakHoldL * 100).toFixed(1)}%`;
+  if (rPeak) rPeak.style.bottom = `${(audioRecordState.peakHoldR * 100).toFixed(1)}%`;
+  if (lClip) lClip.classList.toggle("active", audioRecordState.peakHoldL >= 0.99);
+  if (rClip) rClip.classList.toggle("active", audioRecordState.peakHoldR >= 0.99);
+}
+
+function audioRecordLevelClass(value) {
+  // value linear 0..1 — clipping at 0 dBFS means 1.0
+  const db = value > 0 ? 20 * Math.log10(value) : -Infinity;
+  if (db >= -0.1) return "level-clip";
+  if (db >= -6) return "level-red";
+  if (db >= -18) return "level-yellow";
+  return "level-green";
+}
+
+function audioRecordRenderReadout(peakL, peakR, rmsL, rmsR) {
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = Number.isFinite(value) ? `${value.toFixed(1)} dB` : "-∞";
+  };
+  setText("audio-record-peak-l", peakL);
+  setText("audio-record-peak-r", peakR);
+  setText("audio-record-rms-l", rmsL);
+  setText("audio-record-rms-r", rmsR);
+}
+
+function audioRecordPushLoudness(rmsL, rmsR) {
+  // Quick LUFS short-term approximation (3s window) — not ITU but useful indicator.
+  const now = performance.now();
+  const combined = (rmsL + rmsR) / 2;
+  audioRecordState.loudnessHistory.push({ t: now, value: combined });
+  while (audioRecordState.loudnessHistory.length && now - audioRecordState.loudnessHistory[0].t > 3000) {
+    audioRecordState.loudnessHistory.shift();
+  }
+  const avg = audioRecordState.loudnessHistory.reduce((s, p) => s + p.value, 0)
+    / Math.max(1, audioRecordState.loudnessHistory.length);
+  const lufsApprox = avg > 0 ? 20 * Math.log10(avg) - 0.691 : -Infinity;
+  const el = document.getElementById("audio-record-lufs");
+  if (el) el.textContent = Number.isFinite(lufsApprox) ? `${lufsApprox.toFixed(1)} LUFS` : "--";
+}
+
+function audioRecordingScrollReset() {
+  const canvas = document.getElementById("audio-record-scroll");
+  if (!canvas) return;
+  audioRecordState.scrollCanvas = canvas;
+  audioRecordState.scrollCtx = canvas.getContext("2d");
+  audioRecordState.scrollCtx.clearRect(0, 0, canvas.width, canvas.height);
+  audioRecordState.scrollX = 0;
+}
+
+function audioRecordingScrollPush(peakL, peakR) {
+  const canvas = audioRecordState.scrollCanvas;
+  const ctx = audioRecordState.scrollCtx;
+  if (!canvas || !ctx) return;
+  const width = canvas.width;
+  const height = canvas.height;
+  const imageData = ctx.getImageData(2, 0, width - 2, height);
+  ctx.clearRect(0, 0, width, height);
+  ctx.putImageData(imageData, 0, 0);
+
+  const x = width - 2;
+  const center = height / 2;
+  const peak = Math.max(peakL, peakR);
+  const halfHeight = peak * center;
+  ctx.fillStyle = peak > 0.95 ? "#ef4444" : peak > 0.6 ? "#facc15" : "#22c55e";
+  ctx.fillRect(x, center - halfHeight, 2, halfHeight * 2);
+}
+
+function audioRecordingTickTimer() {
+  const timerEl = document.getElementById("audio-record-timer");
+  audioRecordState.timerId = window.setInterval(() => {
+    const elapsed = (performance.now() - audioRecordState.startTime) - audioRecordState.pausedTime;
+    if (timerEl) timerEl.textContent = audioRecordingFormatTimer(elapsed);
+  }, 33);
+}
+
+function audioRecordingFormatTimer(elapsedMs) {
+  const totalCs = Math.max(0, Math.floor(elapsedMs / 10));
+  const cs = totalCs % 100;
+  const totalSec = Math.floor(totalCs / 100);
+  const sec = totalSec % 60;
+  const totalMin = Math.floor(totalSec / 60);
+  const min = totalMin % 60;
+  const hours = Math.floor(totalMin / 60);
+  return `${String(hours).padStart(2, "0")}:${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}.${String(cs).padStart(2, "0")}`;
+}
+
+function updateAudioRecordingButtons() {
+  const rec = document.getElementById("audio-record-rec");
+  const stop = document.getElementById("audio-record-stop");
+  if (rec) {
+    rec.disabled = audioRecordState.isRecording || !audioRecordState.deviceId;
+    rec.classList.toggle("recording", audioRecordState.isRecording);
+  }
+  if (stop) stop.disabled = !audioRecordState.isRecording;
+}
+
+function openAudioRecordingDoneModal() {
+  const modal = document.getElementById("audio-recording-done-modal");
+  if (!modal) return;
+  const [bitDepth, sampleRate] = audioRecordState.format.split("/");
+  document.getElementById("audio-recording-done-duration").textContent =
+    audioRecordingFormatTimer(audioRecordState.savedDurationMs);
+  document.getElementById("audio-recording-done-size").textContent =
+    `${(audioRecordState.savedSizeBytes / 1_048_576).toFixed(2)} Mo`;
+  document.getElementById("audio-recording-done-format").textContent =
+    `WAV ${bitDepth}-bit · ${(Number(sampleRate) / 1000).toFixed(1)} kHz`;
+  const nameInput = document.getElementById("audio-recording-done-name");
+  if (nameInput) {
+    const ts = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    nameInput.value = `Enregistrement_${ts.getFullYear()}${pad(ts.getMonth() + 1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}`;
+  }
+  const folderInput = document.getElementById("audio-recording-done-folder");
+  if (folderInput) {
+    const userProfile = (typeof process !== "undefined" && process?.env?.USERPROFILE) || "";
+    folderInput.value = userProfile ? `${userProfile}\\Music\\LoadLink-Audio` : "Music/LoadLink-Audio";
+  }
+  const audio = document.getElementById("audio-recording-done-audio");
+  if (audio && audioRecordState.savedBlob) {
+    if (audio.src) URL.revokeObjectURL(audio.src);
+    audio.src = URL.createObjectURL(audioRecordState.savedBlob);
+  }
+  modal.classList.remove("hidden");
+}
+
+function closeAudioRecordingDoneModal() {
+  document.getElementById("audio-recording-done-modal")?.classList.add("hidden");
+}
+
+async function audioRecordingFinalize(action) {
+  const nameInput = document.getElementById("audio-recording-done-name");
+  const folderInput = document.getElementById("audio-recording-done-folder");
+  if (!audioRecordState.savedWebmPath) {
+    showToast("Aucun enregistrement à finaliser", 2500);
+    return;
+  }
+  const [bitDepthRaw, sampleRateRaw] = audioRecordState.format.split("/");
+  const bitDepth = Number(bitDepthRaw) || 24;
+  const sampleRate = Number(sampleRateRaw) || 48000;
+  const outputDir = folderInput?.value || "";
+  const outputName = (nameInput?.value || "Enregistrement").trim();
+
+  try {
+    showToast("Conversion en WAV…", 2000);
+    const result = await invoke("audio_convert_recording", {
+      input: audioRecordState.savedWebmPath,
+      outputDir,
+      outputName,
+      sampleRate,
+      bitDepth,
+    });
+    if (!result || result.success === false) {
+      throw new Error((result && result.error) || "Conversion échouée");
+    }
+    const wavPath = result.outputPath || result.output_path;
+    invoke("audio_discard_pending_recording", { path: audioRecordState.savedWebmPath }).catch(() => {});
+    audioRecordState.savedWebmPath = null;
+    closeAudioRecordingDoneModal();
+    if (action === "load") {
+      hideAudioRecordingView();
+      loadAudioFile(wavPath);
+    } else {
+      showToast(`Enregistré dans ${wavPath}`, 3500);
+      revealAudioOutput(wavPath).catch(() => {});
+    }
+  } catch (err) {
+    console.error("[record] finalize failed:", err);
+    showToast("Conversion échouée : " + (err.message || err), 5000);
+  }
+}
+
+async function audioRecordingDiscard() {
+  closeAudioRecordingDoneModal();
+  if (audioRecordState.savedWebmPath) {
+    invoke("audio_discard_pending_recording", { path: audioRecordState.savedWebmPath }).catch(() => {});
+  }
+  audioRecordState.savedWebmPath = null;
+  audioRecordState.savedBlob = null;
+}
+
+async function audioRecordingChooseFolder() {
+  try {
+    const tauriOpen =
+      (window.__TAURI__ && window.__TAURI__.dialog && window.__TAURI__.dialog.open)
+      || (typeof open === "function" ? open : null);
+    if (!tauriOpen) return;
+    const selected = await tauriOpen({ directory: true, multiple: false });
+    if (!selected) return;
+    const dir = Array.isArray(selected) ? selected[0] : selected;
+    const folderInput = document.getElementById("audio-recording-done-folder");
+    if (folderInput) folderInput.value = dir;
+  } catch (err) {
+    console.warn("[record] folder pick failed:", err);
+  }
+}
+
+async function audioRecordingCheckCrashRecovery() {
+  try {
+    const pending = await invoke("audio_list_pending_recordings");
+    if (!Array.isArray(pending) || !pending.length) return;
+    const recover = document.getElementById("audio-recording-recover");
+    const text = document.getElementById("audio-recording-recover-text");
+    if (!recover || !text) return;
+    const first = pending[0];
+    const sizeMo = (first.sizeBytes / 1_048_576).toFixed(2);
+    text.textContent = `Un enregistrement non sauvegardé (${sizeMo} Mo) a été retrouvé. Veux-tu le récupérer ?`;
+    recover.classList.remove("hidden");
+    const loadBtn = document.getElementById("audio-recording-recover-load");
+    const discardBtn = document.getElementById("audio-recording-recover-discard");
+    const onLoad = () => {
+      recover.classList.add("hidden");
+      audioRecordState.savedWebmPath = first.path;
+      audioRecordState.savedSizeBytes = first.sizeBytes;
+      audioRecordState.savedDurationMs = 0;
+      openAudioRecordingDoneModal();
+    };
+    const onDiscard = () => {
+      recover.classList.add("hidden");
+      invoke("audio_discard_pending_recording", { path: first.path }).catch(() => {});
+    };
+    loadBtn.addEventListener("click", onLoad, { once: true });
+    discardBtn.addEventListener("click", onDiscard, { once: true });
+  } catch (err) {
+    console.warn("[record] crash recovery check failed:", err);
   }
 }
 

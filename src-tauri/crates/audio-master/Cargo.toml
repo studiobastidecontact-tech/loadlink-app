@@ -11,3 +11,4 @@ tokio = { workspace = true }
 serde = { workspace = true }
 regex = { workspace = true }
 tauri = { version = "2.0", features = [] }
+base64 = "0.22"

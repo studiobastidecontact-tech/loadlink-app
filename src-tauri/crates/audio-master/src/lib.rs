@@ -778,6 +778,184 @@ pub async fn apply_chain(app: &AppHandle, opts: AudioEffectChain) -> Result<Audi
     })
 }
 
+// ============================================
+// Recording helpers
+// ============================================
+
+const RECORDING_DIR_NAME: &str = "loadlink-recording";
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordingSaveResult {
+    pub path: String,
+    pub size_bytes: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PendingRecording {
+    pub path: String,
+    pub size_bytes: u64,
+    pub modified_unix: u64,
+}
+
+pub fn recording_dir() -> PathBuf {
+    std::env::temp_dir().join(RECORDING_DIR_NAME)
+}
+
+pub fn save_recording_blob(filename: &str, base64_bytes: &str) -> Result<RecordingSaveResult> {
+    use base64::Engine;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(base64_bytes)
+        .map_err(|e| LoadlinkError::InvalidArgument(format!("base64 invalide: {e}")))?;
+    let dir = recording_dir();
+    std::fs::create_dir_all(&dir)?;
+    let safe_name = filename
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-' || *c == '.')
+        .collect::<String>();
+    let final_name = if safe_name.is_empty() {
+        format!(
+            "recording_{}.webm",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis())
+                .unwrap_or(0)
+        )
+    } else {
+        safe_name
+    };
+    let out_path = dir.join(&final_name);
+    std::fs::write(&out_path, &bytes)?;
+    let size_bytes = bytes.len() as u64;
+    Ok(RecordingSaveResult {
+        path: out_path.to_string_lossy().to_string(),
+        size_bytes,
+    })
+}
+
+pub async fn convert_recording(
+    app: &AppHandle,
+    input: String,
+    output_dir: String,
+    output_name: String,
+    sample_rate: u32,
+    bit_depth: u32,
+) -> Result<AudioProcessResult> {
+    let ffmpeg = get_ffmpeg_path(app)?;
+    let source = PathBuf::from(&input);
+    ensure_source_exists(&source)?;
+
+    let out_dir_path = PathBuf::from(&output_dir);
+    std::fs::create_dir_all(&out_dir_path)?;
+    let stem = output_name
+        .trim()
+        .trim_end_matches(".wav")
+        .replace([' ', '\t'], "_");
+    let safe_stem = if stem.is_empty() { "Enregistrement".to_string() } else { stem };
+    let mut candidate = out_dir_path.join(format!("{safe_stem}.wav"));
+    let mut idx = 1u32;
+    while candidate.exists() {
+        candidate = out_dir_path.join(format!("{safe_stem}-{idx}.wav"));
+        idx += 1;
+    }
+    let out_path = candidate;
+
+    let codec = match bit_depth {
+        24 => "pcm_s24le",
+        32 => "pcm_f32le",
+        _ => "pcm_s16le",
+    };
+    let sr = clamp(sample_rate as f32, 8_000.0, 192_000.0) as u32;
+
+    let mut cmd = Command::new(&ffmpeg);
+    cmd.arg("-hide_banner")
+        .arg("-y")
+        .arg("-i")
+        .arg(&source)
+        .arg("-ac")
+        .arg("2")
+        .arg("-ar")
+        .arg(sr.to_string())
+        .arg("-c:a")
+        .arg(codec)
+        .arg(&out_path);
+    cmd.stdout(Stdio::null()).stderr(Stdio::piped());
+    apply_no_window(&mut cmd);
+
+    let output = cmd
+        .output()
+        .await
+        .map_err(|e| LoadlinkError::SpawnFailed(format!("ffmpeg recording convert: {e}")))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let _ = std::fs::remove_file(&out_path);
+        return Ok(AudioProcessResult {
+            success: false,
+            output_path: String::new(),
+            preset: "recording".to_string(),
+            output_info: None,
+            error: Some(ffmpeg_error(&stderr)),
+        });
+    }
+
+    let output_info = std::fs::metadata(&out_path)
+        .ok()
+        .map(|m| format!("Fichier audio: {:.1} Mo", m.len() as f64 / 1_048_576.0));
+
+    Ok(AudioProcessResult {
+        success: true,
+        output_path: out_path.to_string_lossy().to_string(),
+        preset: "recording".to_string(),
+        output_info,
+        error: None,
+    })
+}
+
+pub fn list_pending_recordings() -> Vec<PendingRecording> {
+    let dir = recording_dir();
+    let entries = match std::fs::read_dir(&dir) {
+        Ok(entries) => entries,
+        Err(_) => return Vec::new(),
+    };
+    let mut items = entries
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| p.is_file())
+        .filter_map(|path| {
+            let metadata = std::fs::metadata(&path).ok()?;
+            let size = metadata.len();
+            let modified = metadata
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            Some(PendingRecording {
+                path: path.to_string_lossy().to_string(),
+                size_bytes: size,
+                modified_unix: modified,
+            })
+        })
+        .collect::<Vec<_>>();
+    items.sort_by_key(|item| Reverse(item.modified_unix));
+    items
+}
+
+pub fn discard_pending_recording(path: &str) -> Result<()> {
+    let candidate = PathBuf::from(path);
+    let dir = recording_dir();
+    let canon_dir = std::fs::canonicalize(&dir).unwrap_or(dir);
+    let canon_candidate = std::fs::canonicalize(&candidate).unwrap_or(candidate.clone());
+    if !canon_candidate.starts_with(&canon_dir) {
+        return Err(LoadlinkError::InvalidArgument(
+            "Chemin hors du dossier d'enregistrement".to_string(),
+        ));
+    }
+    std::fs::remove_file(&canon_candidate).map_err(|e| LoadlinkError::Other(e.to_string()))?;
+    Ok(())
+}
+
 /// Transcode an already-rendered audio file into the chosen export format with
 /// fine-grained codec settings and ID3-style metadata. Does NOT re-run any
 /// effect chain — feed it the master produced by `apply_chain` or `apply_preset`.

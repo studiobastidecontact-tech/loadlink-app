@@ -3,10 +3,13 @@
 use loadlink_audio_master::{
     analyze as audio_analyze_run, apply_chain as audio_apply_chain_run,
     apply_mix as audio_apply_mix_run, apply_preset as audio_apply_preset_run,
-    apply_preview as audio_apply_preview_run, export_audio as audio_export_run,
-    list_presets as audio_list_presets_run, AudioAnalysis, AudioEffectChain,
-    AudioExportOptions, AudioMixOptions, AudioPresetInfo, AudioPresetOptions,
-    AudioPreviewOptions, AudioProcessResult,
+    apply_preview as audio_apply_preview_run, convert_recording as audio_convert_recording_run,
+    discard_pending_recording as audio_discard_pending_recording_run,
+    export_audio as audio_export_run, list_pending_recordings as audio_list_pending_recordings_run,
+    list_presets as audio_list_presets_run, save_recording_blob as audio_save_recording_blob_run,
+    AudioAnalysis, AudioEffectChain, AudioExportOptions, AudioMixOptions, AudioPresetInfo,
+    AudioPresetOptions, AudioPreviewOptions, AudioProcessResult, PendingRecording,
+    RecordingSaveResult,
 };
 use loadlink_compressor::{
     compress_chunked_session, compress_dropped_files as compressor_dropped,
@@ -758,6 +761,38 @@ async fn audio_apply_mix(
 }
 
 #[tauri::command]
+async fn audio_save_recording_blob(
+    filename: String,
+    bytes_base64: String,
+) -> Result<RecordingSaveResult, String> {
+    audio_save_recording_blob_run(&filename, &bytes_base64).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn audio_convert_recording(
+    app: AppHandle,
+    input: String,
+    output_dir: String,
+    output_name: String,
+    sample_rate: u32,
+    bit_depth: u32,
+) -> Result<AudioProcessResult, String> {
+    audio_convert_recording_run(&app, input, output_dir, output_name, sample_rate, bit_depth)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn audio_list_pending_recordings() -> Result<Vec<PendingRecording>, String> {
+    Ok(audio_list_pending_recordings_run())
+}
+
+#[tauri::command]
+async fn audio_discard_pending_recording(path: String) -> Result<(), String> {
+    audio_discard_pending_recording_run(&path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn audio_preview_chain(
     app: AppHandle,
     req: AudioPreviewOptions,
@@ -1015,6 +1050,10 @@ pub fn run() {
             audio_apply_mix,
             audio_preview_chain,
             audio_export,
+            audio_save_recording_blob,
+            audio_convert_recording,
+            audio_list_pending_recordings,
+            audio_discard_pending_recording,
             // Phase 4.5 Lire (player)
             read_text_file,
             write_text_file,
