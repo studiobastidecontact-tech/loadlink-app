@@ -3347,25 +3347,19 @@ function audioUpdateUI() {
     sharedPlayer.classList.toggle("hidden", !hasMedia);
     sharedPlayer.classList.toggle("amateur-mode", isAmateur);
     sharedPlayer.classList.toggle("beginner-mode", isBeginner);
-    // Beginner: only the toolbar + A/B toggle are hidden; we KEEP whichever wave
-    // panel matches the current state visible so its wavesurfer can render (a
-    // hidden container has clientWidth 0 and loadAudioWaveform would skip it,
-    // leaving the user with no playable result).
+    // Beginner keeps a simplified chrome: toolbar hidden (no zoom/FX/markers
+    // clutter), but the A/B toggle STAYS visible so the user can decide what
+    // they want to hear. Single waveform shown at a time — whichever matches
+    // currentSrc — so layout is clean (no stacked original + result panes).
     document.getElementById("audio-tool-strip")?.classList.toggle("hidden", isBeginner);
-    document.getElementById("audio-ab-toggle")?.classList.toggle("beginner-hidden", isBeginner);
-    const hasResult = Boolean(audioState.resultPath);
+    document.getElementById("audio-ab-toggle")?.classList.remove("beginner-hidden");
     const originalPanel = sharedPlayer.querySelector(":scope > .audio-wave-panel");
     const resultPanel = document.getElementById("audio-result-panel");
     if (isBeginner) {
-      // Show only one panel — the result if a preset has been applied,
-      // otherwise the original. Auto-switch the audible source too.
-      if (originalPanel) originalPanel.classList.toggle("beginner-hidden", hasResult);
-      if (resultPanel) resultPanel.classList.toggle("beginner-hidden", !hasResult);
-      if (hasResult && audioState.currentSrc !== "result") {
-        setActiveAudioSource("result", { preservePosition: true });
-      }
+      const showResult = audioState.currentSrc === "result" && Boolean(audioState.resultPath);
+      if (originalPanel) originalPanel.classList.toggle("beginner-hidden", showResult);
+      if (resultPanel) resultPanel.classList.toggle("beginner-hidden", !showResult);
     } else {
-      // Amateur / Pro — both panels visible (gated normally by resultPath).
       if (originalPanel) originalPanel.classList.remove("beginner-hidden");
       if (resultPanel) resultPanel.classList.remove("beginner-hidden");
     }
