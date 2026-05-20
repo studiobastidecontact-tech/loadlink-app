@@ -1643,7 +1643,9 @@ async function runAudioEffectChain(options = {}) {
       activate: true,
       seekTime: Number.isFinite(previousTime) ? previousTime : 0,
     }));
-    analyzeAudioFile(outputPath);
+    audioState.analysis = null;
+    renderAudioMeters();
+    await analyzeAudioFile(outputPath);
     return outputPath;
   } catch (err) {
     if (token === audioOperationToken && chainToken === audioChainToken) {

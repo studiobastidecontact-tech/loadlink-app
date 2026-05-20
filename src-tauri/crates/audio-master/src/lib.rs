@@ -10,6 +10,7 @@ use loadlink_core::{LoadlinkError, Result};
 use loadlink_workers::{apply_no_window, get_ffmpeg_path};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::cmp::Reverse;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tauri::{AppHandle, Emitter};
@@ -756,7 +757,9 @@ fn cleanup_excess_chain_outputs(source: &Path, out_dir: &Path, current_output: &
         .filter(|path| {
             path.file_stem()
                 .and_then(|name| name.to_str())
-                .is_some_and(|name| name == base || name.strip_prefix(&format!("{base}-")).is_some())
+                .is_some_and(|name| {
+                    name == base || name.strip_prefix(&format!("{base}-")).is_some()
+                })
         })
         .filter_map(|path| {
             let modified = std::fs::metadata(&path)
@@ -766,14 +769,17 @@ fn cleanup_excess_chain_outputs(source: &Path, out_dir: &Path, current_output: &
         })
         .collect::<Vec<_>>();
 
-    candidates.sort_by(|a, b| b.1.cmp(&a.1));
+    candidates.sort_by_key(|(_, modified)| Reverse(*modified));
 
     for (path, _) in candidates.into_iter().skip(keep) {
         if same_path(&path, current_output) {
             continue;
         }
         match std::fs::remove_file(&path) {
-            Ok(_) => eprintln!("[audio-master] deleted old chain render: {}", path.display()),
+            Ok(_) => eprintln!(
+                "[audio-master] deleted old chain render: {}",
+                path.display()
+            ),
             Err(err) => eprintln!(
                 "[audio-master] failed to delete old chain render {}: {err}",
                 path.display()
