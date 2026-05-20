@@ -3257,6 +3257,15 @@ function audioUpdateUI() {
     sharedPlayer.classList.toggle("hidden", !hasMedia);
     sharedPlayer.classList.toggle("amateur-mode", isAmateur);
     sharedPlayer.classList.toggle("beginner-mode", isBeginner);
+    // Beginner: hide tool strip (FX toggle, zoom, loop…), hide A/B toggle, hide
+    // result waveform pane. The user gets a single compact track that auto-shows
+    // the processed result if one exists, otherwise the original.
+    document.getElementById("audio-tool-strip")?.classList.toggle("hidden", isBeginner);
+    document.getElementById("audio-ab-toggle")?.classList.toggle("beginner-hidden", isBeginner);
+    document.getElementById("audio-result-panel")?.classList.toggle("beginner-hidden", isBeginner);
+    if (isBeginner && audioState.resultPath && audioState.currentSrc === "original") {
+      setActiveAudioSource("result", { preservePosition: true });
+    }
   }
 
   // All three level panels live inside the workspace. We toggle them based on the

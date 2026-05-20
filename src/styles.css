@@ -1778,6 +1778,22 @@ body.dark .libreoffice-warning {
   font-size: 12px;
 }
 
+.audio-shared-player.beginner-mode .audio-wave-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+}
+
+.audio-shared-player.beginner-mode .audio-ruler {
+  display: none;
+}
+
+/* Beginner: a single compact track. The A/B toggle and the result waveform
+   pane are squashed out via this class regardless of resultPath. */
+.audio-ab-toggle.beginner-hidden,
+.audio-result-panel.beginner-hidden {
+  display: none !important;
+}
+
 .audio-shared-fx-toggle {
   display: inline-flex;
   align-items: center;
