@@ -529,6 +529,7 @@ pub async fn apply_chain(app: &AppHandle, opts: AudioEffectChain) -> Result<Audi
         None,
         Some(out_path.to_string_lossy().to_string()),
     );
+    cleanup_excess_chain_outputs(&source, &out_dir, &out_path, 5);
 
     let output_info = std::fs::metadata(&out_path)
         .ok()
@@ -729,6 +730,61 @@ fn unique_output_path(source: &Path, out_dir: &Path, preset_slug: &str, ext: &st
         idx += 1;
     }
     candidate
+}
+
+fn cleanup_excess_chain_outputs(source: &Path, out_dir: &Path, current_output: &Path, keep: usize) {
+    let stem = source
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("audio");
+    let base = format!("{stem}_chain");
+    let entries = match std::fs::read_dir(out_dir) {
+        Ok(entries) => entries,
+        Err(err) => {
+            eprintln!(
+                "[audio-master] temp cleanup skipped for {}: {err}",
+                out_dir.display()
+            );
+            return;
+        }
+    };
+
+    let mut candidates = entries
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.path())
+        .filter(|path| path.is_file())
+        .filter(|path| {
+            path.file_stem()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name == base || name.strip_prefix(&format!("{base}-")).is_some())
+        })
+        .filter_map(|path| {
+            let modified = std::fs::metadata(&path)
+                .and_then(|metadata| metadata.modified())
+                .ok()?;
+            Some((path, modified))
+        })
+        .collect::<Vec<_>>();
+
+    candidates.sort_by(|a, b| b.1.cmp(&a.1));
+
+    for (path, _) in candidates.into_iter().skip(keep) {
+        if same_path(&path, current_output) {
+            continue;
+        }
+        match std::fs::remove_file(&path) {
+            Ok(_) => eprintln!("[audio-master] deleted old chain render: {}", path.display()),
+            Err(err) => eprintln!(
+                "[audio-master] failed to delete old chain render {}: {err}",
+                path.display()
+            ),
+        }
+    }
+}
+
+fn same_path(a: &Path, b: &Path) -> bool {
+    let normalize = |path: &Path| path.to_string_lossy().replace('/', "\\").to_lowercase();
+    normalize(a) == normalize(b)
 }
 
 fn append_codec_args(cmd: &mut Command, format: &str) {
