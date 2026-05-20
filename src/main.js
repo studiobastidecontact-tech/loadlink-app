@@ -1341,14 +1341,18 @@ function renderAudioExtraTracks() {
 }
 
 function applyAudioTrackGainToPlayers() {
-  const linear = audioState.track.mute ? 0 : Math.pow(10, audioState.track.gainDb / 20);
+  // HTMLMediaElement.volume is clamped to [0, 1]; gains > 0 dB (= linear > 1.0) are
+  // routed to the ffmpeg pass instead. Playback stays at 1.0 max — boosts are
+  // audible after "Appliquer au fichier complet" / "Exporter".
+  const rawLinear = audioState.track.mute ? 0 : Math.pow(10, audioState.track.gainDb / 20);
+  const playbackLinear = clampNumber(rawLinear, 0, 1);
   ["original", "result"].forEach((source) => {
     const player = getAudioPlayer(source);
     try {
       if (player.wave && typeof player.wave.setVolume === "function") {
-        player.wave.setVolume(linear);
+        player.wave.setVolume(playbackLinear);
       }
-      if (player.fallback) player.fallback.volume = clampNumber(linear, 0, 1);
+      if (player.fallback) player.fallback.volume = playbackLinear;
     } catch (err) {
       console.warn("[audio] setVolume failed:", err);
     }
