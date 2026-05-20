@@ -3256,14 +3256,27 @@ function audioUpdateUI() {
     sharedPlayer.classList.toggle("hidden", !hasMedia);
     sharedPlayer.classList.toggle("amateur-mode", isAmateur);
     sharedPlayer.classList.toggle("beginner-mode", isBeginner);
-    // Beginner: hide tool strip (FX toggle, zoom, loop…), hide A/B toggle, hide
-    // result waveform pane. The user gets a single compact track that auto-shows
-    // the processed result if one exists, otherwise the original.
+    // Beginner: only the toolbar + A/B toggle are hidden; we KEEP whichever wave
+    // panel matches the current state visible so its wavesurfer can render (a
+    // hidden container has clientWidth 0 and loadAudioWaveform would skip it,
+    // leaving the user with no playable result).
     document.getElementById("audio-tool-strip")?.classList.toggle("hidden", isBeginner);
     document.getElementById("audio-ab-toggle")?.classList.toggle("beginner-hidden", isBeginner);
-    document.getElementById("audio-result-panel")?.classList.toggle("beginner-hidden", isBeginner);
-    if (isBeginner && audioState.resultPath && audioState.currentSrc === "original") {
-      setActiveAudioSource("result", { preservePosition: true });
+    const hasResult = Boolean(audioState.resultPath);
+    const originalPanel = sharedPlayer.querySelector(":scope > .audio-wave-panel");
+    const resultPanel = document.getElementById("audio-result-panel");
+    if (isBeginner) {
+      // Show only one panel — the result if a preset has been applied,
+      // otherwise the original. Auto-switch the audible source too.
+      if (originalPanel) originalPanel.classList.toggle("beginner-hidden", hasResult);
+      if (resultPanel) resultPanel.classList.toggle("beginner-hidden", !hasResult);
+      if (hasResult && audioState.currentSrc !== "result") {
+        setActiveAudioSource("result", { preservePosition: true });
+      }
+    } else {
+      // Amateur / Pro — both panels visible (gated normally by resultPath).
+      if (originalPanel) originalPanel.classList.remove("beginner-hidden");
+      if (resultPanel) resultPanel.classList.remove("beginner-hidden");
     }
   }
 
