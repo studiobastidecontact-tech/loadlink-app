@@ -1013,6 +1013,7 @@ function resetAudioEffectChainForPreset(presetKey) {
 
 const audioState = {
   userLevel: loadAudioUserLevel(),
+  fxOnPreview: true,
   mediaPath: null,
   mediaName: null,
   mediaSize: null,
@@ -1221,6 +1222,18 @@ function bindAudioModuleHandlers(appState) {
   document.querySelectorAll("#audio-level-switch [data-audio-level]").forEach((button) => {
     button.addEventListener("click", () => setAudioUserLevel(button.dataset.audioLevel));
   });
+
+  const fxBtn = document.getElementById("audio-shared-fx-toggle");
+  fxBtn?.addEventListener("click", () => {
+    audioState.fxOnPreview = !audioState.fxOnPreview;
+    fxBtn.classList.toggle("active", audioState.fxOnPreview);
+    if (audioState.fxOnPreview && audioState.resultPath) {
+      setActiveAudioSource("result", { preservePosition: true });
+    } else {
+      setActiveAudioSource("original", { preservePosition: true });
+    }
+  });
+  if (fxBtn) fxBtn.classList.toggle("active", audioState.fxOnPreview);
 
   document.querySelectorAll("#audio-side-tabs [data-audio-side-tab]").forEach((button) => {
     button.addEventListener("click", () => setAudioSideTab(button.dataset.audioSideTab));
@@ -3236,6 +3249,15 @@ function audioUpdateUI() {
 
   document.getElementById("audio-empty")?.classList.toggle("hidden", hasMedia);
   document.getElementById("audio-workspace")?.classList.toggle("hidden", !hasMedia);
+
+  // Shared player (toolbar + waveforms + transport) lives above the level panels
+  // and stays visible whenever media is loaded, regardless of user level.
+  const sharedPlayer = document.getElementById("audio-shared-player");
+  if (sharedPlayer) {
+    sharedPlayer.classList.toggle("hidden", !hasMedia);
+    sharedPlayer.classList.toggle("amateur-mode", isAmateur);
+    sharedPlayer.classList.toggle("beginner-mode", isBeginner);
+  }
 
   // All three level panels live inside the workspace. We toggle them based on the
   // current user level instead of mutually-exclusive editor tabs.

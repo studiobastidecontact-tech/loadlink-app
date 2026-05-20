@@ -1168,6 +1168,75 @@
         </section>
 
         <section class="audio-workspace hidden" id="audio-workspace">
+          <section class="audio-shared-player hidden" id="audio-shared-player">
+            <div class="audio-tool-strip" id="audio-tool-strip">
+              <button type="button" class="audio-tool-btn active" title="Selection">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 7.5 18 2.6-7.9L21 10.5 3 3z"/></svg>
+              </button>
+              <button type="button" class="audio-tool-btn" title="Split">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.6 8.6 19 19"/><path d="M8.6 15.4 19 5"/></svg>
+              </button>
+              <button type="button" class="audio-tool-btn" title="Zoom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+              </button>
+              <button type="button" class="audio-tool-btn" title="Loop">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>
+              </button>
+              <div class="audio-tool-spacer"></div>
+              <button type="button" class="audio-shared-fx-toggle" id="audio-shared-fx-toggle" title="Activer les effets sur le preview">
+                <span class="audio-shared-fx-led"></span>
+                <span>FX</span>
+              </button>
+              <button type="button" class="audio-tool-btn" title="Markers">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </button>
+            </div>
+
+            <div class="audio-ruler" id="audio-ruler">
+              <span>00:00</span><span>00:10</span><span>00:20</span><span>00:30</span><span>00:40</span><span>00:50</span><span>01:00</span>
+            </div>
+
+            <div class="audio-editor-ab-row">
+              <div class="audio-ab-toggle hidden" id="audio-ab-toggle">
+                <button type="button" class="active" data-audio-source="original">Original</button>
+                <button type="button" data-audio-source="result">Resultat</button>
+              </div>
+            </div>
+
+            <div class="audio-wave-panel">
+              <div class="audio-wave-header">
+                <div>
+                  <div class="audio-wave-title">Original</div>
+                  <div class="audio-wave-subtitle" id="audio-original-meta">Aucun fichier charge</div>
+                </div>
+              </div>
+              <div class="audio-waveform" id="audio-waveform-original"></div>
+            </div>
+
+            <div class="audio-result-panel hidden" id="audio-result-panel">
+              <div class="audio-wave-panel result">
+                <div class="audio-wave-header">
+                  <div>
+                    <div class="audio-wave-title">Resultat</div>
+                    <div class="audio-wave-subtitle" id="audio-result-meta">Preset applique</div>
+                  </div>
+                </div>
+                <div class="audio-waveform" id="audio-waveform-result"></div>
+              </div>
+            </div>
+
+            <div class="audio-transport">
+              <button type="button" class="audio-play-btn" id="audio-play-btn" disabled title="Lecture">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <span class="audio-time" id="audio-current-time">00:00</span>
+              <div class="audio-timeline" id="audio-timeline">
+                <div class="audio-timeline-fill" id="audio-timeline-fill"></div>
+              </div>
+              <span class="audio-time" id="audio-total-time">00:00</span>
+            </div>
+          </section>
+
           <div class="audio-studio-shell" id="audio-studio-shell">
             <aside class="audio-tracks-sidebar" id="audio-tracks-sidebar">
               <div class="audio-panel-heading">Pistes</div>
@@ -1194,69 +1263,6 @@
             </aside>
 
             <main class="audio-editor-panel" id="audio-editor-panel">
-              <div class="audio-tool-strip" id="audio-tool-strip">
-                <button type="button" class="audio-tool-btn active" title="Selection">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 7.5 18 2.6-7.9L21 10.5 3 3z"/></svg>
-                </button>
-                <button type="button" class="audio-tool-btn" title="Split">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.6 8.6 19 19"/><path d="M8.6 15.4 19 5"/></svg>
-                </button>
-                <button type="button" class="audio-tool-btn" title="Zoom">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
-                </button>
-                <button type="button" class="audio-tool-btn" title="Loop">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>
-                </button>
-                <div class="audio-tool-spacer"></div>
-                <button type="button" class="audio-tool-btn" title="Markers">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                </button>
-              </div>
-
-              <div class="audio-ruler" id="audio-ruler">
-                <span>00:00</span><span>00:10</span><span>00:20</span><span>00:30</span><span>00:40</span><span>00:50</span><span>01:00</span>
-              </div>
-
-              <div class="audio-editor-ab-row">
-                <div class="audio-ab-toggle hidden" id="audio-ab-toggle">
-                  <button type="button" class="active" data-audio-source="original">Original</button>
-                  <button type="button" data-audio-source="result">Resultat</button>
-                </div>
-              </div>
-
-              <div class="audio-wave-panel">
-                <div class="audio-wave-header">
-                  <div>
-                    <div class="audio-wave-title">Original</div>
-                    <div class="audio-wave-subtitle" id="audio-original-meta">Aucun fichier charge</div>
-                  </div>
-                </div>
-                <div class="audio-waveform" id="audio-waveform-original"></div>
-              </div>
-
-              <div class="audio-result-panel hidden" id="audio-result-panel">
-                <div class="audio-wave-panel result">
-                  <div class="audio-wave-header">
-                    <div>
-                      <div class="audio-wave-title">Resultat</div>
-                      <div class="audio-wave-subtitle" id="audio-result-meta">Preset applique</div>
-                    </div>
-                  </div>
-                  <div class="audio-waveform" id="audio-waveform-result"></div>
-                </div>
-              </div>
-
-              <div class="audio-transport">
-                <button type="button" class="audio-play-btn" id="audio-play-btn" disabled title="Lecture">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                </button>
-                <span class="audio-time" id="audio-current-time">00:00</span>
-                <div class="audio-timeline" id="audio-timeline">
-                  <div class="audio-timeline-fill" id="audio-timeline-fill"></div>
-                </div>
-                <span class="audio-time" id="audio-total-time">00:00</span>
-              </div>
-
               <div class="audio-preset-grid" id="audio-preset-grid">
                 <button type="button" class="audio-preset-card" data-preset="clear_voice">
                   <span class="audio-preset-icon">
