@@ -4535,33 +4535,50 @@ function syncWavesurferCursorsToMaster(time) {
 }
 
 function audioTogglePlayback() {
-  // Play/pause is symmetric across both waves so they stay in lock-step. The
-  // user only hears the one that isn't muted (active source). This avoids the
-  // pause/play race condition that left no audio output.
+  // Only the ACTIVE wave plays. The other one stays paused so there's no
+  // race with the result wave that hasn't finished loading yet, and no double
+  // audio. Switch source = pause active + play new (handled in
+  // setActiveAudioSource).
   const original = audioOriginalWave;
   const result = audioResultWave;
   const active = audioState.currentSrc;
   const activeWave = active === "result" ? result : original;
+  const inactiveWave = active === "result" ? original : result;
+
+  console.log("[audio] togglePlayback active=", active,
+    "activeWave?", Boolean(activeWave),
+    "inactiveWave?", Boolean(inactiveWave));
+
+  // Force the inactive wave to stop in case it was playing from a prior state.
+  if (inactiveWave) {
+    try { if (typeof inactiveWave.pause === "function") inactiveWave.pause(); } catch (_) {}
+    try { if (typeof inactiveWave.setVolume === "function") inactiveWave.setVolume(0); } catch (_) {}
+  }
+
   if (!activeWave) {
-    console.warn("[audio] no wave to play for source", active);
+    console.warn("[audio] active source has no wave yet (still loading?)", active);
+    showToast("Le résultat est encore en cours de chargement…", 2200);
     return;
   }
+
+  // Ensure active wave has full volume before playing.
+  try { if (typeof activeWave.setVolume === "function") activeWave.setVolume(1); } catch (_) {}
+
   const isPlaying = typeof activeWave.isPlaying === "function"
     ? activeWave.isPlaying()
     : !activeWave.paused;
+
   if (isPlaying) {
-    if (original && typeof original.pause === "function") { try { original.pause(); } catch (_) {} }
-    if (result && typeof result.pause === "function") { try { result.pause(); } catch (_) {} }
+    try { activeWave.pause(); } catch (_) {}
     setAudioPlayButton(false);
   } else {
-    // Ensure mute state is correct before playing both
-    try { if (original?.setVolume) original.setVolume(active === "original" ? 1 : 0); } catch (_) {}
-    try { if (result?.setVolume) result.setVolume(active === "result" ? 1 : 0); } catch (_) {}
-    if (original && typeof original.play === "function") {
-      try { original.play(); } catch (err) { console.warn("[audio] original play:", err); }
-    }
-    if (result && typeof result.play === "function") {
-      try { result.play(); } catch (err) { console.warn("[audio] result play:", err); }
+    try {
+      const result = activeWave.play();
+      if (result && typeof result.catch === "function") {
+        result.catch((err) => console.warn("[audio] activeWave.play rejected:", err));
+      }
+    } catch (err) {
+      console.warn("[audio] activeWave.play threw:", err);
     }
     setAudioPlayButton(true);
   }
@@ -4839,7 +4856,9 @@ async function runAudioPreset(presetKey, options = {}) {
     audioState.lastErrorPreset = null;
     audioState.fullChainPath = outputPath;
     audioState.fullChainStale = false;
-    audioState.currentSrc = "result";
+    // NOTE: do NOT set currentSrc = "result" here. setActiveAudioSource fires
+    // from the wave's "ready" event (activate: true) and needs to see the
+    // previous source so the pause/play swap actually runs.
     resetAudioEffectChainForPreset(presetKey);
     resetAudioRefineState(false);
     audioUpdateUI();
@@ -5010,7 +5029,10 @@ function hookAudioWaveListeners(source, wave, container, token, options, src) {
       if (source === "original") audioState.mediaDuration = duration;
       if (source === "result") audioState.resultDuration = duration;
       if (seekTime > 0) seekAudioSource(source, seekTime);
+      console.log("[audio] wave ready", source, "→ currentSrc=", audioState.currentSrc, "duration=", duration);
       if (options.activate || audioState.currentSrc === source) {
+        // setActiveAudioSource will pause the previous wave, mute it, seek the
+        // new wave, raise its volume, and resume playback if appropriate.
         setActiveAudioSource(source, { preservePosition: false });
       }
       if (source === audioState.currentSrc) attachAudioLiveMeter(wave);
@@ -5237,41 +5259,60 @@ function setActiveAudioSource(source, options = {}) {
   const previousWave = previousSrc === "result" ? result : original;
   const newWave = source === "result" ? result : original;
   const wasPlaying = previousWave && typeof previousWave.isPlaying === "function"
-    ? previousWave.isPlaying() : false;
+    ? (() => { try { return previousWave.isPlaying(); } catch (_) { return false; } })()
+    : false;
   const previousTime = options.preservePosition === false
     ? 0
     : (previousWave && typeof previousWave.getCurrentTime === "function"
-        ? previousWave.getCurrentTime() || 0
+        ? (() => { try { return previousWave.getCurrentTime() || 0; } catch (_) { return 0; } })()
         : 0);
 
   audioState.currentSrc = source;
 
-  // Mute swap — instant audible A/B switch. Both waves stay decoded and can
-  // play simultaneously; only the active one outputs sound.
-  try { if (original?.setVolume) original.setVolume(source === "original" ? 1 : 0); } catch (_) {}
-  try { if (result?.setVolume) result.setVolume(source === "result" ? 1 : 0); } catch (_) {}
+  // Pause the previous wave — single-wave-playing model. The mute is also set
+  // to 0 in case anything else ever asks it to play.
+  if (previousWave) {
+    try { if (typeof previousWave.pause === "function") previousWave.pause(); } catch (_) {}
+    try { if (typeof previousWave.setVolume === "function") previousWave.setVolume(0); } catch (_) {}
+  }
 
   // Sync position on the new wave so the user picks up where they were.
   if (newWave && previousTime > 0) {
-    const dur = typeof newWave.getDuration === "function" ? newWave.getDuration() : 0;
+    const dur = typeof newWave.getDuration === "function"
+      ? (() => { try { return newWave.getDuration() || 0; } catch (_) { return 0; } })()
+      : 0;
     if (dur > 0) {
       try { newWave.seekTo(Math.min(1, previousTime / dur)); } catch (_) {}
     }
   }
 
-  // If playing, make sure BOTH waves are playing (in sync) — the user just
-  // hears the unmuted one. If both already play, this is a no-op.
-  if (wasPlaying) {
-    try { if (original?.play && !original.isPlaying?.()) original.play(); } catch (_) {}
-    try { if (result?.play && !result.isPlaying?.()) result.play(); } catch (_) {}
-    setAudioPlayButton(true);
+  // Bring the new wave up to full volume and play if we were playing.
+  if (newWave) {
+    try { if (typeof newWave.setVolume === "function") newWave.setVolume(1); } catch (_) {}
+    if (wasPlaying) {
+      try {
+        const p = newWave.play();
+        if (p && typeof p.catch === "function") p.catch((err) => console.warn("[audio] newWave.play rejected:", err));
+      } catch (err) {
+        console.warn("[audio] newWave.play threw:", err);
+      }
+      setAudioPlayButton(true);
+    } else {
+      setAudioPlayButton(false);
+    }
+  } else {
+    console.warn("[audio] new source has no wave yet:", source,
+      "resultPath=", audioState.resultPath, "currentPreset=", audioState.currentPreset);
+    setAudioPlayButton(false);
   }
 
   // Hook the VU meter to the now-active wave so the L/R footer matches what
   // the user hears.
   if (newWave) attachAudioLiveMeter(newWave);
 
-  console.log("[audio] active source →", source, "wasPlaying=", wasPlaying, "previousTime=", previousTime);
+  console.log("[audio] active source →", source,
+    "wasPlaying=", wasPlaying, "previousTime=", previousTime,
+    "newWave?", Boolean(newWave));
   renderAudioAbToggle();
   syncAudioTransportFromPlayer();
   syncAudioFxToggle();
