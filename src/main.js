@@ -1225,15 +1225,14 @@ function bindAudioModuleHandlers(appState) {
 
   const fxBtn = document.getElementById("audio-shared-fx-toggle");
   fxBtn?.addEventListener("click", () => {
-    audioState.fxOnPreview = !audioState.fxOnPreview;
-    fxBtn.classList.toggle("active", audioState.fxOnPreview);
-    if (audioState.fxOnPreview && audioState.resultPath) {
-      setActiveAudioSource("result", { preservePosition: true });
-    } else {
-      setActiveAudioSource("original", { preservePosition: true });
+    if (!audioState.resultPath) {
+      showToast("Applique un preset d'abord pour activer le preview FX", 2400);
+      return;
     }
+    const nextSrc = audioState.currentSrc === "result" ? "original" : "result";
+    setActiveAudioSource(nextSrc, { preservePosition: true });
   });
-  if (fxBtn) fxBtn.classList.toggle("active", audioState.fxOnPreview);
+  syncAudioFxToggle();
 
   document.querySelectorAll("#audio-side-tabs [data-audio-side-tab]").forEach((button) => {
     button.addEventListener("click", () => setAudioSideTab(button.dataset.audioSideTab));
@@ -3290,6 +3289,7 @@ function audioUpdateUI() {
     btn.classList.toggle("active", btn.dataset.audioLevel === level);
   });
 
+  syncAudioFxToggle();
   document.getElementById("audio-file-chip")?.classList.toggle("hidden", !hasMedia);
 
   renderAudioStudioHeader(hasMedia);
