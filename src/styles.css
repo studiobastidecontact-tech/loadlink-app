@@ -2392,6 +2392,23 @@ body.dark .libreoffice-warning {
   position: relative;
 }
 
+.audio-confirm-modal-card {
+  max-width: 440px;
+}
+
+.audio-confirm-modal-card h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 17px;
+  margin-bottom: 10px;
+}
+
+.audio-confirm-modal-card p {
+  color: var(--text2);
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0 0 18px;
+}
+
 .audio-help-modal-card {
   max-width: 520px;
   max-height: 86vh;

@@ -1432,6 +1432,46 @@ function openAudioHelpModal() {
   document.getElementById("audio-help-modal")?.classList.remove("hidden");
 }
 
+function audioConfirm(message, options = {}) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("audio-confirm-modal");
+    const titleEl = document.getElementById("audio-confirm-title");
+    const messageEl = document.getElementById("audio-confirm-message");
+    const okBtn = document.getElementById("audio-confirm-ok");
+    const cancelBtn = document.getElementById("audio-confirm-cancel");
+    if (!modal || !okBtn || !cancelBtn) {
+      resolve(true);
+      return;
+    }
+    if (titleEl) titleEl.textContent = options.title || "Confirmer";
+    if (messageEl) messageEl.textContent = message || "Continuer ?";
+    if (okBtn) okBtn.textContent = options.confirmLabel || "Continuer";
+    if (cancelBtn) cancelBtn.textContent = options.cancelLabel || "Annuler";
+
+    const cleanup = (result) => {
+      okBtn.removeEventListener("click", onOk);
+      cancelBtn.removeEventListener("click", onCancel);
+      modal.removeEventListener("click", onBackdrop);
+      document.removeEventListener("keydown", onKey);
+      modal.classList.add("hidden");
+      resolve(result);
+    };
+    const onOk = () => cleanup(true);
+    const onCancel = () => cleanup(false);
+    const onBackdrop = (event) => { if (event.target === modal) cleanup(false); };
+    const onKey = (event) => {
+      if (event.key === "Escape") { event.preventDefault(); cleanup(false); }
+      if (event.key === "Enter") { event.preventDefault(); cleanup(true); }
+    };
+    okBtn.addEventListener("click", onOk);
+    cancelBtn.addEventListener("click", onCancel);
+    modal.addEventListener("click", onBackdrop);
+    document.addEventListener("keydown", onKey);
+    modal.classList.remove("hidden");
+    setTimeout(() => okBtn.focus(), 30);
+  });
+}
+
 function closeAudioHelpModal() {
   document.getElementById("audio-help-modal")?.classList.add("hidden");
 }
@@ -2792,11 +2832,12 @@ function resetAudioRefineState(open = false) {
 
 async function handleAudioPresetClick(presetKey) {
   if (!presetKey || !audioState.mediaPath || audioState.processing) return;
-  if (audioState.resultPath) {
+  if (audioState.resultPath && !audioState.resultIsPreview) {
     const message = audioState.currentPreset === presetKey
-      ? "Relancer ce preset et remplacer le resultat actuel ?"
-      : "Remplacer le resultat actuel ?";
-    if (!confirm(message)) return;
+      ? "Relancer ce preset et remplacer le résultat actuel ?"
+      : "Remplacer le résultat actuel par ce nouveau preset ?";
+    const ok = await audioConfirm(message, { title: "Remplacer le résultat" });
+    if (!ok) return;
   }
   await runAudioPreset(presetKey, {
     format: null,
@@ -3545,12 +3586,16 @@ function audioStopTransientListeners() {
   stopAudioProgressListener();
 }
 
-function resetAudioWithConfirm() {
+async function resetAudioWithConfirm() {
   if (!audioState.mediaPath) return;
   const message = audioState.processing
     ? "Annuler le traitement en cours et abandonner ce fichier ?"
-    : "Abandonner ce fichier ?";
-  if (!confirm(message)) return;
+    : "Abandonner ce fichier et son projet courant ?";
+  const ok = await audioConfirm(message, {
+    title: "Recommencer",
+    confirmLabel: "Recommencer",
+  });
+  if (!ok) return;
   resetAudioState();
 }
 
