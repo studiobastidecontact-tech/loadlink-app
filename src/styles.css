@@ -1528,6 +1528,10 @@ body.dark .libreoffice-warning {
 .audio-content:has(.audio-workspace:not(.hidden)) {
   max-width: none;
   padding: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .audio-studio-placeholder {
@@ -2545,8 +2549,7 @@ body.dark .libreoffice-warning {
    Level panels — Beginner & Amateur
    ============================================ */
 .audio-level-panel {
-  flex: 1;
-  min-height: 0;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -2554,7 +2557,6 @@ body.dark .libreoffice-warning {
   max-width: 1280px;
   margin: 0 auto;
   padding: 24px 28px;
-  overflow-y: auto;
 }
 
 .audio-level-panel-head {
@@ -2985,8 +2987,8 @@ body.dark .libreoffice-warning {
    CHANTIER C — Mastering view
    ============================================ */
 .audio-mastering-view {
-  flex: 1;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: 360px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -2994,7 +2996,6 @@ body.dark .libreoffice-warning {
   max-width: 1280px;
   margin: 0 auto;
   padding: 18px;
-  overflow-y: auto;
 }
 
 .audio-mastering-head {
@@ -3478,8 +3479,8 @@ body.dark .libreoffice-warning {
    CHANTIER B — Mixing view (stubs, expanded below)
    ============================================ */
 .audio-mixing-view {
-  flex: 1;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: 320px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -3487,7 +3488,6 @@ body.dark .libreoffice-warning {
   max-width: 1280px;
   margin: 0 auto;
   padding: 18px;
-  overflow-y: auto;
 }
 
 .audio-mixing-body {
