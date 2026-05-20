@@ -1806,13 +1806,13 @@ fn build_effect_chain_preview(effects: &[AudioEffect], target_sample_rate: u32) 
     // (which can collapse a 5 s preview to nothing). Everything else mirrors apply_chain.
     let filtered: Vec<AudioEffect> = effects
         .iter()
-        .cloned()
         .filter(|effect| {
             !matches!(
                 effect,
                 AudioEffect::Loudnorm { .. } | AudioEffect::Silence { .. }
             )
         })
+        .cloned()
         .collect();
     build_effect_chain(&filtered, target_sample_rate)
 }
