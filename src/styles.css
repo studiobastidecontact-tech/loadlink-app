@@ -1800,10 +1800,11 @@ body.dark .libreoffice-warning {
   display: none;
 }
 
-/* Beginner: a single compact track. The A/B toggle and the result waveform
-   pane are squashed out via this class regardless of resultPath. */
+/* Beginner: a single compact track. Generic beginner-hidden hides any wave
+   panel / toggle / result pane regardless of which element it's applied to. */
 .audio-ab-toggle.beginner-hidden,
-.audio-result-panel.beginner-hidden {
+.audio-result-panel.beginner-hidden,
+.audio-wave-panel.beginner-hidden {
   display: none !important;
 }
 
@@ -3007,14 +3008,14 @@ body.dark .libreoffice-warning {
    ============================================ */
 .audio-mastering-view {
   flex: 0 0 auto;
-  min-height: 360px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 18px;
+  padding: 12px 18px;
 }
 
 .audio-mastering-head {
@@ -3499,14 +3500,14 @@ body.dark .libreoffice-warning {
    ============================================ */
 .audio-mixing-view {
   flex: 0 0 auto;
-  min-height: 320px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 18px;
+  padding: 12px 18px;
 }
 
 .audio-mixing-body {
@@ -5101,6 +5102,8 @@ body.dark .audio-waveform {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+  max-width: 920px;
+  margin: 0 auto;
 }
 
 .audio-preset-card {
