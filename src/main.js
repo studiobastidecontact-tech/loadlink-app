@@ -900,6 +900,35 @@ const AUDIO_PRESET_LABELS = {
   podcast_interview: "Podcast / Interview",
   chain: "Chaine d'effets",
 };
+const AUDIO_USER_LEVELS = ["beginner", "amateur", "pro"];
+const AUDIO_USER_LEVEL_STORAGE_KEY = "loadlink-user-level";
+
+function loadAudioUserLevel() {
+  try {
+    const stored = localStorage.getItem(AUDIO_USER_LEVEL_STORAGE_KEY);
+    if (stored && AUDIO_USER_LEVELS.includes(stored)) return stored;
+  } catch (err) {
+    console.warn("[audio] localStorage read failed:", err);
+  }
+  return "amateur";
+}
+
+function saveAudioUserLevel(level) {
+  if (!AUDIO_USER_LEVELS.includes(level)) return;
+  try {
+    localStorage.setItem(AUDIO_USER_LEVEL_STORAGE_KEY, level);
+  } catch (err) {
+    console.warn("[audio] localStorage write failed:", err);
+  }
+}
+
+function setAudioUserLevel(level) {
+  if (!AUDIO_USER_LEVELS.includes(level) || level === audioState.userLevel) return;
+  audioState.userLevel = level;
+  saveAudioUserLevel(level);
+  audioUpdateUI();
+}
+
 const AUDIO_DEFAULT_EFFECTS = [
   { key: "eq", label: "EQ Paramétrique", enabled: true },
   { key: "compressor", label: "Compresseur", enabled: true },
@@ -983,6 +1012,7 @@ function resetAudioEffectChainForPreset(presetKey) {
 }
 
 const audioState = {
+  userLevel: loadAudioUserLevel(),
   mediaPath: null,
   mediaName: null,
   mediaSize: null,
@@ -1188,8 +1218,8 @@ function bindAudioModuleHandlers(appState) {
     button.addEventListener("click", () => setActiveAudioSource(button.dataset.audioSource));
   });
 
-  document.querySelectorAll("#audio-mode-tabs [data-audio-tab]").forEach((button) => {
-    button.addEventListener("click", () => setAudioStudioTab(button.dataset.audioTab));
+  document.querySelectorAll("#audio-level-switch [data-audio-level]").forEach((button) => {
+    button.addEventListener("click", () => setAudioUserLevel(button.dataset.audioLevel));
   });
 
   document.querySelectorAll("#audio-side-tabs [data-audio-side-tab]").forEach((button) => {
@@ -1234,6 +1264,272 @@ function bindAudioTrackControls() {
       applyAudioTrackGainToPlayers();
     });
   }
+}
+
+// ============================================
+// Beginner / Amateur panels — simplified UIs that map onto the same
+// effect chain + master chain used by Pro mode.
+// ============================================
+const AUDIO_BEGINNER_PRESETS = [
+  {
+    key: "clear_voice",
+    label: "Voix claire",
+    description: "Voix off, narration, podcast.",
+    icon: "🗣",
+    presetKey: "clear_voice",
+    target: -16,
+  },
+  {
+    key: "podcast",
+    label: "Podcast",
+    description: "Émission radio, interview longue.",
+    icon: "🎙",
+    presetKey: "podcast_interview",
+    target: -16,
+  },
+  {
+    key: "music",
+    label: "Musique",
+    description: "Maquette musicale prête à publier.",
+    icon: "🎵",
+    presetKey: "voice_memo",
+    target: -14,
+  },
+];
+
+const AUDIO_AMATEUR_TARGETS = {
+  youtube: { masterPreset: "voiceover_video", lufs: -23, label: "YouTube" },
+  podcast: { masterPreset: "podcast_pro", lufs: -16, label: "Podcast" },
+  music: { masterPreset: "music_streaming", lufs: -14, label: "Musique" },
+  voiceover: { masterPreset: "voiceover_video", lufs: -23, label: "Voix off" },
+};
+
+const audioAmateurState = {
+  low: 0,
+  mid: 0,
+  high: 0,
+  compression: 0,
+  reverb: false,
+  deess: false,
+  target: "podcast",
+};
+
+function renderAudioBeginnerPanel() {
+  const root = document.getElementById("audio-beginner-presets");
+  if (!root) return;
+  const activePreset = audioState.currentPreset;
+  root.innerHTML = AUDIO_BEGINNER_PRESETS.map((p) => `
+    <button type="button" class="audio-beginner-preset${p.presetKey === activePreset ? " active" : ""}" data-beginner-preset="${p.key}">
+      <span class="audio-beginner-preset-icon">${p.icon}</span>
+      <span class="audio-beginner-preset-name">${p.label}</span>
+      <span class="audio-beginner-preset-desc">${p.description}</span>
+      <span class="audio-beginner-preset-status">${p.presetKey === activePreset ? "✓ Appliqué" : "Appliquer"}</span>
+    </button>
+  `).join("");
+  root.querySelectorAll("[data-beginner-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => audioBeginnerApplyPreset(btn.dataset.beginnerPreset));
+  });
+
+  const volumeSlider = document.getElementById("audio-beginner-volume");
+  const volumeValue = document.getElementById("audio-beginner-volume-value");
+  if (volumeSlider && !volumeSlider.dataset.bound) {
+    volumeSlider.dataset.bound = "1";
+    volumeSlider.addEventListener("input", () => {
+      const pct = Number(volumeSlider.value);
+      if (volumeValue) volumeValue.textContent = `${pct}%`;
+      // Map 0..100% → -24..+6 dB on master bus
+      const dB = pct === 0 ? -24 : (pct >= 100 ? 6 : -24 + (pct / 100) * 30);
+      audioState.masterGainDb = clampNumber(dB, -24, 6);
+      audioState.fullChainStale = Boolean(audioState.fullChainPath);
+      renderAudioApplyFullButton();
+    });
+  }
+  const exportBtn = document.getElementById("audio-beginner-export");
+  if (exportBtn && !exportBtn.dataset.bound) {
+    exportBtn.dataset.bound = "1";
+    exportBtn.addEventListener("click", audioBeginnerExport);
+  }
+  const hint = document.getElementById("audio-beginner-hint");
+  if (hint) {
+    if (!audioState.mediaPath) {
+      hint.textContent = "Charge ou enregistre un fichier audio pour commencer.";
+    } else if (!audioState.fullChainPath) {
+      hint.textContent = "Clique un preset, puis Exporter pour générer ton fichier final.";
+    } else {
+      hint.textContent = "Fichier prêt à exporter.";
+    }
+  }
+}
+
+function audioBeginnerApplyPreset(key) {
+  const preset = AUDIO_BEGINNER_PRESETS.find((p) => p.key === key);
+  if (!preset || !audioState.mediaPath) return;
+  // Reuse the existing preset pipeline; the preset name maps onto the Rust enum.
+  runAudioPreset(preset.presetKey, { format: null, outputDir: null });
+}
+
+async function audioBeginnerExport() {
+  if (!audioState.mediaPath) {
+    showToast("Charge un fichier d'abord", 2500);
+    return;
+  }
+  if (!audioState.fullChainPath && !audioState.resultPath) {
+    showToast("Applique d'abord un preset", 2500);
+    return;
+  }
+  openAudioExportModal();
+}
+
+function renderAudioAmateurPanel() {
+  // Bind once, then keep slider values + LUFS readout in sync.
+  ["low", "mid", "high", "comp"].forEach((key) => {
+    const slider = document.getElementById(`audio-amateur-${key}`);
+    if (!slider) return;
+    if (!slider.dataset.bound) {
+      slider.dataset.bound = "1";
+      slider.addEventListener("input", () => {
+        const value = Number(slider.value);
+        if (key === "comp") audioAmateurState.compression = value;
+        else if (key === "low") audioAmateurState.low = value;
+        else if (key === "mid") audioAmateurState.mid = value;
+        else if (key === "high") audioAmateurState.high = value;
+        renderAudioAmateurReadouts();
+        audioAmateurSyncMasterChain();
+      });
+    }
+    slider.value = key === "comp" ? audioAmateurState.compression
+      : key === "low" ? audioAmateurState.low
+      : key === "mid" ? audioAmateurState.mid
+      : audioAmateurState.high;
+  });
+
+  const reverb = document.getElementById("audio-amateur-reverb");
+  const deess = document.getElementById("audio-amateur-deess");
+  if (reverb && !reverb.dataset.bound) {
+    reverb.dataset.bound = "1";
+    reverb.addEventListener("change", () => {
+      audioAmateurState.reverb = reverb.checked;
+      audioAmateurSyncMasterChain();
+    });
+  }
+  if (deess && !deess.dataset.bound) {
+    deess.dataset.bound = "1";
+    deess.addEventListener("change", () => {
+      audioAmateurState.deess = deess.checked;
+      audioAmateurSyncMasterChain();
+    });
+  }
+  if (reverb) reverb.checked = audioAmateurState.reverb;
+  if (deess) deess.checked = audioAmateurState.deess;
+
+  document.querySelectorAll("#audio-amateur-targets [data-target]").forEach((btn) => {
+    if (!btn.dataset.bound) {
+      btn.dataset.bound = "1";
+      btn.addEventListener("click", () => {
+        audioAmateurState.target = btn.dataset.target;
+        renderAudioAmateurPanel();
+        audioAmateurSyncMasterChain();
+      });
+    }
+    btn.classList.toggle("active", btn.dataset.target === audioAmateurState.target);
+  });
+
+  const applyBtn = document.getElementById("audio-amateur-apply");
+  const exportBtn = document.getElementById("audio-amateur-export");
+  if (applyBtn && !applyBtn.dataset.bound) {
+    applyBtn.dataset.bound = "1";
+    applyBtn.addEventListener("click", audioAmateurApplyAndRender);
+  }
+  if (exportBtn && !exportBtn.dataset.bound) {
+    exportBtn.dataset.bound = "1";
+    exportBtn.addEventListener("click", audioBeginnerExport);
+  }
+
+  renderAudioAmateurReadouts();
+  renderAudioAmateurLufs();
+}
+
+function renderAudioAmateurReadouts() {
+  const fmt = (v) => `${v > 0 ? "+" : ""}${Number(v).toFixed(1)} dB`;
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+  setText("audio-amateur-low-val", fmt(audioAmateurState.low));
+  setText("audio-amateur-mid-val", fmt(audioAmateurState.mid));
+  setText("audio-amateur-high-val", fmt(audioAmateurState.high));
+  setText("audio-amateur-comp-val", `${audioAmateurState.compression}%`);
+}
+
+function renderAudioAmateurLufs() {
+  const lufs = audioState.analysis?.loudnessLufs;
+  const dot = document.getElementById("audio-amateur-lufs-dot");
+  const value = document.getElementById("audio-amateur-lufs-value");
+  const text = document.getElementById("audio-amateur-lufs-text");
+  if (!value || !dot || !text) return;
+  if (!Number.isFinite(lufs)) {
+    value.textContent = "--";
+    text.textContent = audioState.mediaPath ? "Applique un preset pour mesurer" : "Charge un fichier pour analyser";
+    dot.style.color = "var(--text3)";
+    return;
+  }
+  value.textContent = `${lufs.toFixed(1)} LUFS`;
+  if (lufs >= -16 && lufs <= -14) {
+    dot.style.color = "#22c55e";
+    text.textContent = "Niveau optimal streaming";
+  } else if ((lufs >= -23 && lufs < -16) || (lufs > -14 && lufs <= -9)) {
+    dot.style.color = "#facc15";
+    text.textContent = "Niveau limite — ajustable";
+  } else {
+    dot.style.color = "#ef4444";
+    text.textContent = lufs < -23 ? "Trop faible" : "Trop fort — risque clipping";
+  }
+}
+
+function audioAmateurSyncMasterChain() {
+  // Translate the simplified amateur sliders into the underlying master chain.
+  const target = AUDIO_AMATEUR_TARGETS[audioAmateurState.target] || AUDIO_AMATEUR_TARGETS.podcast;
+  // Map 0..100 compression → threshold (-12..-24 dB) + ratio (2..6)
+  const c = audioAmateurState.compression / 100;
+  audioMasterState.eq.enabled = true;
+  audioMasterState.eq.lowShelfGain = audioAmateurState.low;
+  audioMasterState.eq.lowMidGain = 0;
+  audioMasterState.eq.highMidGain = audioAmateurState.mid;
+  audioMasterState.eq.highShelfGain = audioAmateurState.high;
+  audioMasterState.compressor.enabled = c > 0.05;
+  audioMasterState.compressor.threshold = clampNumber(-12 - c * 12, -24, -12);
+  audioMasterState.compressor.ratio = clampNumber(2 + c * 4, 2, 6);
+  audioMasterState.compressor.attack = 8;
+  audioMasterState.compressor.release = 100;
+  audioMasterState.compressor.makeup = 2 + c * 2;
+  audioMasterState.stereo.enabled = false;
+  audioMasterState.saturation.enabled = false;
+  audioMasterState.limiter.ceiling = -1;
+  audioMasterState.limiter.attack = 5;
+  audioMasterState.limiter.release = 60;
+  audioMasterState.limiter.targetLufs = target.lufs;
+
+  // Amateur reverb/deess feed into the per-clip effect chain (not the master bus).
+  if (audioState.effectChain) {
+    if (audioState.effectChain.deesser) {
+      audioState.effectChain.deesser.enabled = audioAmateurState.deess;
+    }
+  }
+  audioState.fullChainStale = Boolean(audioState.fullChainPath);
+  renderAudioApplyFullButton();
+}
+
+async function audioAmateurApplyAndRender() {
+  if (!audioState.mediaPath) {
+    showToast("Charge un fichier d'abord", 2500);
+    return;
+  }
+  audioAmateurSyncMasterChain();
+  // Run the full effect chain on the source, then master on top.
+  const chainResult = await runAudioEffectChain();
+  if (!chainResult) return;
+  await audioMasterRender();
+  showToast("Rendu Amateur terminé", 2000);
 }
 
 // ============================================
@@ -2933,37 +3229,36 @@ function loadAudioFile(path) {
 
 function audioUpdateUI() {
   const hasMedia = Boolean(audioState.mediaPath);
-  const tab = audioState.studioTab;
-  const isEditTab = tab === "edit";
-  const isMixTab = tab === "mix";
-  const isMasterTab = tab === "master";
-  document.getElementById("audio-empty")?.classList.toggle("hidden", !isEditTab || hasMedia);
-  // Workspace container holds the studio shell, mixing view, mastering view AND the
-  // metering footer. Keep it visible as long as media is loaded so the inner views
-  // can render — toggle the children individually based on the active tab.
+  const level = audioState.userLevel || "amateur";
+  const isBeginner = level === "beginner";
+  const isAmateur = level === "amateur";
+  const isPro = level === "pro";
+
+  document.getElementById("audio-empty")?.classList.toggle("hidden", hasMedia);
   document.getElementById("audio-workspace")?.classList.toggle("hidden", !hasMedia);
-  document.getElementById("audio-studio-shell")?.classList.toggle("hidden", !isEditTab);
+
+  // All three level panels live inside the workspace. We toggle them based on the
+  // current user level instead of mutually-exclusive editor tabs.
+  document.getElementById("audio-studio-shell")?.classList.toggle("hidden", !isPro);
+  document.getElementById("audio-mixing-view")?.classList.toggle("hidden", !isPro || !hasMedia);
+  document.getElementById("audio-mastering-view")?.classList.toggle("hidden", !isPro || !hasMedia);
+  document.getElementById("audio-beginner-panel")?.classList.toggle("hidden", !isBeginner || !hasMedia);
+  document.getElementById("audio-amateur-panel")?.classList.toggle("hidden", !isAmateur || !hasMedia);
+
   const placeholder = document.getElementById("audio-studio-placeholder");
   if (placeholder) placeholder.classList.add("hidden");
-  const mixView = document.getElementById("audio-mixing-view");
-  const masterView = document.getElementById("audio-mastering-view");
-  if (mixView) mixView.classList.toggle("hidden", !isMixTab || !hasMedia);
-  if (masterView) masterView.classList.toggle("hidden", !isMasterTab || !hasMedia);
-  if (isMixTab && !hasMedia) {
-    if (placeholder) {
-      placeholder.classList.remove("hidden");
-      document.getElementById("audio-studio-placeholder-title").textContent = "Mixage";
-      document.getElementById("audio-studio-placeholder-text").textContent = "Importe ou enregistre un fichier pour ouvrir la console.";
-    }
-  } else if (isMasterTab && !hasMedia) {
-    if (placeholder) {
-      placeholder.classList.remove("hidden");
-      document.getElementById("audio-studio-placeholder-title").textContent = "Mastering";
-      document.getElementById("audio-studio-placeholder-text").textContent = "Importe ou enregistre un fichier pour finaliser le master.";
-    }
+
+  if (isPro && hasMedia) {
+    renderAudioMasteringView();
+    renderAudioMixingView();
   }
-  if (isMasterTab && hasMedia) renderAudioMasteringView();
-  if (isMixTab && hasMedia) renderAudioMixingView();
+  if (isAmateur && hasMedia) renderAudioAmateurPanel();
+  if (isBeginner && hasMedia) renderAudioBeginnerPanel();
+
+  document.querySelectorAll("#audio-level-switch [data-audio-level]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.audioLevel === level);
+  });
+
   document.getElementById("audio-file-chip")?.classList.toggle("hidden", !hasMedia);
 
   renderAudioStudioHeader(hasMedia);
@@ -3936,9 +4231,10 @@ function applyAudioVoiceRefine(bands, value) {
 }
 
 function setAudioStudioTab(tab) {
-  if (!["edit", "mix", "master"].includes(tab)) return;
-  audioState.studioTab = tab;
-  audioUpdateUI();
+  // Legacy shim — early code paths still call this. Map onto user levels.
+  if (tab === "master" || tab === "mix" || tab === "edit") {
+    setAudioUserLevel("pro");
+  }
 }
 
 function renderAudioStudioHeader(hasMedia) {
@@ -3950,10 +4246,6 @@ function renderAudioStudioHeader(hasMedia) {
       ? "Modifie aujourd'hui"
       : "Importe ou enregistre un fichier pour commencer";
   }
-
-  document.querySelectorAll("#audio-mode-tabs [data-audio-tab]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.audioTab === audioState.studioTab);
-  });
 
   const exportBtn = document.getElementById("audio-export-btn");
   if (exportBtn) exportBtn.disabled = !audioState.resultPath || audioState.processing;

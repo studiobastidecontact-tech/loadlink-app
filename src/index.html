@@ -968,10 +968,19 @@
         </div>
 
         <div class="audio-header-center">
-          <div class="audio-mode-tabs" id="audio-mode-tabs">
-            <button type="button" class="active" id="audio-tab-edit" data-audio-tab="edit">&Eacute;dition</button>
-            <button type="button" id="audio-tab-mix" data-audio-tab="mix">Mixage</button>
-            <button type="button" id="audio-tab-master" data-audio-tab="master">Mastering</button>
+          <div class="audio-level-switch" id="audio-level-switch" role="tablist" aria-label="Niveau d'expérience">
+            <button type="button" class="audio-level-switch-btn" data-audio-level="beginner" role="tab">
+              <span class="audio-level-switch-icon">🌱</span>
+              <span class="audio-level-switch-label">Débutant</span>
+            </button>
+            <button type="button" class="audio-level-switch-btn active" data-audio-level="amateur" role="tab">
+              <span class="audio-level-switch-icon">🎚</span>
+              <span class="audio-level-switch-label">Amateur</span>
+            </button>
+            <button type="button" class="audio-level-switch-btn" data-audio-level="pro" role="tab">
+              <span class="audio-level-switch-icon">🎛</span>
+              <span class="audio-level-switch-label">Pro</span>
+            </button>
           </div>
         </div>
 
@@ -1379,7 +1388,118 @@
               </div>
             </aside>
           </div>
+          <section class="audio-level-panel audio-beginner-panel hidden" id="audio-beginner-panel">
+            <header class="audio-level-panel-head">
+              <div>
+                <div class="audio-level-panel-title">Mode Débutant</div>
+                <div class="audio-level-panel-subtitle">Choisis un preset, ajuste le volume, exporte.</div>
+              </div>
+            </header>
+            <div class="audio-beginner-presets" id="audio-beginner-presets"></div>
+            <div class="audio-beginner-volume-card">
+              <label class="audio-beginner-volume-label">
+                <span>Volume final</span>
+                <strong id="audio-beginner-volume-value">100%</strong>
+              </label>
+              <input type="range" id="audio-beginner-volume" min="0" max="100" step="1" value="100" />
+              <small>Le réglage agit sur le bus master du projet.</small>
+            </div>
+            <button type="button" class="audio-beginner-export" id="audio-beginner-export">Exporter le fichier</button>
+            <div class="audio-beginner-hint" id="audio-beginner-hint">Charge ou enregistre un fichier audio pour commencer.</div>
+          </section>
+
+          <section class="audio-level-panel audio-amateur-panel hidden" id="audio-amateur-panel">
+            <header class="audio-level-panel-head">
+              <div>
+                <div class="audio-level-panel-title">Mode Amateur</div>
+                <div class="audio-level-panel-subtitle">Réglages essentiels — EQ 3 bandes, effets, cible d'export.</div>
+              </div>
+              <div class="audio-amateur-lufs" id="audio-amateur-lufs">
+                <span class="audio-amateur-lufs-dot" id="audio-amateur-lufs-dot">●</span>
+                <strong id="audio-amateur-lufs-value">--</strong>
+                <small id="audio-amateur-lufs-text">Charge un fichier pour analyser</small>
+              </div>
+            </header>
+
+            <div class="audio-amateur-grid">
+              <article class="audio-amateur-card">
+                <h3>Égaliseur 3 bandes</h3>
+                <div class="audio-amateur-eq">
+                  <label class="audio-amateur-eq-band">
+                    <span>Graves <strong id="audio-amateur-low-val">0 dB</strong></span>
+                    <input type="range" id="audio-amateur-low" min="-12" max="12" step="0.5" value="0" />
+                  </label>
+                  <label class="audio-amateur-eq-band">
+                    <span>Médiums <strong id="audio-amateur-mid-val">0 dB</strong></span>
+                    <input type="range" id="audio-amateur-mid" min="-12" max="12" step="0.5" value="0" />
+                  </label>
+                  <label class="audio-amateur-eq-band">
+                    <span>Aigus <strong id="audio-amateur-high-val">0 dB</strong></span>
+                    <input type="range" id="audio-amateur-high" min="-12" max="12" step="0.5" value="0" />
+                  </label>
+                </div>
+              </article>
+
+              <article class="audio-amateur-card">
+                <h3>Effets</h3>
+                <label class="audio-amateur-effect">
+                  <span>Compresseur <strong id="audio-amateur-comp-val">0%</strong></span>
+                  <input type="range" id="audio-amateur-comp" min="0" max="100" step="1" value="0" />
+                  <small>Stabilise la dynamique de la voix.</small>
+                </label>
+                <label class="audio-amateur-toggle">
+                  <input type="checkbox" id="audio-amateur-reverb" />
+                  <span>Réverbération légère</span>
+                </label>
+                <label class="audio-amateur-toggle">
+                  <input type="checkbox" id="audio-amateur-deess" />
+                  <span>De-essing (atténue les S sifflants)</span>
+                </label>
+              </article>
+            </div>
+
+            <article class="audio-amateur-card audio-amateur-target-card">
+              <h3>Cible d'export</h3>
+              <div class="audio-amateur-targets" id="audio-amateur-targets">
+                <button type="button" class="audio-amateur-target" data-target="youtube">
+                  <span class="audio-amateur-target-icon">▶</span>
+                  <span class="audio-amateur-target-label">YouTube</span>
+                  <span class="audio-amateur-target-lufs">-23 LUFS</span>
+                </button>
+                <button type="button" class="audio-amateur-target" data-target="podcast">
+                  <span class="audio-amateur-target-icon">🎙</span>
+                  <span class="audio-amateur-target-label">Podcast</span>
+                  <span class="audio-amateur-target-lufs">-16 LUFS</span>
+                </button>
+                <button type="button" class="audio-amateur-target" data-target="music">
+                  <span class="audio-amateur-target-icon">🎵</span>
+                  <span class="audio-amateur-target-label">Musique</span>
+                  <span class="audio-amateur-target-lufs">-14 LUFS</span>
+                </button>
+                <button type="button" class="audio-amateur-target" data-target="voiceover">
+                  <span class="audio-amateur-target-icon">🗣</span>
+                  <span class="audio-amateur-target-label">Voix off</span>
+                  <span class="audio-amateur-target-lufs">-23 LUFS</span>
+                </button>
+              </div>
+            </article>
+
+            <div class="audio-amateur-actions">
+              <button type="button" class="btn-primary audio-amateur-apply" id="audio-amateur-apply">Appliquer et rendre</button>
+              <button type="button" class="audio-amateur-export-btn" id="audio-amateur-export">Exporter le fichier</button>
+            </div>
+          </section>
+
           <section class="audio-mastering-view hidden" id="audio-mastering-view">
+            <details class="audio-master-bus-wrap" id="audio-master-bus-wrap" open>
+              <summary class="audio-master-bus-summary">
+                <span class="audio-master-bus-icon">🎛</span>
+                <div class="audio-master-bus-summary-text">
+                  <div class="audio-master-bus-title">Master bus</div>
+                  <div class="audio-master-bus-sub">Chaîne mastering finale — EQ · Compresseur · Stereo · Saturation · Limiter</div>
+                </div>
+                <span class="audio-master-bus-chevron">⌄</span>
+              </summary>
             <header class="audio-mastering-head">
               <div>
                 <div class="audio-mastering-title">Mastering final</div>
@@ -1474,6 +1594,7 @@
                 </div>
               </aside>
             </div>
+            </details>
           </section>
 
           <section class="audio-mixing-view hidden" id="audio-mixing-view">
