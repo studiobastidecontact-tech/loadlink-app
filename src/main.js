@@ -2041,8 +2041,9 @@ async function audioRecordingStart() {
   const rAnalyser = ctx.createAnalyser();
   lAnalyser.fftSize = 2048;
   rAnalyser.fftSize = 2048;
-  lAnalyser.smoothingTimeConstant = 0.2;
-  rAnalyser.smoothingTimeConstant = 0.2;
+  // Heavy smoothing — eliminates 60 fps jitter on the VU bars during REC.
+  lAnalyser.smoothingTimeConstant = 0.85;
+  rAnalyser.smoothingTimeConstant = 0.85;
   const monitor = ctx.createGain();
   monitor.gain.value = audioRecordState.monitor ? 0.6 : 0;
 
@@ -2198,8 +2199,17 @@ function audioRecordingTeardownStream() {
   audioRecordState.chunks = [];
 }
 
-function audioRecordingTick() {
+function audioRecordingTick(timestamp) {
   if (!audioRecordState.lAnalyser || !audioRecordState.rAnalyser) return;
+
+  // Throttle to ~30 fps to avoid VU jitter on raw 60 fps reads.
+  const lastTick = audioRecordState.lastTickAt || 0;
+  if (timestamp && timestamp - lastTick < 33) {
+    audioRecordState.rafId = requestAnimationFrame(audioRecordingTick);
+    return;
+  }
+  audioRecordState.lastTickAt = timestamp || performance.now();
+
   const fft = audioRecordState.lAnalyser.fftSize;
   const bufL = new Uint8Array(fft);
   const bufR = new Uint8Array(fft);
@@ -2220,21 +2230,24 @@ function audioRecordingTick() {
   const rmsL = Math.sqrt(rmsLSum / fft);
   const rmsR = Math.sqrt(rmsRSum / fft);
 
-  audioRecordState.peakL = peakL > audioRecordState.peakL ? peakL : audioRecordState.peakL * 0.88;
-  audioRecordState.peakR = peakR > audioRecordState.peakR ? peakR : audioRecordState.peakR * 0.88;
+  // Frame-to-frame interpolation eliminates remaining flicker.
+  audioRecordState.peakL = peakL > audioRecordState.peakL
+    ? audioRecordState.peakL * 0.4 + peakL * 0.6
+    : audioRecordState.peakL * 0.78 + peakL * 0.22;
+  audioRecordState.peakR = peakR > audioRecordState.peakR
+    ? audioRecordState.peakR * 0.4 + peakR * 0.6
+    : audioRecordState.peakR * 0.78 + peakR * 0.22;
 
-  const now = performance.now();
+  // Peak markers — gradual descent (~0.6 dB/frame ≈ 18 dB/s) rather than abrupt fall.
   if (peakL >= audioRecordState.peakHoldL) {
     audioRecordState.peakHoldL = peakL;
-    audioRecordState.peakHoldTimerL = now;
-  } else if (now - audioRecordState.peakHoldTimerL > 1500) {
-    audioRecordState.peakHoldL = Math.max(0, audioRecordState.peakHoldL - 0.012);
+  } else {
+    audioRecordState.peakHoldL = Math.max(0, audioRecordState.peakHoldL - 0.006);
   }
   if (peakR >= audioRecordState.peakHoldR) {
     audioRecordState.peakHoldR = peakR;
-    audioRecordState.peakHoldTimerR = now;
-  } else if (now - audioRecordState.peakHoldTimerR > 1500) {
-    audioRecordState.peakHoldR = Math.max(0, audioRecordState.peakHoldR - 0.012);
+  } else {
+    audioRecordState.peakHoldR = Math.max(0, audioRecordState.peakHoldR - 0.006);
   }
 
   const peakLdb = peakL > 0 ? 20 * Math.log10(peakL) : -Infinity;
@@ -2257,13 +2270,22 @@ function audioRecordRenderVu() {
   const rPeak = document.getElementById("audio-record-vu-r-peak");
   const lClip = document.getElementById("audio-record-vu-l-clip");
   const rClip = document.getElementById("audio-record-vu-r-clip");
+  // transform scaleY is GPU-accelerated — no reflow, smoother than height updates.
   if (lFill) {
-    lFill.style.height = `${(audioRecordState.peakL * 100).toFixed(1)}%`;
-    lFill.className = `audio-recording-vu-fill ${audioRecordLevelClass(audioRecordState.peakL)}`;
+    lFill.style.transform = `scaleY(${audioRecordState.peakL.toFixed(3)})`;
+    const cls = audioRecordLevelClass(audioRecordState.peakL);
+    if (lFill.dataset.lvl !== cls) {
+      lFill.dataset.lvl = cls;
+      lFill.className = `audio-recording-vu-fill ${cls}`;
+    }
   }
   if (rFill) {
-    rFill.style.height = `${(audioRecordState.peakR * 100).toFixed(1)}%`;
-    rFill.className = `audio-recording-vu-fill ${audioRecordLevelClass(audioRecordState.peakR)}`;
+    rFill.style.transform = `scaleY(${audioRecordState.peakR.toFixed(3)})`;
+    const cls = audioRecordLevelClass(audioRecordState.peakR);
+    if (rFill.dataset.lvl !== cls) {
+      rFill.dataset.lvl = cls;
+      rFill.className = `audio-recording-vu-fill ${cls}`;
+    }
   }
   if (lPeak) lPeak.style.bottom = `${(audioRecordState.peakHoldL * 100).toFixed(1)}%`;
   if (rPeak) rPeak.style.bottom = `${(audioRecordState.peakHoldR * 100).toFixed(1)}%`;

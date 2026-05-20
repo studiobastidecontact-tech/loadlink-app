@@ -3441,9 +3441,12 @@ body.dark .libreoffice-warning {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 0%;
+  height: 100%;
+  transform: scaleY(0);
+  transform-origin: bottom center;
   background: linear-gradient(to top, #16a34a, #22c55e);
-  transition: height 60ms linear;
+  transition: transform 90ms linear;
+  will-change: transform;
 }
 
 .audio-recording-vu-fill.level-green {
@@ -3474,8 +3477,9 @@ body.dark .libreoffice-warning {
   right: 0;
   height: 2px;
   background: #fff;
-  bottom: 0;
+  bottom: 0%;
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+  transition: bottom 90ms linear;
 }
 
 .audio-recording-vu-clip {
