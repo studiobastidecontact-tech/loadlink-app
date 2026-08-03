@@ -1,5 +1,5 @@
 """
-main.py â Point d'entrÃ©e FastAPI pour LoadLink.
+main.py — Point d'entrée FastAPI pour LoadLink.
 
 Lancer en dev:
     uvicorn main:app --reload --port 8000
@@ -13,20 +13,20 @@ from pydantic import BaseModel
 
 from services.search import search_city
 
-# Cache mÃ©moire trÃ¨s simple (ville+options -> rÃ©sultats) avec TTL.
+# Cache mémoire très simple (ville+options -> résultats) avec TTL.
 # Overpass est un service public avec des limites d'usage strictes ;
-# ce cache Ã©vite de le solliciter Ã  chaque re-clic sur la mÃªme ville.
-# Ã remplacer par Redis si l'app passe en multi-instance.
+# ce cache évite de le solliciter à chaque re-clic sur la même ville.
+# À remplacer par Redis si l'app passe en multi-instance.
 _CACHE: dict[str, tuple[float, list[dict]]] = {}
 _CACHE_TTL_SECONDS = 30 * 60
 
 app = FastAPI(
     title="LoadLink API",
-    description="Outil de prospection commerciale â recherche d'Ã©tablissements via OpenStreetMap.",
+    description="Outil de prospection commerciale — recherche d'établissements via OpenStreetMap.",
     version="0.1.0",
 )
 
-# En dev, on autorise le frontend Next.js local. Ã restreindre en prod.
+# En dev, on autorise le frontend Next.js local. À restreindre en prod.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -58,11 +58,11 @@ def health():
 @app.get("/api/search", response_model=list[Company])
 def search(
     city: str = Query(..., min_length=2, description="Nom de la ville, ex: 'Brive-la-Gaillarde'"),
-    scrape_emails: bool = Query(False, description="Tenter d'extraire un email depuis le site de chaque Ã©tablissement"),
+    scrape_emails: bool = Query(False, description="Tenter d'extraire un email depuis le site de chaque établissement"),
 ):
     """
-    Recherche les Ã©tablissements publics (restaurants, bars, hÃ´tels...)
-    d'une ville donnÃ©e et retourne une liste normalisÃ©e.
+    Recherche les établissements publics (restaurants, bars, hôtels...)
+    d'une ville donnée et retourne une liste normalisée.
     """
     cache_key = f"{city.strip().lower()}::{scrape_emails}"
     cached = _CACHE.get(cache_key)
