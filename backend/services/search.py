@@ -13,6 +13,10 @@ from typing import Optional
 import osmnx as ox
 import requests
 
+# Sur les plateformes serverless (Vercel...), le système de fichiers est
+# en lecture seule sauf /tmp. On y redirige le cache OSMnx.
+ox.settings.cache_folder = "/tmp/osmnx_cache"
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("loadlink.search")
 
