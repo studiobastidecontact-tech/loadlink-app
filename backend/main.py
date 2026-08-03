@@ -3,6 +3,9 @@ main.py — Point d'entrée FastAPI pour LoadLink.
 
 Lancer en dev:
     uvicorn main:app --reload --port 8000
+
+Toutes les routes sont préfixées par /api/backend pour correspondre
+au routage multi-services de Vercel (voir vercel.json à la racine).
 """
 
 import time
@@ -35,6 +38,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+PREFIX = "/api/backend"
+
 
 class Company(BaseModel):
     id: str
@@ -50,12 +55,12 @@ class Company(BaseModel):
     lon: float | None = None
 
 
-@app.get("/health")
+@app.get(f"{PREFIX}/health")
 def health():
     return {"status": "ok"}
 
 
-@app.get("/api/search", response_model=list[Company])
+@app.get(f"{PREFIX}/api/search", response_model=list[Company])
 def search(
     city: str = Query(..., min_length=2, description="Nom de la ville, ex: 'Brive-la-Gaillarde'"),
     scrape_emails: bool = Query(False, description="Tenter d'extraire un email depuis le site de chaque établissement"),
