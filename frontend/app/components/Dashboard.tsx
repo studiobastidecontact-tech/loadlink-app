@@ -12,14 +12,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSearch(city: string, scrapeEmails: boolean) {
+  async function handleSearch(city: string, scrapeEmails: boolean, categories: string[]) {
     setLoading(true);
     setError(null);
     try {
-      const results = await searchCompanies(city, scrapeEmails);
+      const results = await searchCompanies(city, scrapeEmails, categories);
       setCompanies(results);
-      // Persisté côté client pour permettre la page de détail /companies/[id]
-      // (pas de base de données côté backend pour l'instant, MVP).
       sessionStorage.setItem("loadlink:companies", JSON.stringify(results));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
