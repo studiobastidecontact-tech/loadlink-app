@@ -1,9 +1,9 @@
 """
 services/search.py
 
-Récupère les établissements publics (restaurants, bars, hôtels, etc.)
-pour une ville donnée via OSMnx / Overpass API, puis normalise
-les résultats au format attendu par le frontend.
+Récupère les établissements publics via OSMnx / Overpass API selon les
+catégories choisies par l'utilisateur, puis normalise les résultats au
+format attendu par le frontend.
 """
 
 import re
@@ -20,37 +20,42 @@ ox.settings.cache_folder = "/tmp/osmnx_cache"
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("loadlink.search")
 
-# Tags OSM correspondant aux catégories ciblées.
-# Voir https://wiki.openstreetmap.org/wiki/Key:amenity / Key:tourism
-OSM_TAGS = {
-    "amenity": [
-        "restaurant",
-        "bar",
-        "cafe",
-        "pub",
-        "fast_food",
-        "biergarten",
-    ],
-    "tourism": [
-        "hotel",
-        "guest_house",
-        "hostel",
-    ],
+# Catalogue des catégories disponibles. Clé = identifiant utilisé par le
+# frontend et l'API. Chaque catégorie correspond à un tag OSM précis.
+# Voir https://wiki.openstreetmap.org/wiki/Key:amenity / Key:tourism / Key:office
+CATEGORY_CATALOG: dict[str, dict] = {
+    "restaurant":  {"osm_key": "amenity", "osm_value": "restaurant",  "label": "Restaurant"},
+    "bar":         {"osm_key": "amenity", "osm_value": "bar",         "label": "Bar"},
+    "cafe":        {"osm_key": "amenity", "osm_value": "cafe",        "label": "Café"},
+    "pub":         {"osm_key": "amenity", "osm_value": "pub",         "label": "Pub"},
+    "fast_food":   {"osm_key": "amenity", "osm_value": "fast_food",   "label": "Fast-food"},
+    "biergarten":  {"osm_key": "amenity", "osm_value": "biergarten",  "label": "Brasserie"},
+    "hotel":       {"osm_key": "tourism", "osm_value": "hotel",       "label": "Hôtel"},
+    "guest_house": {"osm_key": "tourism", "osm_value": "guest_house", "label": "Guest house"},
+    "hostel":      {"osm_key": "tourism", "osm_value": "hostel",      "label": "Hostel"},
+    "estate_agent":       {"osm_key": "office", "osm_value": "estate_agent",       "label": "Agence immobilière"},
+    "advertising_agency": {"osm_key": "office", "osm_value": "advertising_agency", "label": "Agence de communication"},
 }
 
-CATEGORY_LABELS = {
-    "restaurant": "Restaurant",
-    "bar": "Bar",
-    "cafe": "Café",
-    "pub": "Pub",
-    "fast_food": "Fast-food",
-    "biergarten": "Brasserie",
-    "hotel": "Hôtel",
-    "guest_house": "Guest house",
-    "hostel": "Hostel",
-}
+CATEGORY_LABELS = {key: cfg["label"] for key, cfg in CATEGORY_CATALOG.items()}
 
 EMAIL_REGEX = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
+
+
+def _build_osm_tags(selected_categories: Optional[list[str]]) -> dict:
+    """
+    Construit le dict de tags OSM à interroger à partir des catégories
+    choisies. Si selected_categories est None ou vide, on prend TOUT
+    le catalogue (comportement par défaut = "tout sélectionner").
+    """
+    keys = selected_categories or list(CATEGORY_CATALOG.keys())
+    tags: dict[str, list[str]] = {}
+    for key in keys:
+        cfg = CATEGORY_CATALOG.get(key)
+        if not cfg:
+            continue  # catégorie inconnue, on ignore silencieusement
+        tags.setdefault(cfg["osm_key"], []).append(cfg["osm_value"])
+    return tags
 
 
 def _clean(value) -> Optional[str]:
@@ -104,7 +109,6 @@ def _dedupe(results: list[dict], distance_threshold: float = 0.0005) -> list[dic
                 and abs(item["lon"] - kept["lon"]) < distance_threshold
             )
             if close_enough:
-                # On garde la version la plus complète (avec email/phone/website si dispo)
                 if sum(bool(kept.get(k)) for k in ("email", "phone", "website")) < sum(
                     bool(item.get(k)) for k in ("email", "phone", "website")
                 ):
@@ -120,8 +124,7 @@ def _dedupe(results: list[dict], distance_threshold: float = 0.0005) -> list[dic
 def _dedupe_by_email(results: list[dict]) -> list[dict]:
     """
     Sécurité supplémentaire : si deux entrées OSM distinctes partagent
-    le même email (même principe que l'ancien scraper Google Maps),
-    on ne garde que la première occurrence.
+    le même email, on ne garde que la première occurrence.
     """
     seen_emails: set[str] = set()
     deduped: list[dict] = []
@@ -136,22 +139,29 @@ def _dedupe_by_email(results: list[dict]) -> list[dict]:
     return deduped
 
 
-def search_city(city: str, scrape_emails: bool = False) -> list[dict]:
+def search_city(
+    city: str,
+    scrape_emails: bool = False,
+    categories: Optional[list[str]] = None,
+) -> list[dict]:
     """
-    Recherche tous les établissements ciblés dans une ville donnée.
+    Recherche les établissements ciblés dans une ville donnée.
 
     Args:
         city: nom de la ville (ex: "Brive-la-Gaillarde")
         scrape_emails: si True, tente d'extraire un email depuis le
             site web de chaque établissement (plus lent).
+        categories: liste de clés de CATEGORY_CATALOG à rechercher.
+            None ou liste vide = toutes les catégories.
 
     Returns:
         Liste de dicts au format attendu par le frontend.
     """
-    logger.info("Recherche OSM pour la ville: %s", city)
+    osm_tags = _build_osm_tags(categories)
+    logger.info("Recherche OSM pour la ville: %s (catégories: %s)", city, list(osm_tags.keys()))
 
     try:
-        gdf = ox.features_from_place(city, tags=OSM_TAGS)
+        gdf = ox.features_from_place(city, tags=osm_tags)
     except Exception as exc:
         logger.error("Échec de la récupération OSM pour %s: %s", city, exc)
         raise ValueError(f"Impossible de récupérer les données pour '{city}': {exc}")
@@ -162,7 +172,7 @@ def search_city(city: str, scrape_emails: bool = False) -> list[dict]:
     results = []
     for idx, row in gdf.iterrows():
         category = None
-        for tag_key in OSM_TAGS:
+        for tag_key in osm_tags:
             if tag_key in row and _clean(row.get(tag_key)):
                 raw_cat = _clean(row.get(tag_key))
                 if raw_cat in CATEGORY_LABELS:
@@ -171,7 +181,6 @@ def search_city(city: str, scrape_emails: bool = False) -> list[dict]:
 
         name = _clean(row.get("name"))
         if not name or not category:
-            # On ignore les entités sans nom ou hors catégories ciblées
             continue
 
         website = _clean(row.get("website") or row.get("contact:website"))
@@ -180,9 +189,7 @@ def search_city(city: str, scrape_emails: bool = False) -> list[dict]:
         if not email and scrape_emails and website:
             email = _extract_email_from_website(website)
 
-        # osmid est un MultiIndex (element_type, osmid) selon la version d'OSMnx
         osm_id = idx[1] if isinstance(idx, tuple) else idx
-
         centroid = row.geometry.centroid if row.geometry is not None else None
 
         results.append({
