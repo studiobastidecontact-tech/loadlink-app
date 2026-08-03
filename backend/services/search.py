@@ -1,9 +1,9 @@
 """
 services/search.py
 
-RÃ©cupÃ¨re les Ã©tablissements publics (restaurants, bars, hÃ´tels, etc.)
-pour une ville donnÃ©e via OSMnx / Overpass API, puis normalise
-les rÃ©sultats au format attendu par le frontend.
+Récupère les établissements publics (restaurants, bars, hôtels, etc.)
+pour une ville donnée via OSMnx / Overpass API, puis normalise
+les résultats au format attendu par le frontend.
 """
 
 import re
@@ -16,7 +16,7 @@ import requests
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("loadlink.search")
 
-# Tags OSM correspondant aux catÃ©gories ciblÃ©es.
+# Tags OSM correspondant aux catégories ciblées.
 # Voir https://wiki.openstreetmap.org/wiki/Key:amenity / Key:tourism
 OSM_TAGS = {
     "amenity": [
@@ -37,11 +37,11 @@ OSM_TAGS = {
 CATEGORY_LABELS = {
     "restaurant": "Restaurant",
     "bar": "Bar",
-    "cafe": "CafÃ©",
+    "cafe": "Café",
     "pub": "Pub",
     "fast_food": "Fast-food",
     "biergarten": "Brasserie",
-    "hotel": "HÃ´tel",
+    "hotel": "Hôtel",
     "guest_house": "Guest house",
     "hostel": "Hostel",
 }
@@ -50,7 +50,7 @@ EMAIL_REGEX = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 
 
 def _clean(value) -> Optional[str]:
-    """Normalise les valeurs manquantes/NaN renvoyÃ©es par OSMnx."""
+    """Normalise les valeurs manquantes/NaN renvoyées par OSMnx."""
     if value is None:
         return None
     value = str(value).strip()
@@ -61,9 +61,9 @@ def _clean(value) -> Optional[str]:
 
 def _extract_email_from_website(url: str, timeout: float = 4.0) -> Optional[str]:
     """
-    Tentative lÃ©gÃ¨re de rÃ©cupÃ©ration d'un email public sur la page
-    d'accueil du site de l'Ã©tablissement. Best-effort, ne bloque jamais
-    la recherche principale si Ã§a Ã©choue.
+    Tentative légère de récupération d'un email public sur la page
+    d'accueil du site de l'établissement. Best-effort, ne bloque jamais
+    la recherche principale si ça échoue.
     """
     if not url:
         return None
@@ -83,9 +83,9 @@ def _extract_email_from_website(url: str, timeout: float = 4.0) -> Optional[str]
 
 def _dedupe(results: list[dict], distance_threshold: float = 0.0005) -> list[dict]:
     """
-    Overpass renvoie frÃ©quemment le mÃªme Ã©tablissement en double
-    (ex: un nÅud ET la way/building associÃ©e). On dÃ©duplique par
-    nom identique + proximitÃ© gÃ©ographique (~50m par dÃ©faut).
+    Overpass renvoie fréquemment le même établissement en double
+    (ex: un nœud ET la way/building associée). On déduplique par
+    nom identique + proximité géographique (~50m par défaut).
     """
     deduped: list[dict] = []
     for item in results:
@@ -100,7 +100,7 @@ def _dedupe(results: list[dict], distance_threshold: float = 0.0005) -> list[dic
                 and abs(item["lon"] - kept["lon"]) < distance_threshold
             )
             if close_enough:
-                # On garde la version la plus complÃ¨te (avec email/phone/website si dispo)
+                # On garde la version la plus complète (avec email/phone/website si dispo)
                 if sum(bool(kept.get(k)) for k in ("email", "phone", "website")) < sum(
                     bool(item.get(k)) for k in ("email", "phone", "website")
                 ):
@@ -115,9 +115,9 @@ def _dedupe(results: list[dict], distance_threshold: float = 0.0005) -> list[dic
 
 def _dedupe_by_email(results: list[dict]) -> list[dict]:
     """
-    SÃ©curitÃ© supplÃ©mentaire : si deux entrÃ©es OSM distinctes partagent
-    le mÃªme email (mÃªme principe que l'ancien scraper Google Maps),
-    on ne garde que la premiÃ¨re occurrence.
+    Sécurité supplémentaire : si deux entrées OSM distinctes partagent
+    le même email (même principe que l'ancien scraper Google Maps),
+    on ne garde que la première occurrence.
     """
     seen_emails: set[str] = set()
     deduped: list[dict] = []
@@ -134,12 +134,12 @@ def _dedupe_by_email(results: list[dict]) -> list[dict]:
 
 def search_city(city: str, scrape_emails: bool = False) -> list[dict]:
     """
-    Recherche tous les Ã©tablissements ciblÃ©s dans une ville donnÃ©e.
+    Recherche tous les établissements ciblés dans une ville donnée.
 
     Args:
         city: nom de la ville (ex: "Brive-la-Gaillarde")
         scrape_emails: si True, tente d'extraire un email depuis le
-            site web de chaque Ã©tablissement (plus lent).
+            site web de chaque établissement (plus lent).
 
     Returns:
         Liste de dicts au format attendu par le frontend.
@@ -149,8 +149,8 @@ def search_city(city: str, scrape_emails: bool = False) -> list[dict]:
     try:
         gdf = ox.features_from_place(city, tags=OSM_TAGS)
     except Exception as exc:
-        logger.error("Ãchec de la rÃ©cupÃ©ration OSM pour %s: %s", city, exc)
-        raise ValueError(f"Impossible de rÃ©cupÃ©rer les donnÃ©es pour '{city}': {exc}")
+        logger.error("Échec de la récupération OSM pour %s: %s", city, exc)
+        raise ValueError(f"Impossible de récupérer les données pour '{city}': {exc}")
 
     if gdf.empty:
         return []
@@ -167,7 +167,7 @@ def search_city(city: str, scrape_emails: bool = False) -> list[dict]:
 
         name = _clean(row.get("name"))
         if not name or not category:
-            # On ignore les entitÃ©s sans nom ou hors catÃ©gories ciblÃ©es
+            # On ignore les entités sans nom ou hors catégories ciblées
             continue
 
         website = _clean(row.get("website") or row.get("contact:website"))
@@ -198,5 +198,5 @@ def search_city(city: str, scrape_emails: bool = False) -> list[dict]:
     results = _dedupe(results)
     results = _dedupe_by_email(results)
 
-    logger.info("RÃ©sultats trouvÃ©s pour %s: %d (aprÃ¨s dÃ©duplication)", city, len(results))
+    logger.info("Résultats trouvés pour %s: %d (après déduplication)", city, len(results))
     return results
