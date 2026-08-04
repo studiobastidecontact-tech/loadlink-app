@@ -2,19 +2,25 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { fetchRegions, fetchDepartements, fetchCommunes, Region, Departement, Commune } from "../lib/geo";
+import { Company } from "../lib/types";
 import FranceMap from "./FranceMap";
 
-export interface SelectedLocation {
+/** Zone à prospecter : soit une ville (point + rayon), soit un département entier. */
+export interface SelectedZone {
   nom: string;
-  lat: number;
-  lon: number;
+  place: string; // à géocoder côté serveur si pas de lat/lon
+  lat: number | null;
+  lon: number | null;
+  wholeArea: boolean; // true = tout le département
 }
 
 interface LocationSelectorProps {
-  onSelect: (location: SelectedLocation | null) => void;
+  onSelect: (zone: SelectedZone | null) => void;
+  /** Résultats à afficher sur la carte (points). */
+  companies?: Company[];
 }
 
-export default function LocationSelector({ onSelect }: LocationSelectorProps) {
+export default function LocationSelector({ onSelect, companies = [] }: LocationSelectorProps) {
   const [regions, setRegions] = useState<Region[]>([]);
   const [departements, setDepartements] = useState<Departement[]>([]);
   const [communes, setCommunes] = useState<Commune[]>([]);
@@ -33,45 +39,53 @@ export default function LocationSelector({ onSelect }: LocationSelectorProps) {
       .catch(() => setError("Impossible de charger les régions."));
   }, []);
 
+  // Chargement en cascade (les émissions de zone sont gérées plus bas).
   useEffect(() => {
     setDepartements([]);
     setDepartementCode("");
     setCommunes([]);
     setCommuneCode("");
-    onSelect(null);
     if (!regionCode) return;
     fetchDepartements(regionCode)
       .then(setDepartements)
       .catch(() => setError("Impossible de charger les départements."));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regionCode]);
 
   useEffect(() => {
     setCommunes([]);
     setCommuneCode("");
-    onSelect(null);
     if (!departementCode) return;
     fetchCommunes(departementCode)
       .then(setCommunes)
       .catch(() => setError("Impossible de charger les communes."));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [departementCode]);
 
+  // Source unique de la zone sélectionnée : ville si choisie, sinon département entier.
   useEffect(() => {
-    if (!communeCode) return;
-    const commune = communes.find((c) => c.code === communeCode);
-    if (commune) {
-      onSelect({ nom: commune.nom, lat: commune.lat, lon: commune.lon });
+    if (communeCode) {
+      const c = communes.find((x) => x.code === communeCode);
+      if (c) {
+        onSelect({ nom: c.nom, place: c.nom, lat: c.lat, lon: c.lon, wholeArea: false });
+        return;
+      }
     }
+    if (departementCode) {
+      const d = departements.find((x) => x.code === departementCode);
+      if (d) {
+        onSelect({ nom: d.nom, place: `${d.nom}, France`, lat: null, lon: null, wholeArea: true });
+        return;
+      }
+    }
+    onSelect(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [communeCode]);
+  }, [regionCode, departementCode, communeCode, communes, departements]);
 
   const inputCls =
     "rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50";
 
   return (
     <div>
-      {/* Carte de France cliquable (se synchronise avec les menus) */}
+      {/* Carte unique : choix de la zone + points des résultats */}
       <div className="mb-3">
         <FranceMap
           regionCode={regionCode}
@@ -79,6 +93,7 @@ export default function LocationSelector({ onSelect }: LocationSelectorProps) {
           departementCodes={departementCodes}
           onSelectRegion={setRegionCode}
           onSelectDepartement={setDepartementCode}
+          companies={companies}
         />
       </div>
 
@@ -112,7 +127,7 @@ export default function LocationSelector({ onSelect }: LocationSelectorProps) {
           disabled={!departementCode}
           className={inputCls}
         >
-          <option value="">Ville</option>
+          <option value="">Ville (facultatif)</option>
           {communes.map((c) => (
             <option key={c.code} value={c.code}>
               {c.nom}
@@ -120,6 +135,12 @@ export default function LocationSelector({ onSelect }: LocationSelectorProps) {
           ))}
         </select>
       </div>
+
+      {departementCode && !communeCode && (
+        <p className="mt-2 text-xs text-slate-500">
+          Ville vide = <strong>tout le département {departements.find((d) => d.code === departementCode)?.nom}</strong> sera prospecté (plus long).
+        </p>
+      )}
 
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>

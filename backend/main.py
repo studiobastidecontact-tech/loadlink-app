@@ -131,6 +131,7 @@ def search(
     lat: float | None = Query(None, description="Latitude du centre de recherche (recommandé : évite l'ambiguïté des noms de ville)"),
     lon: float | None = Query(None, description="Longitude du centre de recherche"),
     radius_km: float = Query(5.0, ge=0.5, le=20.0, description="Rayon de recherche en kilomètres autour du centre"),
+    whole_area: bool = Query(False, description="Prospecter tout le département (par nom de lieu, sans rayon)."),
 ):
     """
     Recherche les entreprises/établissements des activités choisies autour
@@ -141,7 +142,7 @@ def search(
         raise HTTPException(status_code=400, detail="Sélectionne au moins une activité à rechercher.")
 
     cats_key = ",".join(sorted(category_list))
-    cache_key = f"{city.strip().lower()}::{cats_key}::{lat}:{lon}:{radius_km}"
+    cache_key = f"{city.strip().lower()}::{cats_key}::{lat}:{lon}:{radius_km}:{whole_area}"
     cached = _CACHE.get(cache_key)
     if cached and (time.time() - cached[0]) < _CACHE_TTL_SECONDS:
         return cached[1]
@@ -153,6 +154,7 @@ def search(
             lat=lat,
             lon=lon,
             radius_km=radius_km,
+            whole_area=whole_area,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))

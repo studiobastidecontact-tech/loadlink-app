@@ -3,11 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import SearchCard from "./SearchCard";
 import ResultsTable from "./ResultsTable";
-import ResultsMap from "./ResultsMap";
 import StatsCard from "./StatsCard";
 import { Company } from "../lib/types";
 import { searchCompanies, enrichContacts, enrichFoursquare, collectResults } from "../lib/api";
-import { SelectedLocation } from "./LocationSelector";
+import { SelectedZone } from "./LocationSelector";
 
 const ENRICH_BATCH_SIZE = 40;
 
@@ -90,7 +89,7 @@ export default function Dashboard() {
   }
 
   async function handleSearch(
-    location: SelectedLocation,
+    zone: SelectedZone,
     categories: string[],
     radiusKm: number,
     scrapeEmails: boolean
@@ -98,12 +97,16 @@ export default function Dashboard() {
     setLoading(true);
     setError(null);
     try {
-      const results = await searchCompanies(
-        location.nom,
-        categories,
-        { lat: location.lat, lon: location.lon },
-        radiusKm
-      );
+      const results =
+        zone.wholeArea || zone.lat == null || zone.lon == null
+          ? await searchCompanies(zone.place, categories, undefined, radiusKm, true)
+          : await searchCompanies(
+              zone.nom,
+              categories,
+              { lat: zone.lat, lon: zone.lon },
+              radiusKm,
+              false
+            );
       persist(results);
       // Collecte automatique : chaque recherche alimente la base centrale.
       collectResults(results);
@@ -129,7 +132,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
-      <SearchCard onSearch={handleSearch} loading={loading} />
+      <SearchCard onSearch={handleSearch} loading={loading} companies={companies} />
 
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -148,10 +151,6 @@ export default function Dashboard() {
         <StatsCard label="Avec email" value={stats.withEmail} />
         <StatsCard label="Avec téléphone" value={stats.withPhone} />
       </div>
-
-      {companies.some((c) => c.lat != null && c.lon != null) && (
-        <ResultsMap companies={companies} />
-      )}
 
       <ResultsTable companies={companies} />
     </div>

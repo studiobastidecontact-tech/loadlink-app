@@ -39,13 +39,17 @@ export async function searchCompanies(
   city: string,
   categories: string[],
   location?: { lat: number; lon: number },
-  radiusKm = 5
+  radiusKm = 5,
+  wholeArea = false
 ): Promise<Company[]> {
   const params = new URLSearchParams({
     city,
     categories: categories.join(","),
     radius_km: String(radiusKm),
   });
+  if (wholeArea) {
+    params.set("whole_area", "true");
+  }
   if (location) {
     params.set("lat", String(location.lat));
     params.set("lon", String(location.lon));

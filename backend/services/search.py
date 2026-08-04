@@ -316,6 +316,7 @@ def search_city(
     lat: Optional[float] = None,
     lon: Optional[float] = None,
     radius_km: float = 5.0,
+    whole_area: bool = False,
 ) -> list[dict]:
     """
     Recherche les entreprises/établissements des activités choisies autour
@@ -342,7 +343,11 @@ def search_city(
     )
 
     try:
-        if lat is not None and lon is not None:
+        if whole_area:
+            # Département entier : on interroge par nom de lieu (polygone
+            # administratif complet), sans rayon.
+            gdf = ox.features_from_place(city, tags=osm_tags)
+        elif lat is not None and lon is not None:
             gdf = ox.features_from_point((lat, lon), tags=osm_tags, dist=radius_m)
         else:
             gdf = ox.features_from_address(city, tags=osm_tags, dist=radius_m)
