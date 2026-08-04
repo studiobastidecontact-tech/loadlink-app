@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from services import catalog
-from services.search import search_city, enrich_emails
+from services.search import search_city, enrich_contacts
 
 _CACHE: dict[str, tuple[float, list[dict]]] = {}
 _CACHE_TTL_SECONDS = 30 * 60
@@ -62,8 +62,13 @@ class EnrichItem(BaseModel):
     website: str | None = None
 
 
+class Contact(BaseModel):
+    email: str | None = None
+    phone: str | None = None
+
+
 class EnrichResult(BaseModel):
-    emails: dict[str, str | None]
+    contacts: dict[str, Contact]
 
 
 @app.get(f"{PREFIX}/health")
@@ -121,14 +126,14 @@ def search(
     return results
 
 
-@app.post(f"{PREFIX}/api/enrich-emails", response_model=EnrichResult)
+@app.post(f"{PREFIX}/api/enrich-contacts", response_model=EnrichResult)
 def enrich(items: list[EnrichItem]):
     """
-    Tente de récupérer un email public pour un lot d'établissements
-    (à partir de leur site web). Appelé par petits lots depuis le frontend
-    après l'affichage des résultats, pour rester sous la limite de temps
-    des fonctions serverless.
+    Tente de récupérer email + téléphone publics pour un lot d'établissements
+    (à partir de leur site web : page d'accueil + pages Contact / Mentions
+    légales). Appelé par petits lots depuis le frontend après l'affichage des
+    résultats, pour rester sous la limite de temps des fonctions serverless.
     """
     payload = [{"id": it.id, "website": it.website} for it in items]
-    emails = enrich_emails(payload)
-    return {"emails": emails}
+    contacts = enrich_contacts(payload)
+    return {"contacts": contacts}

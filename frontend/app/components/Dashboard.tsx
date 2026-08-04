@@ -5,7 +5,7 @@ import SearchCard from "./SearchCard";
 import ResultsTable from "./ResultsTable";
 import StatsCard from "./StatsCard";
 import { Company } from "../lib/types";
-import { searchCompanies, enrichEmails } from "../lib/api";
+import { searchCompanies, enrichContacts } from "../lib/api";
 import { SelectedLocation } from "./LocationSelector";
 
 const ENRICH_BATCH_SIZE = 40;
@@ -21,22 +21,27 @@ export default function Dashboard() {
     sessionStorage.setItem("loadlink:companies", JSON.stringify(list));
   }
 
-  async function runEmailEnrichment(list: Company[]) {
-    const pending = list.filter((c) => !c.email && c.website);
+  async function runContactEnrichment(list: Company[]) {
+    // On enrichit les établissements qui ont un site web mais à qui il manque
+    // l'email OU le téléphone.
+    const pending = list.filter((c) => c.website && (!c.email || !c.phone));
     if (pending.length === 0) return;
 
     setEnriching(true);
-    // Copie de travail indexée pour appliquer les emails au fur et à mesure.
+    // Copie de travail indexée pour appliquer les contacts au fur et à mesure.
     const byId = new Map(list.map((c) => [c.id, { ...c }]));
     try {
       for (let i = 0; i < pending.length; i += ENRICH_BATCH_SIZE) {
         const batch = pending.slice(i, i + ENRICH_BATCH_SIZE);
-        const emails = await enrichEmails(
+        const contacts = await enrichContacts(
           batch.map((c) => ({ id: c.id, website: c.website }))
         );
-        for (const [id, email] of Object.entries(emails)) {
+        for (const [id, contact] of Object.entries(contacts)) {
           const item = byId.get(id);
-          if (item && email) item.email = email;
+          if (!item) continue;
+          // On ne remplit que les champs vides : ne jamais écraser une donnée OSM.
+          if (!item.email && contact.email) item.email = contact.email;
+          if (!item.phone && contact.phone) item.phone = contact.phone;
         }
         persist(Array.from(byId.values()));
       }
@@ -65,7 +70,7 @@ export default function Dashboard() {
       persist(results);
       if (scrapeEmails) {
         // Ne bloque pas l'affichage des résultats : l'enrichissement se fait ensuite.
-        runEmailEnrichment(results);
+        runContactEnrichment(results);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
@@ -96,7 +101,7 @@ export default function Dashboard() {
 
       {enriching && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          Recherche des emails en cours…
+          Recherche des emails et téléphones en cours…
         </p>
       )}
 

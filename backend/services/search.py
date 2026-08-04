@@ -17,8 +17,10 @@ la limite de temps des fonctions serverless.
 
 import re
 import time
+import html as html_lib
 import logging
 from typing import Optional
+from urllib.parse import urljoin, urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import osmnx as ox
@@ -35,6 +37,57 @@ logger = logging.getLogger("loadlink.search")
 
 EMAIL_REGEX = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 
+# Téléphone français : fixe/mobile en 0X..., ou +33 / 0033.
+PHONE_REGEX = re.compile(
+    r"(?:(?:\+|00)33[\s.\-]?\(?0?\)?|0)\s?[1-9](?:[\s.\-]?\d{2}){4}"
+)
+
+HREF_REGEX = re.compile(r'href=["\']([^"\']+)["\']', re.IGNORECASE)
+MAILTO_REGEX = re.compile(r'mailto:([^"\'?>\s]+)', re.IGNORECASE)
+TEL_REGEX = re.compile(r'tel:([+0-9.\s\-()]{6,})', re.IGNORECASE)
+
+# Liens de pages où les coordonnées sont presque toujours affichées.
+CONTACT_HINTS = (
+    "contact", "contactez", "nous-contacter", "nous_contacter",
+    "mentions-legales", "mentions_legales", "mentionslegales",
+    "legal", "a-propos", "apropos", "about",
+)
+
+# Faux positifs fréquents dans les emails scrappés (assets, exemples, trackers).
+EMAIL_BLOCKLIST = (
+    "sentry", "wixpress", "example.", "example@", "yourdomain", "your-email",
+    "your@email", "domain.com", "email@example", "@2x", "@sentry", "u003e",
+    ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico",
+)
+
+
+def _valid_email(raw: str) -> bool:
+    e = raw.strip().lower()
+    if not e or "@" not in e:
+        return False
+    if any(bad in e for bad in EMAIL_BLOCKLIST):
+        return False
+    if e.endswith((".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico")):
+        return False
+    return True
+
+
+def _normalize_phone(raw: str) -> Optional[str]:
+    """Normalise un numéro FR au format '0X XX XX XX XX', ou None si invalide.
+    Gère 0X..., +33 X..., +33(0)X..., 0033X..."""
+    d = re.sub(r"\D", "", raw)
+    # Retire l'indicatif international +33 / 0033 si présent.
+    if d.startswith("0033"):
+        d = d[4:]
+    elif d.startswith("33"):
+        d = d[2:]
+    # Rajoute le 0 national si l'indicatif l'a mangé (ex. "+33 1 23..." -> 9 chiffres).
+    if len(d) == 9 and d[0] in "123456789":
+        d = "0" + d
+    if len(d) == 10 and d[0] == "0" and d[1] in "123456789":
+        return " ".join(d[i:i + 2] for i in range(0, 10, 2))
+    return None
+
 
 def _clean(value) -> Optional[str]:
     """Normalise les valeurs manquantes/NaN renvoyées par OSMnx."""
@@ -46,64 +99,150 @@ def _clean(value) -> Optional[str]:
     return value
 
 
-def _extract_email_from_website(url: str, timeout: float = 3.0) -> Optional[str]:
-    """
-    Tentative légère de récupération d'un email public sur la page
-    d'accueil du site de l'établissement. Best-effort, ne bloque jamais
-    l'appelant si ça échoue.
-    """
-    if not url:
-        return None
-    if not url.startswith("http"):
-        url = f"https://{url}"
+def _fetch_html(url: str, timeout: float) -> Optional[str]:
+    """Récupère le HTML d'une page. Best-effort, renvoie None si échec."""
     try:
         resp = requests.get(url, timeout=timeout, headers={
             "User-Agent": "Mozilla/5.0 (compatible; LoadLinkBot/1.0)"
         })
         if resp.status_code != 200:
             return None
-        match = EMAIL_REGEX.search(resp.text)
-        return match.group(0) if match else None
+        ctype = resp.headers.get("content-type", "")
+        if ctype and "html" not in ctype and "text" not in ctype:
+            return None
+        return resp.text
     except requests.RequestException:
         return None
 
 
-def enrich_emails(
-    items: list[dict],
-    time_budget_seconds: float = 20.0,
-    max_workers: int = 25,
-) -> dict[str, Optional[str]]:
-    """
-    Tente de récupérer un email pour chaque item {id, website}, en
-    parallèle et dans un budget de temps borné. Conçu pour être appelé
-    par petits lots (voir /api/enrich-emails) plutôt que sur un très
-    grand nombre de résultats d'un coup, afin de rester largement sous
-    la limite de durée des fonctions serverless.
+def _extract_from_html(text: str) -> tuple[list[str], list[str]]:
+    """Extrait (emails, téléphones) d'un HTML : d'abord les liens mailto:/tel:
+    (les plus fiables), puis les motifs dans le texte."""
+    emails: list[str] = []
+    phones: list[str] = []
 
-    Les items qui n'ont pas pu être traités dans le budget de temps
-    ressortent simplement à None (pas d'erreur).
+    for m in MAILTO_REGEX.findall(text):
+        e = html_lib.unescape(m).strip()
+        if _valid_email(e) and e not in emails:
+            emails.append(e)
+    for m in TEL_REGEX.findall(text):
+        p = _normalize_phone(m)
+        if p and p not in phones:
+            phones.append(p)
+    for e in EMAIL_REGEX.findall(text):
+        e = html_lib.unescape(e).strip()
+        if _valid_email(e) and e not in emails:
+            emails.append(e)
+    for m in PHONE_REGEX.findall(text):
+        p = _normalize_phone(m)
+        if p and p not in phones:
+            phones.append(p)
+    return emails, phones
+
+
+def _contact_links(text: str, base_url: str, limit: int = 2) -> list[str]:
+    """Repère les liens vers les pages Contact / Mentions légales du même domaine."""
+    host = urlparse(base_url).netloc
+    found: list[str] = []
+    for href in HREF_REGEX.findall(text):
+        low = href.lower()
+        if any(hint in low for hint in CONTACT_HINTS):
+            full = urljoin(base_url, href)
+            if urlparse(full).netloc == host and full not in found and full != base_url:
+                found.append(full)
+        if len(found) >= limit:
+            break
+    return found
+
+
+def _pick_email(candidates: list[str], website_host: str) -> Optional[str]:
+    """Privilégie un email du même domaine que le site (plus fiable)."""
+    if not candidates:
+        return None
+    base = website_host.replace("www.", "")
+    same = [e for e in candidates if e.split("@")[-1].lower().endswith(base)]
+    return (same or candidates)[0]
+
+
+def _extract_contacts_from_website(url: str, deadline: float) -> tuple[Optional[str], Optional[str]]:
+    """
+    Récupère (email, téléphone) publics depuis le site d'un établissement :
+    page d'accueil, puis 1 à 2 pages « Contact » / « Mentions légales » du
+    même domaine si un contact manque encore. Best-effort, borné par `deadline`.
+    """
+    if not url:
+        return None, None
+    if not url.startswith("http"):
+        url = f"https://{url}"
+
+    def remaining() -> float:
+        return deadline - time.monotonic()
+
+    if remaining() <= 0.5:
+        return None, None
+
+    host = urlparse(url).netloc
+    home = _fetch_html(url, timeout=min(3.0, max(0.8, remaining())))
+    if home is None:
+        return None, None
+
+    emails, phones = _extract_from_html(home)
+    email = _pick_email(emails, host)
+    phone = phones[0] if phones else None
+
+    # Il manque un email ou un téléphone : on tente les pages de contact.
+    if (email is None or phone is None) and remaining() > 1.0:
+        for link in _contact_links(home, url):
+            if remaining() <= 1.0:
+                break
+            page = _fetch_html(link, timeout=min(2.5, max(0.8, remaining())))
+            if not page:
+                continue
+            e2, p2 = _extract_from_html(page)
+            if email is None:
+                email = _pick_email(e2, host)
+            if phone is None and p2:
+                phone = p2
+            if email and phone:
+                break
+
+    return email, phone
+
+
+def enrich_contacts(
+    items: list[dict],
+    time_budget_seconds: float = 22.0,
+    max_workers: int = 20,
+) -> dict[str, dict[str, Optional[str]]]:
+    """
+    Tente de récupérer email + téléphone pour chaque item {id, website}, en
+    parallèle et dans un budget de temps borné. Conçu pour être appelé par
+    petits lots (voir /api/enrich-contacts) afin de rester sous la limite de
+    durée des fonctions serverless.
+
+    Les items non traités dans le budget ressortent à {email: None, phone: None}.
     """
     deadline = time.monotonic() + time_budget_seconds
-    results: dict[str, Optional[str]] = {item["id"]: None for item in items}
+    results: dict[str, dict[str, Optional[str]]] = {
+        item["id"]: {"email": None, "phone": None} for item in items
+    }
     candidates = [item for item in items if item.get("website")]
-
     if not candidates:
         return results
 
-    def _task(item: dict) -> tuple[str, Optional[str]]:
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            return item["id"], None
-        per_item_timeout = min(3.0, max(0.5, remaining))
-        return item["id"], _extract_email_from_website(item["website"], timeout=per_item_timeout)
+    def _task(item: dict) -> tuple[str, Optional[str], Optional[str]]:
+        if deadline - time.monotonic() <= 0:
+            return item["id"], None, None
+        email, phone = _extract_contacts_from_website(item["website"], deadline)
+        return item["id"], email, phone
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(_task, item) for item in candidates]
         try:
             for future in as_completed(futures, timeout=time_budget_seconds + 5):
                 try:
-                    item_id, email = future.result()
-                    results[item_id] = email
+                    item_id, email, phone = future.result()
+                    results[item_id] = {"email": email, "phone": phone}
                 except Exception:
                     continue
         except TimeoutError:

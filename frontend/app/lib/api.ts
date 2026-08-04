@@ -60,16 +60,22 @@ export async function searchCompanies(
   return res.json();
 }
 
+export interface Contact {
+  email: string | null;
+  phone: string | null;
+}
+
 /**
- * Récupère les emails publics pour un lot d'établissements (via leur site web).
- * Renvoie un dictionnaire { id -> email | null }.
+ * Récupère email + téléphone publics pour un lot d'établissements (via leur
+ * site web : page d'accueil + pages Contact / Mentions légales).
+ * Renvoie un dictionnaire { id -> { email, phone } }.
  */
-export async function enrichEmails(
+export async function enrichContacts(
   items: { id: string; website: string | null }[]
-): Promise<Record<string, string | null>> {
+): Promise<Record<string, Contact>> {
   const candidates = items.filter((i) => i.website);
   if (candidates.length === 0) return {};
-  const res = await fetch(`${API_BASE}/api/enrich-emails`, {
+  const res = await fetch(`${API_BASE}/api/enrich-contacts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(candidates),
@@ -77,6 +83,6 @@ export async function enrichEmails(
   if (!res.ok) {
     throw new Error(`Erreur ${res.status}`);
   }
-  const data: { emails: Record<string, string | null> } = await res.json();
-  return data.emails;
+  const data: { contacts: Record<string, Contact> } = await res.json();
+  return data.contacts;
 }
