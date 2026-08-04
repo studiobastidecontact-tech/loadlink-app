@@ -15,6 +15,15 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
+
+  function newSearch() {
+    setCompanies([]);
+    setError(null);
+    sessionStorage.removeItem("loadlink:companies");
+    setResetKey((k) => k + 1); // réinitialise le formulaire (zone + activités)
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   // Restaure les derniers résultats au montage (ex. retour depuis « Campagnes »),
   // pour ne pas perdre la recherche en cours en changeant de page.
@@ -131,8 +140,17 @@ export default function Dashboard() {
   }, [companies]);
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6">
-      <SearchCard onSearch={handleSearch} loading={loading} companies={companies} />
+    <div className="flex flex-1 flex-col gap-4 p-4 sm:gap-6 sm:p-6">
+      <SearchCard key={resetKey} onSearch={handleSearch} loading={loading} companies={companies} />
+
+      {companies.length > 0 && (
+        <button
+          onClick={newSearch}
+          className="self-start rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium shadow-soft hover:bg-slate-50"
+        >
+          ↻ Nouvelle recherche
+        </button>
+      )}
 
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

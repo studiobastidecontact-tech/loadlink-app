@@ -230,9 +230,8 @@ function Features() {
 
 const ROADMAP = [
   { n: "01", title: "Comptes & sauvegarde en ligne", text: "Vos prospects et campagnes depuis n'importe quel appareil." },
-  { n: "02", title: "Recherche par département entier", text: "Une zone plus large en une recherche, avec filtres et vue carte." },
-  { n: "03", title: "Couverture enrichie", text: "Plus de téléphones et d'emails via Google Places et SIRENE." },
-  { n: "04", title: "Envoi & relances automatiques", text: "Campagnes envoyées et suivies, dans le respect du RGPD." },
+  { n: "02", title: "Couverture enrichie", text: "Plus de téléphones et d'emails via Google Places et SIRENE." },
+  { n: "03", title: "Envoi & relances automatiques", text: "Campagnes envoyées et suivies, dans le respect du RGPD." },
 ];
 
 function Roadmap() {

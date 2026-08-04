@@ -63,7 +63,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <div className="mx-auto max-w-6xl p-6">
+      <div className="mx-auto max-w-6xl p-4 sm:p-6">
         <h1 className="text-xl font-semibold">Base collectée</h1>
         <p className="mt-1 text-sm text-slate-500">
           Tous les établissements trouvés par les recherches, enregistrés automatiquement.

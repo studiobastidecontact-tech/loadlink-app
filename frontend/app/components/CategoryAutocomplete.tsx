@@ -132,7 +132,7 @@ export default function CategoryAutocomplete({
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
           placeholder={selected.length === 0 ? "Que recherchez-vous ? (ex : avocat, cinéma, garagiste…)" : "Ajouter une activité…"}
-          className="min-w-[12rem] flex-1 border-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-slate-400"
+          className="min-w-[8rem] flex-1 border-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-slate-400"
         />
       </div>
 

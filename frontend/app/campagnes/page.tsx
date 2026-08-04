@@ -69,9 +69,9 @@ export default function CampaignsPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col md:flex-row">
         <Sidebar />
-        <div className="flex flex-1 flex-col gap-4 p-6">
+        <div className="flex flex-1 flex-col gap-4 p-4 sm:p-6">
           <h1 className="text-xl font-semibold">Historique des campagnes</h1>
           {campaigns.length === 0 ? (
             <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">

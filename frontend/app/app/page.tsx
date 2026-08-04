@@ -6,7 +6,7 @@ export default function AppHome() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col md:flex-row">
         <Sidebar />
         <Dashboard />
       </div>
