@@ -22,7 +22,7 @@ _CACHE_TTL_SECONDS = 30 * 60
 app = FastAPI(
     title="LoadLink API",
     description="Outil de prospection commerciale — recherche d'établissements via OpenStreetMap.",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 app.add_middleware(
@@ -68,23 +68,34 @@ def list_categories():
 
 @app.get(f"{PREFIX}/api/search", response_model=list[Company])
 def search(
-    city: str = Query(..., min_length=2, description="Nom de la ville, ex: 'Brive-la-Gaillarde'"),
+    city: str = Query(..., min_length=2, description="Nom de la ville, pour l'affichage et le repli si lat/lon absents"),
     scrape_emails: bool = Query(False, description="Tenter d'extraire un email depuis le site de chaque établissement"),
-    categories: str | None = Query(None, description="Clés de catégories séparées par des virgules, ex: 'restaurant,hotel'. Vide = toutes."),
+    categories: str | None = Query(None, description="Clés de catégories séparées par des virgules. Vide = toutes."),
+    lat: float | None = Query(None, description="Latitude du centre de recherche (recommandé : évite l'ambiguïté des noms de ville)"),
+    lon: float | None = Query(None, description="Longitude du centre de recherche"),
+    radius_km: float = Query(5.0, ge=0.5, le=20.0, description="Rayon de recherche en kilomètres autour du centre"),
 ):
     """
-    Recherche les établissements publics (restaurants, bars, hôtels...)
-    d'une ville donnée, filtrés par catégories, et retourne une liste normalisée.
+    Recherche les établissements publics autour d'un point (ou d'une ville),
+    filtrés par catégories, et retourne une liste normalisée.
     """
     category_list = [c.strip() for c in categories.split(",") if c.strip()] if categories else None
 
-    cache_key = f"{city.strip().lower()}::{scrape_emails}::{','.join(sorted(category_list)) if category_list else 'all'}"
+    cats_key = ",".join(sorted(category_list)) if category_list else "all"
+    cache_key = f"{city.strip().lower()}::{scrape_emails}::{cats_key}::{lat}:{lon}:{radius_km}"
     cached = _CACHE.get(cache_key)
     if cached and (time.time() - cached[0]) < _CACHE_TTL_SECONDS:
         return cached[1]
 
     try:
-        results = search_city(city=city, scrape_emails=scrape_emails, categories=category_list)
+        results = search_city(
+            city=city,
+            scrape_emails=scrape_emails,
+            categories=category_list,
+            lat=lat,
+            lon=lon,
+            radius_km=radius_km,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
