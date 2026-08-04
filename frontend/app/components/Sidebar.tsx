@@ -17,7 +17,7 @@ export default function Sidebar() {
           <Link
             key={item.href}
             href={item.href}
-            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-brand-50 hover:text-brand-700"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-accent/15 hover:text-ink"
           >
             {item.label}
           </Link>

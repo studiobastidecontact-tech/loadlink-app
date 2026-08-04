@@ -105,17 +105,17 @@ export default function CategoryAutocomplete({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-300 px-2 py-2 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-300 px-2 py-2 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
         {selected.map((s) => (
           <span
             key={s.key}
-            className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2.5 py-1 text-xs font-medium text-brand"
+            className="inline-flex items-center gap-1 rounded-full bg-accent/20 px-2.5 py-1 text-xs font-medium text-ink"
           >
             {s.label}
             <button
               type="button"
               onClick={() => removeOption(s.key)}
-              className="text-brand/70 hover:text-brand"
+              className="text-ink/60 hover:text-ink"
               aria-label={`Retirer ${s.label}`}
             >
               ×
@@ -158,7 +158,7 @@ export default function CategoryAutocomplete({
                 onClick={() => addOption(opt)}
                 onMouseEnter={() => setHighlight(i)}
                 className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
-                  i === highlight ? "bg-brand/10 text-brand" : "text-slate-700 hover:bg-slate-50"
+                  i === highlight ? "bg-accent/20 text-ink" : "text-slate-700 hover:bg-slate-50"
                 }`}
               >
                 <span>{opt.label}</span>

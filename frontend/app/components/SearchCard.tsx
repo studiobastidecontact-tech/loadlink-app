@@ -75,7 +75,7 @@ export default function SearchCard({ onSearch, loading }: SearchCardProps) {
         <button
           type="submit"
           disabled={!canSearch}
-          className="ml-auto rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+          className="ml-auto rounded-lg bg-accent px-4 py-2 text-sm font-medium text-ink hover:bg-accent-400 disabled:opacity-50"
         >
           {loading ? "Recherche..." : "Rechercher"}
         </button>

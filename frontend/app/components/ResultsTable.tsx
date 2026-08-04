@@ -92,7 +92,7 @@ export default function ResultsTable({ companies }: ResultsTableProps) {
           {selected.size > 0 && (
             <button
               onClick={() => setShowCampaign(true)}
-              className="rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-dark"
+              className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-ink hover:bg-accent-400"
             >
               Créer une campagne ({campaignRecipients.length})
             </button>
@@ -147,7 +147,7 @@ export default function ResultsTable({ companies }: ResultsTableProps) {
                   />
                 </td>
                 <td className="px-4 py-2 font-medium">
-                  <Link href={`/companies/${c.id}`} className="hover:text-brand hover:underline">
+                  <Link href={`/companies/${c.id}`} className="hover:text-ink hover:underline">
                     {c.name}
                   </Link>
                 </td>
@@ -155,7 +155,7 @@ export default function ResultsTable({ companies }: ResultsTableProps) {
                 <td className="px-4 py-2">{c.city ?? "—"}</td>
                 <td className="px-4 py-2">
                   {c.phone ? (
-                    <a href={`tel:${c.phone}`} className="hover:text-brand hover:underline">
+                    <a href={`tel:${c.phone}`} className="hover:text-ink hover:underline">
                       {c.phone}
                     </a>
                   ) : (
@@ -164,7 +164,7 @@ export default function ResultsTable({ companies }: ResultsTableProps) {
                 </td>
                 <td className="px-4 py-2">
                   {c.email ? (
-                    <a href={`mailto:${c.email}`} className="hover:text-brand hover:underline">
+                    <a href={`mailto:${c.email}`} className="hover:text-ink hover:underline">
                       {c.email}
                     </a>
                   ) : (
@@ -181,7 +181,7 @@ export default function ResultsTable({ companies }: ResultsTableProps) {
                         href={c.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-brand hover:underline"
+                        className="text-ink hover:underline"
                       >
                         Site
                       </a>
@@ -190,7 +190,7 @@ export default function ResultsTable({ companies }: ResultsTableProps) {
                       href={mapsUrl(c)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-slate-500 hover:text-brand hover:underline"
+                      className="text-slate-500 hover:text-ink hover:underline"
                     >
                       Maps
                     </a>
@@ -198,7 +198,7 @@ export default function ResultsTable({ companies }: ResultsTableProps) {
                       href={searchUrl(c)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-slate-500 hover:text-brand hover:underline"
+                      className="text-slate-500 hover:text-ink hover:underline"
                     >
                       Rechercher
                     </a>

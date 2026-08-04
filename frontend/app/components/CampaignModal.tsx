@@ -101,7 +101,7 @@ export default function CampaignModal({ recipients, onClose }: CampaignModalProp
               <input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
 
               <label className="mt-3 block text-xs font-medium text-slate-600">
@@ -111,7 +111,7 @@ export default function CampaignModal({ recipients, onClose }: CampaignModalProp
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 rows={9}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
               <p className="mt-1 text-xs text-slate-400">
                 Variables : <code>{"{{nom}}"}</code> (nom de l'établissement),{" "}
@@ -137,7 +137,7 @@ export default function CampaignModal({ recipients, onClose }: CampaignModalProp
           <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-5 py-3">
             <button
               onClick={() => preview && openDraft(preview)}
-              className="rounded-lg bg-brand px-3 py-2 text-xs font-medium text-white hover:bg-brand-dark"
+              className="rounded-lg bg-accent px-3 py-2 text-xs font-medium text-ink hover:bg-accent-400"
             >
               Ouvrir un brouillon personnalisé (1er)
             </button>
@@ -155,7 +155,7 @@ export default function CampaignModal({ recipients, onClose }: CampaignModalProp
             </button>
             <button
               onClick={handleSave}
-              className="ml-auto rounded-lg border border-brand px-3 py-2 text-xs font-medium text-brand hover:bg-brand/10"
+              className="ml-auto rounded-lg border border-accent px-3 py-2 text-xs font-medium text-ink hover:bg-accent/20"
             >
               {saved ? "Enregistrée ✓" : "Enregistrer la campagne"}
             </button>

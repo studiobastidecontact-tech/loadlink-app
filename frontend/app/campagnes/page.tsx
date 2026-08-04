@@ -32,7 +32,7 @@ function CampaignRow({ campaign }: { campaign: Campaign }) {
         </button>
         <button
           onClick={() => setOpen((o) => !o)}
-          className="text-xs font-medium text-brand hover:underline"
+          className="text-xs font-medium text-ink hover:underline"
         >
           {open ? "Masquer" : "Détails"}
         </button>

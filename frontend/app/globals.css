@@ -12,7 +12,7 @@ body {
 }
 
 ::selection {
-  @apply bg-brand/20 text-brand-900;
+  @apply bg-accent/20 text-ink;
 }
 
 /* Scrollbar discrète */

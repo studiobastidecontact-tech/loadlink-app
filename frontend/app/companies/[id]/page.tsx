@@ -41,7 +41,7 @@ export default function CompanyDetailPage() {
         </p>
         <button
           onClick={() => router.push("/app")}
-          className="mt-4 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
+          className="mt-4 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-ink hover:bg-accent-400"
         >
           Retour à l'accueil
         </button>
@@ -92,7 +92,7 @@ export default function CompanyDetailPage() {
         <select
           value={crm.status}
           onChange={(e) => setEntry(id, { status: e.target.value as CrmStatus })}
-          className="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          className="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         >
           {STATUSES.map((s) => (
             <option key={s.value} value={s.value}>
@@ -108,12 +108,12 @@ export default function CompanyDetailPage() {
           onBlur={saveNotes}
           rows={5}
           placeholder="Compte-rendu d'appel, prochaine relance, contact identifié…"
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
         <div className="mt-2 flex items-center gap-3">
           <button
             onClick={saveNotes}
-            className="rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-dark"
+            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-ink hover:bg-accent-400"
           >
             Enregistrer les notes
           </button>
