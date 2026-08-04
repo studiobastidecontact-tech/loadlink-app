@@ -94,7 +94,7 @@ export default function SearchCard({ onSearch, loading }: SearchCardProps) {
           onChange={(e) => setScrapeEmails(e.target.checked)}
           className="rounded border-slate-300"
         />
-        Compléter les emails et téléphones (Foursquare + sites web, plus lent)
+        Chercher aussi les emails sur les sites web (plus lent)
       </label>
     </form>
   );

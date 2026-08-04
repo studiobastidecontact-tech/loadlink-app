@@ -175,9 +175,13 @@ def enrich(items: list[EnrichItem]):
 
 
 @app.get(f"{PREFIX}/api/foursquare-status")
-def foursquare_status():
-    """Vérifie que la clé Foursquare est configurée et fonctionne."""
-    return foursquare.status()
+def foursquare_status(
+    q: str = Query("Starbucks", description="Lieu à tester."),
+    ll: str = Query("48.8698,2.3079", description="Coordonnées 'lat,lon' du centre de test."),
+):
+    """Vérifie la clé Foursquare et montre ce qu'il renvoie pour un lieu donné.
+    Ex : ?q=Pizza Bonici&ll=43.774,1.684 pour tester un établissement précis."""
+    return foursquare.status(query=q, ll=ll)
 
 
 @app.post(f"{PREFIX}/api/enrich-foursquare", response_model=FsqResult)

@@ -35,13 +35,13 @@ export default function Dashboard() {
     sessionStorage.setItem("loadlink:companies", JSON.stringify(list));
   }
 
-  async function runEnrichment(list: Company[]) {
+  async function runEnrichment(list: Company[], doScrape: boolean) {
     setEnriching(true);
     // Copie de travail indexée pour appliquer les infos au fur et à mesure.
     const byId = new Map(list.map((c) => [c.id, { ...c }]));
     try {
-      // Étape 1 — Foursquare : complète téléphone / site (parfois email) pour
-      // les établissements à qui il manque un téléphone OU un site.
+      // Étape 1 — Foursquare (AUTOMATIQUE) : complète téléphone / site (parfois
+      // email) pour les établissements à qui il manque un téléphone OU un site.
       const needFsq = list.filter((c) => !c.phone || !c.website);
       for (let i = 0; i < needFsq.length; i += ENRICH_BATCH_SIZE) {
         const batch = needFsq.slice(i, i + ENRICH_BATCH_SIZE);
@@ -58,10 +58,13 @@ export default function Dashboard() {
         persist(Array.from(byId.values()));
       }
 
-      // Étape 2 — Scraper : sur les sites web (y compris ceux trouvés via
-      // Foursquare), va chercher l'email/téléphone manquant.
+      // Étape 2 — Scraper des sites web (seulement si demandé, car plus lent) :
+      // sur les sites (y compris ceux trouvés via Foursquare), va chercher
+      // l'email/téléphone manquant.
       const current = Array.from(byId.values());
-      const pending = current.filter((c) => c.website && (!c.email || !c.phone));
+      const pending = doScrape
+        ? current.filter((c) => c.website && (!c.email || !c.phone))
+        : [];
       for (let i = 0; i < pending.length; i += ENRICH_BATCH_SIZE) {
         const batch = pending.slice(i, i + ENRICH_BATCH_SIZE);
         const contacts = await enrichContacts(
@@ -103,10 +106,9 @@ export default function Dashboard() {
       persist(results);
       // Collecte automatique : chaque recherche alimente la base centrale.
       collectResults(results);
-      if (scrapeEmails) {
-        // Ne bloque pas l'affichage des résultats : l'enrichissement se fait ensuite.
-        runEnrichment(results);
-      }
+      // Foursquare tourne toujours (téléphones/sites) ; le scraping d'emails
+      // seulement si la case est cochée. Ne bloque pas l'affichage.
+      runEnrichment(results, scrapeEmails);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
     } finally {
@@ -136,7 +138,7 @@ export default function Dashboard() {
 
       {enriching && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          Recherche des emails et téléphones en cours…
+          Recherche d'informations complémentaires en cours…
         </p>
       )}
 

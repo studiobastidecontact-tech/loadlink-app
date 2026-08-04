@@ -138,27 +138,31 @@ def search_place(name: str, lat: float, lon: float, radius: int = 400, timeout: 
     return empty
 
 
-def status() -> dict:
+def status(query: str = "Starbucks", ll: str = "48.8698,2.3079", radius: int = 3000) -> dict:
     """Diagnostic complet pour /api/foursquare-status : teste chaque génération
-    d'API sur un commerce connu et renvoie la réponse brute, pour voir
-    exactement ce que Foursquare retourne."""
+    d'API sur un lieu donné (par défaut un Starbucks parisien) et renvoie la
+    réponse brute, pour voir exactement ce que Foursquare retourne.
+    On peut passer ?q=...&ll=lat,lon pour tester un établissement précis."""
     global _active_mode_idx
     if not API_KEY:
         return {"configured": False, "ok": False, "detail": "FOURSQUARE_API_KEY absente."}
 
-    # Un lieu qui a normalement téléphone + site dans Foursquare.
-    params = {"query": "Starbucks", "ll": "48.8698,2.3079", "radius": 3000, "limit": 1}
+    params = {"query": query, "ll": ll, "radius": radius, "limit": 3}
     attempts = []
     working = None
     for idx, mode in enumerate(_MODES):
         raw = _search_raw(mode, params, 6.0)
-        first = raw["results"][0] if raw["results"] else None
+        preview = [
+            {"name": r.get("name"), "tel": r.get("tel"), "website": r.get("website"), "email": r.get("email")}
+            for r in raw["results"][:3]
+        ]
         attempts.append({
             "api": mode["name"],
             "auth_ok": raw["auth_ok"],
             "http": raw["status"],
             "results": len(raw["results"]),
-            "first_result": first,
+            "preview": preview,
+            "first_result": raw["results"][0] if raw["results"] else None,
             "error": raw["error"],
         })
         if raw["auth_ok"] and raw["status"] == 200 and working is None:
