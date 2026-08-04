@@ -40,7 +40,7 @@ export default function CompanyDetailPage() {
           Établissement introuvable. Relancez une recherche depuis l'accueil.
         </p>
         <button
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/app")}
           className="mt-4 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
         >
           Retour à l'accueil
@@ -68,7 +68,7 @@ export default function CompanyDetailPage() {
   return (
     <div className="mx-auto max-w-2xl p-6">
       <button
-        onClick={() => router.push("/")}
+        onClick={() => router.push("/app")}
         className="mb-4 text-sm text-slate-500 hover:text-slate-900"
       >
         ← Retour

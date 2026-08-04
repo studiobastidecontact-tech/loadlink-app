@@ -39,7 +39,7 @@ export default function SearchCard({ onSearch, loading }: SearchCardProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-xl border border-slate-200 bg-white p-6"
+      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft"
     >
       <label className="text-sm font-medium text-slate-700">
         Que recherchez-vous ?

@@ -82,7 +82,7 @@ export default function ResultsTable({ companies }: ResultsTableProps) {
   }
 
   return (
-    <div id="results" className="rounded-xl border border-slate-200 bg-white">
+    <div id="results" className="rounded-2xl border border-slate-200 bg-white shadow-soft">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
         <p className="text-sm text-slate-500">
           {companies.length} établissement(s)
