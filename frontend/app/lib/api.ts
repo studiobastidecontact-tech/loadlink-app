@@ -94,6 +94,74 @@ export async function enrichFoursquare(
 }
 
 /**
+ * Enregistre les résultats dans la base centrale (collecte automatique).
+ * Best-effort : n'interrompt jamais l'utilisateur et ignore les erreurs.
+ * Sans effet si Supabase n'est pas configuré côté serveur.
+ */
+export async function collectResults(companies: Company[]): Promise<void> {
+  if (companies.length === 0) return;
+  try {
+    await fetch(`${API_BASE}/api/collect`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        companies.map((c) => ({
+          id: c.id,
+          name: c.name,
+          category: c.category,
+          phone: c.phone,
+          email: c.email,
+          website: c.website,
+          street: c.street,
+          postcode: c.postcode,
+          city: c.city,
+          lat: c.lat,
+          lon: c.lon,
+        }))
+      ),
+    });
+  } catch {
+    /* collecte best-effort */
+  }
+}
+
+export interface AdminRow {
+  dedup_key: string;
+  name: string | null;
+  category: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  city: string | null;
+  postcode: string | null;
+  source: string | null;
+  first_seen: string | null;
+  last_seen: string | null;
+}
+
+/** Page admin : liste des établissements collectés (protégée par token). */
+export async function fetchEstablishments(
+  token: string,
+  opts: { limit?: number; offset?: number; search?: string } = {}
+): Promise<{ total: number; rows: AdminRow[] }> {
+  const params = new URLSearchParams({
+    token,
+    limit: String(opts.limit ?? 200),
+    offset: String(opts.offset ?? 0),
+  });
+  if (opts.search) params.set("search", opts.search);
+  const res = await fetch(`${API_BASE}/api/admin/establishments?${params.toString()}`);
+  if (res.status === 401) throw new Error("Mot de passe incorrect.");
+  if (!res.ok) throw new Error(`Erreur ${res.status}`);
+  return res.json();
+}
+
+/** URL de téléchargement CSV de toute la base (protégée par token). */
+export function adminExportCsvUrl(token: string): string {
+  return `${API_BASE}/api/admin/export?token=${encodeURIComponent(token)}`;
+}
+
+/**
  * Récupère email + téléphone publics pour un lot d'établissements (via leur
  * site web : page d'accueil + pages Contact / Mentions légales).
  * Renvoie un dictionnaire { id -> { email, phone } }.

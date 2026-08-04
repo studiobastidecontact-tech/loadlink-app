@@ -5,7 +5,7 @@ import SearchCard from "./SearchCard";
 import ResultsTable from "./ResultsTable";
 import StatsCard from "./StatsCard";
 import { Company } from "../lib/types";
-import { searchCompanies, enrichContacts, enrichFoursquare } from "../lib/api";
+import { searchCompanies, enrichContacts, enrichFoursquare, collectResults } from "../lib/api";
 import { SelectedLocation } from "./LocationSelector";
 
 const ENRICH_BATCH_SIZE = 40;
@@ -80,6 +80,8 @@ export default function Dashboard() {
       // L'enrichissement est best-effort : on garde les résultats déjà trouvés.
     } finally {
       setEnriching(false);
+      // Collecte la version enrichie (téléphones/emails complétés) dans la base.
+      collectResults(Array.from(byId.values()));
     }
   }
 
@@ -99,6 +101,8 @@ export default function Dashboard() {
         radiusKm
       );
       persist(results);
+      // Collecte automatique : chaque recherche alimente la base centrale.
+      collectResults(results);
       if (scrapeEmails) {
         // Ne bloque pas l'affichage des résultats : l'enrichissement se fait ensuite.
         runEnrichment(results);

@@ -8,13 +8,16 @@ Toutes les routes sont préfixées par /api/backend pour correspondre
 au routage multi-services de Vercel (voir vercel.json à la racine).
 """
 
+import io
+import csv as csvlib
 import time
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from services import catalog, foursquare
+from services import catalog, foursquare, db
 from services.search import search_city, enrich_contacts
 
 _CACHE: dict[str, tuple[float, list[dict]]] = {}
@@ -86,6 +89,21 @@ class FsqContact(BaseModel):
 
 class FsqResult(BaseModel):
     contacts: dict[str, FsqContact]
+
+
+class CollectItem(BaseModel):
+    id: str | None = None
+    name: str
+    category: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    website: str | None = None
+    street: str | None = None
+    postcode: str | None = None
+    city: str | None = None
+    lat: float | None = None
+    lon: float | None = None
+    source: str | None = None
 
 
 @app.get(f"{PREFIX}/health")
@@ -172,3 +190,60 @@ def enrich_fsq(items: list[FsqItem]):
     payload = [{"id": it.id, "name": it.name, "lat": it.lat, "lon": it.lon} for it in items]
     contacts = foursquare.enrich(payload)
     return {"contacts": contacts}
+
+
+# ----------------------------------------------------------------------------
+# Base de données centrale (collecte automatique + accès propriétaire)
+# ----------------------------------------------------------------------------
+
+@app.get(f"{PREFIX}/api/db-status")
+def db_status():
+    """Vérifie la configuration Supabase et la connexion à la base."""
+    return db.status()
+
+
+@app.post(f"{PREFIX}/api/collect")
+def collect(items: list[CollectItem]):
+    """
+    Enregistre/complète un lot d'établissements dans la base centrale.
+    Appelé automatiquement par le frontend après chaque recherche et
+    enrichissement. Désactivé (sans erreur) si Supabase n'est pas configuré.
+    """
+    payload = [it.model_dump() for it in items]
+    return db.collect(payload)
+
+
+@app.get(f"{PREFIX}/api/admin/establishments")
+def admin_establishments(
+    token: str = Query(..., description="Mot de passe admin (ADMIN_TOKEN)."),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    search: str = Query(""),
+):
+    """Liste paginée des établissements collectés (réservé au propriétaire)."""
+    if not db.admin_ok(token):
+        raise HTTPException(status_code=401, detail="Accès refusé.")
+    return db.list_establishments(limit=limit, offset=offset, search=search)
+
+
+_EXPORT_COLS = ["name", "category", "phone", "email", "website", "street",
+                "postcode", "city", "source", "first_seen", "last_seen"]
+
+
+@app.get(f"{PREFIX}/api/admin/export")
+def admin_export(token: str = Query(..., description="Mot de passe admin (ADMIN_TOKEN).")):
+    """Exporte toute la base collectée en CSV (réservé au propriétaire)."""
+    if not db.admin_ok(token):
+        raise HTTPException(status_code=401, detail="Accès refusé.")
+    rows = db.fetch_all()
+    buf = io.StringIO()
+    buf.write("﻿")  # BOM UTF-8 pour Excel
+    writer = csvlib.writer(buf)
+    writer.writerow(_EXPORT_COLS)
+    for r in rows:
+        writer.writerow([r.get(c, "") if r.get(c) is not None else "" for c in _EXPORT_COLS])
+    return Response(
+        content=buf.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=loadlink-base.csv"},
+    )
