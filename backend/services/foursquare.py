@@ -10,13 +10,14 @@ La clé API se configure via la variable d'environnement FOURSQUARE_API_KEY
 (à définir côté Vercel, jamais dans le code). Si elle est absente,
 l'enrichissement Foursquare est simplement désactivé (aucune erreur).
 
-Foursquare a deux générations d'API et le format d'authentification diffère.
-Pour être robuste, ce module AUTO-DÉTECTE la bonne génération au premier
-appel réussi, puis la réutilise :
+Foursquare a deux générations d'API, avec des en-têtes ET des noms de
+champs différents. Ce module AUTO-DÉTECTE la bonne génération :
   - Nouvelle API : https://places-api.foursquare.com/places/search
       en-têtes : Authorization: Bearer <clé>, X-Places-Api-Version: <date>
+      champs   : fsq_place_id, latitude, longitude, ...
   - Ancienne API v3 : https://api.foursquare.com/v3/places/search
       en-tête  : Authorization: <clé>
+      champs   : fsq_id, geocodes, ...
 """
 
 from __future__ import annotations
@@ -35,7 +36,9 @@ logger = logging.getLogger("loadlink.foursquare")
 API_KEY = os.environ.get("FOURSQUARE_API_KEY", "").strip()
 API_VERSION = os.environ.get("FOURSQUARE_API_VERSION", "2025-06-17").strip()
 
-# Définitions des deux générations d'API. On tente la nouvelle d'abord.
+# Deux générations d'API. On tente la nouvelle d'abord.
+# NB : le jeu de champs est PROPRE à chaque génération (les mélanger fait
+# échouer la sélection et renvoie des fiches sans téléphone/site).
 _MODES = [
     {
         "name": "places-api",
@@ -45,7 +48,7 @@ _MODES = [
             "X-Places-Api-Version": API_VERSION,
             "accept": "application/json",
         },
-        "id_field": "fsq_place_id",
+        "fields": "fsq_place_id,name,tel,website,email,location,latitude,longitude",
     },
     {
         "name": "v3",
@@ -54,11 +57,9 @@ _MODES = [
             "Authorization": key,
             "accept": "application/json",
         },
-        "id_field": "fsq_id",
+        "fields": "fsq_id,name,tel,website,email,location,geocodes",
     },
 ]
-
-_FIELDS = "name,tel,website,email,location,geocodes,latitude,longitude"
 
 # Mode retenu après auto-détection (index dans _MODES), None tant qu'inconnu.
 _active_mode_idx: Optional[int] = None
@@ -84,21 +85,24 @@ def _looks_like_match(query: str, candidate_name: str) -> bool:
     return bool(q & c)
 
 
-def _request(mode: dict, params: dict, timeout: float) -> Optional[list]:
-    """Effectue une requête ; renvoie la liste des résultats, ou None si échec
-    d'authentification (pour déclencher l'essai d'un autre mode)."""
+def _search_raw(mode: dict, params: dict, timeout: float) -> dict:
+    """Effectue une requête et renvoie un dict de diagnostic :
+    {auth_ok, status, results, error}. auth_ok=False signale un refus
+    d'authentification (401/403) -> on essaiera une autre génération d'API."""
+    full = {**params, "fields": mode["fields"]}
     try:
-        resp = requests.get(mode["url"], headers=mode["headers"](API_KEY), params=params, timeout=timeout)
+        resp = requests.get(mode["url"], headers=mode["headers"](API_KEY), params=full, timeout=timeout)
     except requests.RequestException as exc:
-        logger.warning("Foursquare (%s) erreur réseau : %s", mode["name"], exc)
-        return None
+        return {"auth_ok": True, "status": None, "results": [], "error": f"réseau: {exc}"}
     if resp.status_code in (401, 403):
-        logger.info("Foursquare (%s) auth refusée (%s)", mode["name"], resp.status_code)
-        return None
+        return {"auth_ok": False, "status": resp.status_code, "results": [], "error": resp.text[:200]}
     if resp.status_code != 200:
-        logger.warning("Foursquare (%s) statut %s : %s", mode["name"], resp.status_code, resp.text[:200])
-        return []
-    return resp.json().get("results", [])
+        return {"auth_ok": True, "status": resp.status_code, "results": [], "error": resp.text[:300]}
+    try:
+        data = resp.json()
+    except ValueError:
+        return {"auth_ok": True, "status": 200, "results": [], "error": "réponse non-JSON"}
+    return {"auth_ok": True, "status": 200, "results": data.get("results", []), "error": None}
 
 
 def _place_to_contacts(place: dict) -> dict:
@@ -117,45 +121,57 @@ def search_place(name: str, lat: float, lon: float, radius: int = 400, timeout: 
     if not API_KEY or lat is None or lon is None or not name:
         return empty
 
-    params = {
-        "query": name,
-        "ll": f"{lat},{lon}",
-        "radius": radius,
-        "limit": 1,
-        "fields": _FIELDS,
-    }
-
-    # Ordre des modes à essayer : le mode déjà validé d'abord, sinon tous.
+    params = {"query": name, "ll": f"{lat},{lon}", "radius": radius, "limit": 1}
     order = [_active_mode_idx] if _active_mode_idx is not None else range(len(_MODES))
     for idx in order:
-        results = _request(_MODES[idx], params, timeout)
-        if results is None:
+        raw = _search_raw(_MODES[idx], params, timeout)
+        if not raw["auth_ok"]:
             continue  # auth refusée -> essaie le mode suivant
-        _active_mode_idx = idx  # ce mode fonctionne, on le mémorise
+        _active_mode_idx = idx
+        results = raw["results"]
         if not results:
             return empty
         place = results[0]
         if not _looks_like_match(name, place.get("name", "")):
             return empty
         return _place_to_contacts(place)
-
     return empty
 
 
 def status() -> dict:
-    """Petit test de bout en bout (pour /api/foursquare-status) : interroge un
-    lieu connu et indique si la clé fonctionne et quelle génération d'API."""
+    """Diagnostic complet pour /api/foursquare-status : teste chaque génération
+    d'API sur un commerce connu et renvoie la réponse brute, pour voir
+    exactement ce que Foursquare retourne."""
+    global _active_mode_idx
     if not API_KEY:
         return {"configured": False, "ok": False, "detail": "FOURSQUARE_API_KEY absente."}
-    res = search_place("Tour Eiffel", 48.8584, 2.2945, radius=500)
-    mode = _MODES[_active_mode_idx]["name"] if _active_mode_idx is not None else None
-    ok = _active_mode_idx is not None
+
+    # Un lieu qui a normalement téléphone + site dans Foursquare.
+    params = {"query": "Starbucks", "ll": "48.8698,2.3079", "radius": 3000, "limit": 1}
+    attempts = []
+    working = None
+    for idx, mode in enumerate(_MODES):
+        raw = _search_raw(mode, params, 6.0)
+        first = raw["results"][0] if raw["results"] else None
+        attempts.append({
+            "api": mode["name"],
+            "auth_ok": raw["auth_ok"],
+            "http": raw["status"],
+            "results": len(raw["results"]),
+            "first_result": first,
+            "error": raw["error"],
+        })
+        if raw["auth_ok"] and raw["status"] == 200 and working is None:
+            working = idx
+            _active_mode_idx = idx
+
+    ok = working is not None
     return {
         "configured": True,
         "ok": ok,
-        "api": mode,
-        "sample": res,
-        "detail": "Clé valide." if ok else "Clé configurée mais aucun mode d'API n'a répondu (auth refusée ?).",
+        "api": _MODES[working]["name"] if ok else None,
+        "detail": "Clé valide." if ok else "Clé configurée mais aucune génération d'API n'a répondu 200.",
+        "attempts": attempts,
     }
 
 
