@@ -163,6 +163,12 @@ def search_city(
     try:
         gdf = ox.features_from_place(city, tags=osm_tags)
     except Exception as exc:
+        # OSMnx lève une exception (plutôt que de renvoyer un résultat vide)
+        # quand aucune entité ne correspond aux tags demandés dans la zone.
+        # Ce n'est pas une vraie erreur : on renvoie simplement une liste vide.
+        if "no data elements" in str(exc).lower() or "InsufficientResponseError" in type(exc).__name__:
+            logger.info("Aucun établissement trouvé pour %s avec ces catégories.", city)
+            return []
         logger.error("Échec de la récupération OSM pour %s: %s", city, exc)
         raise ValueError(f"Impossible de récupérer les données pour '{city}': {exc}")
 
