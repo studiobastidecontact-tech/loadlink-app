@@ -2,8 +2,9 @@
 services/search.py
 
 Récupère les établissements publics via OSMnx / Overpass API selon les
-catégories choisies par l'utilisateur, puis normalise les résultats au
-format attendu par le frontend.
+catégories choisies par l'utilisateur, dans un rayon autour d'un point
+(coordonnées GPS de préférence, ou nom de ville en repli), puis
+normalise les résultats au format attendu par le frontend.
 """
 
 import re
@@ -53,7 +54,7 @@ def _build_osm_tags(selected_categories: Optional[list[str]]) -> dict:
     for key in keys:
         cfg = CATEGORY_CATALOG.get(key)
         if not cfg:
-            continue  # catégorie inconnue, on ignore silencieusement
+            continue
         tags.setdefault(cfg["osm_key"], []).append(cfg["osm_value"])
     return tags
 
@@ -143,25 +144,42 @@ def search_city(
     city: str,
     scrape_emails: bool = False,
     categories: Optional[list[str]] = None,
+    lat: Optional[float] = None,
+    lon: Optional[float] = None,
+    radius_km: float = 5.0,
 ) -> list[dict]:
     """
-    Recherche les établissements ciblés dans une ville donnée.
+    Recherche les établissements ciblés autour d'un point ou d'une ville.
 
     Args:
-        city: nom de la ville (ex: "Brive-la-Gaillarde")
+        city: nom de la ville, utilisé pour l'affichage et comme repli
+            si lat/lon ne sont pas fournis.
         scrape_emails: si True, tente d'extraire un email depuis le
             site web de chaque établissement (plus lent).
         categories: liste de clés de CATEGORY_CATALOG à rechercher.
             None ou liste vide = toutes les catégories.
+        lat, lon: coordonnées du centre de recherche. Si fournies,
+            évite la géocodification du nom de ville (plus précis,
+            plus rapide, pas d'ambiguïté entre communes homonymes).
+        radius_km: rayon de recherche en kilomètres autour du centre.
+            Recherche par rayon plutôt que par limites administratives
+            strictes, pour capter aussi les établissements mal rattachés.
 
     Returns:
         Liste de dicts au format attendu par le frontend.
     """
     osm_tags = _build_osm_tags(categories)
-    logger.info("Recherche OSM pour la ville: %s (catégories: %s)", city, list(osm_tags.keys()))
+    radius_m = max(500, min(radius_km, 20) * 1000)
+    logger.info(
+        "Recherche OSM pour %s (rayon %sm, catégories: %s)",
+        city, radius_m, list(osm_tags.keys()),
+    )
 
     try:
-        gdf = ox.features_from_place(city, tags=osm_tags)
+        if lat is not None and lon is not None:
+            gdf = ox.features_from_point((lat, lon), tags=osm_tags, dist=radius_m)
+        else:
+            gdf = ox.features_from_address(city, tags=osm_tags, dist=radius_m)
     except Exception as exc:
         # OSMnx lève une exception (plutôt que de renvoyer un résultat vide)
         # quand aucune entité ne correspond aux tags demandés dans la zone.
