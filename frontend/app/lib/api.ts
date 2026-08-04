@@ -65,6 +65,34 @@ export interface Contact {
   phone: string | null;
 }
 
+export interface FsqContact {
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+}
+
+/**
+ * Complète téléphone / site web (et parfois email) via Foursquare, pour un lot
+ * d'établissements identifiés par nom + position. Renvoie { id -> {email, phone, website} }.
+ * Si la clé Foursquare n'est pas configurée côté serveur, renvoie des valeurs nulles.
+ */
+export async function enrichFoursquare(
+  items: { id: string; name: string; lat: number | null; lon: number | null }[]
+): Promise<Record<string, FsqContact>> {
+  const candidates = items.filter((i) => i.lat != null && i.lon != null && i.name);
+  if (candidates.length === 0) return {};
+  const res = await fetch(`${API_BASE}/api/enrich-foursquare`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(candidates),
+  });
+  if (!res.ok) {
+    throw new Error(`Erreur ${res.status}`);
+  }
+  const data: { contacts: Record<string, FsqContact> } = await res.json();
+  return data.contacts;
+}
+
 /**
  * Récupère email + téléphone publics pour un lot d'établissements (via leur
  * site web : page d'accueil + pages Contact / Mentions légales).

@@ -14,7 +14,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from services import catalog
+from services import catalog, foursquare
 from services.search import search_city, enrich_contacts
 
 _CACHE: dict[str, tuple[float, list[dict]]] = {}
@@ -69,6 +69,23 @@ class Contact(BaseModel):
 
 class EnrichResult(BaseModel):
     contacts: dict[str, Contact]
+
+
+class FsqItem(BaseModel):
+    id: str
+    name: str
+    lat: float | None = None
+    lon: float | None = None
+
+
+class FsqContact(BaseModel):
+    email: str | None = None
+    phone: str | None = None
+    website: str | None = None
+
+
+class FsqResult(BaseModel):
+    contacts: dict[str, FsqContact]
 
 
 @app.get(f"{PREFIX}/health")
@@ -136,4 +153,22 @@ def enrich(items: list[EnrichItem]):
     """
     payload = [{"id": it.id, "website": it.website} for it in items]
     contacts = enrich_contacts(payload)
+    return {"contacts": contacts}
+
+
+@app.get(f"{PREFIX}/api/foursquare-status")
+def foursquare_status():
+    """Vérifie que la clé Foursquare est configurée et fonctionne."""
+    return foursquare.status()
+
+
+@app.post(f"{PREFIX}/api/enrich-foursquare", response_model=FsqResult)
+def enrich_fsq(items: list[FsqItem]):
+    """
+    Complète téléphone / site web (et parfois email) via Foursquare pour un
+    lot d'établissements identifiés par nom + position. Désactivé (renvoie
+    des valeurs nulles) si FOURSQUARE_API_KEY n'est pas configurée.
+    """
+    payload = [{"id": it.id, "name": it.name, "lat": it.lat, "lon": it.lon} for it in items]
+    contacts = foursquare.enrich(payload)
     return {"contacts": contacts}

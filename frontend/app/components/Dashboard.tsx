@@ -5,7 +5,7 @@ import SearchCard from "./SearchCard";
 import ResultsTable from "./ResultsTable";
 import StatsCard from "./StatsCard";
 import { Company } from "../lib/types";
-import { searchCompanies, enrichContacts } from "../lib/api";
+import { searchCompanies, enrichContacts, enrichFoursquare } from "../lib/api";
 import { SelectedLocation } from "./LocationSelector";
 
 const ENRICH_BATCH_SIZE = 40;
@@ -35,16 +35,33 @@ export default function Dashboard() {
     sessionStorage.setItem("loadlink:companies", JSON.stringify(list));
   }
 
-  async function runContactEnrichment(list: Company[]) {
-    // On enrichit les établissements qui ont un site web mais à qui il manque
-    // l'email OU le téléphone.
-    const pending = list.filter((c) => c.website && (!c.email || !c.phone));
-    if (pending.length === 0) return;
-
+  async function runEnrichment(list: Company[]) {
     setEnriching(true);
-    // Copie de travail indexée pour appliquer les contacts au fur et à mesure.
+    // Copie de travail indexée pour appliquer les infos au fur et à mesure.
     const byId = new Map(list.map((c) => [c.id, { ...c }]));
     try {
+      // Étape 1 — Foursquare : complète téléphone / site (parfois email) pour
+      // les établissements à qui il manque un téléphone OU un site.
+      const needFsq = list.filter((c) => !c.phone || !c.website);
+      for (let i = 0; i < needFsq.length; i += ENRICH_BATCH_SIZE) {
+        const batch = needFsq.slice(i, i + ENRICH_BATCH_SIZE);
+        const fsq = await enrichFoursquare(
+          batch.map((c) => ({ id: c.id, name: c.name, lat: c.lat, lon: c.lon }))
+        );
+        for (const [id, contact] of Object.entries(fsq)) {
+          const item = byId.get(id);
+          if (!item) continue;
+          if (!item.phone && contact.phone) item.phone = contact.phone;
+          if (!item.website && contact.website) item.website = contact.website;
+          if (!item.email && contact.email) item.email = contact.email;
+        }
+        persist(Array.from(byId.values()));
+      }
+
+      // Étape 2 — Scraper : sur les sites web (y compris ceux trouvés via
+      // Foursquare), va chercher l'email/téléphone manquant.
+      const current = Array.from(byId.values());
+      const pending = current.filter((c) => c.website && (!c.email || !c.phone));
       for (let i = 0; i < pending.length; i += ENRICH_BATCH_SIZE) {
         const batch = pending.slice(i, i + ENRICH_BATCH_SIZE);
         const contacts = await enrichContacts(
@@ -53,7 +70,7 @@ export default function Dashboard() {
         for (const [id, contact] of Object.entries(contacts)) {
           const item = byId.get(id);
           if (!item) continue;
-          // On ne remplit que les champs vides : ne jamais écraser une donnée OSM.
+          // On ne remplit que les champs vides : ne jamais écraser une donnée existante.
           if (!item.email && contact.email) item.email = contact.email;
           if (!item.phone && contact.phone) item.phone = contact.phone;
         }
@@ -84,7 +101,7 @@ export default function Dashboard() {
       persist(results);
       if (scrapeEmails) {
         // Ne bloque pas l'affichage des résultats : l'enrichissement se fait ensuite.
-        runContactEnrichment(results);
+        runEnrichment(results);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
