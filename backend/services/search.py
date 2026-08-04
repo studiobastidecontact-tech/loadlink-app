@@ -1,15 +1,18 @@
 """
 services/search.py
 
-Récupère les établissements publics via OSMnx / Overpass API selon les
-catégories choisies par l'utilisateur, dans un rayon autour d'un point
-(coordonnées GPS de préférence, ou nom de ville en repli), puis
-normalise les résultats au format attendu par le frontend.
+Récupère les établissements/entreprises via OSMnx / Overpass API selon
+les activités choisies par l'utilisateur, dans un rayon autour d'un point
+(coordonnées GPS de préférence, ou nom de ville en repli), puis normalise
+les résultats au format attendu par le frontend.
 
-La récupération d'emails est séparée de la recherche (voir
-enrich_emails) : sur de gros volumes de résultats, scraper chaque
-site web dans le même appel dépasserait la limite de temps des
-fonctions serverless Vercel.
+Le moteur est UNIVERSEL : les activités interrogeables proviennent du
+catalogue généré depuis OpenStreetMap (services/catalog.py + catalog.json),
+et non plus d'une liste codée en dur. Voir scripts/build_catalog.py.
+
+La récupération d'emails est séparée de la recherche (voir enrich_emails) :
+sur de gros volumes, scraper chaque site web dans le même appel dépasserait
+la limite de temps des fonctions serverless.
 """
 
 import re
@@ -21,6 +24,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import osmnx as ox
 import requests
 
+from services import catalog
+
 # Sur les plateformes serverless (Vercel...), le système de fichiers est
 # en lecture seule sauf /tmp. On y redirige le cache OSMnx.
 ox.settings.cache_folder = "/tmp/osmnx_cache"
@@ -28,34 +33,7 @@ ox.settings.cache_folder = "/tmp/osmnx_cache"
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("loadlink.search")
 
-CATEGORY_CATALOG: dict[str, dict] = {
-    "restaurant":  {"osm_key": "amenity", "osm_value": "restaurant",  "label": "Restaurant"},
-    "bar":         {"osm_key": "amenity", "osm_value": "bar",         "label": "Bar"},
-    "cafe":        {"osm_key": "amenity", "osm_value": "cafe",        "label": "Café"},
-    "pub":         {"osm_key": "amenity", "osm_value": "pub",         "label": "Pub"},
-    "fast_food":   {"osm_key": "amenity", "osm_value": "fast_food",   "label": "Fast-food"},
-    "biergarten":  {"osm_key": "amenity", "osm_value": "biergarten",  "label": "Brasserie"},
-    "hotel":       {"osm_key": "tourism", "osm_value": "hotel",       "label": "Hôtel"},
-    "guest_house": {"osm_key": "tourism", "osm_value": "guest_house", "label": "Guest house"},
-    "hostel":      {"osm_key": "tourism", "osm_value": "hostel",      "label": "Hostel"},
-    "estate_agent":       {"osm_key": "office", "osm_value": "estate_agent",       "label": "Agence immobilière"},
-    "advertising_agency": {"osm_key": "office", "osm_value": "advertising_agency", "label": "Agence de communication"},
-}
-
-CATEGORY_LABELS = {key: cfg["label"] for key, cfg in CATEGORY_CATALOG.items()}
-
 EMAIL_REGEX = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
-
-
-def _build_osm_tags(selected_categories: Optional[list[str]]) -> dict:
-    keys = selected_categories or list(CATEGORY_CATALOG.keys())
-    tags: dict[str, list[str]] = {}
-    for key in keys:
-        cfg = CATEGORY_CATALOG.get(key)
-        if not cfg:
-            continue
-        tags.setdefault(cfg["osm_key"], []).append(cfg["osm_value"])
-    return tags
 
 
 def _clean(value) -> Optional[str]:
@@ -135,6 +113,15 @@ def enrich_emails(
     return results
 
 
+def _resolve_category(row, osm_tags: dict[str, list[str]]) -> Optional[str]:
+    """Détermine le libellé FR de la ligne OSM à partir des tags interrogés."""
+    for key, values in osm_tags.items():
+        raw = _clean(row.get(key))
+        if raw and raw in values:
+            return catalog.label_for(key, raw) or raw.replace("_", " ").capitalize()
+    return None
+
+
 def _dedupe(results: list[dict], distance_threshold: float = 0.0005) -> list[dict]:
     """
     Overpass renvoie fréquemment le même établissement en double
@@ -192,22 +179,27 @@ def search_city(
     radius_km: float = 5.0,
 ) -> list[dict]:
     """
-    Recherche les établissements ciblés autour d'un point ou d'une ville.
+    Recherche les entreprises/établissements des activités choisies autour
+    d'un point ou d'une ville.
 
-    lat/lon: si fournis, évite la géocodification du nom de ville
-    (plus précis, plus rapide, pas d'ambiguïté entre communes homonymes).
-    radius_km: rayon de recherche en kilomètres, plutôt que les limites
-    administratives strictes, pour capter les établissements mal rattachés.
+    categories : liste d'identifiants d'activités « clé=valeur » (issus du
+        catalogue, ex. "office=lawyer", "amenity=cinema"). Au moins une
+        activité est requise — le moteur ne recherche pas « tout » à la fois.
+    lat/lon : si fournis, évite la géocodification du nom de ville
+        (plus précis, plus rapide, pas d'ambiguïté entre communes homonymes).
+    radius_km : rayon de recherche en kilomètres.
 
     Ne fait PAS de scraping d'email : cette étape est déléguée à
-    enrich_emails, appelée séparément par lots depuis le frontend une
-    fois les résultats de recherche affichés.
+    enrich_emails, appelée séparément par lots depuis le frontend.
     """
-    osm_tags = _build_osm_tags(categories)
-    radius_m = max(500, min(radius_km, 20) * 1000)
+    osm_tags = catalog.build_osm_tags(categories)
+    if not osm_tags:
+        raise ValueError("Sélectionne au moins une activité à rechercher.")
+
+    radius_m = int(max(500, min(radius_km, 20) * 1000))
     logger.info(
-        "Recherche OSM pour %s (rayon %sm, catégories: %s)",
-        city, radius_m, list(osm_tags.keys()),
+        "Recherche OSM pour %s (rayon %sm, tags: %s)",
+        city, radius_m, osm_tags,
     )
 
     try:
@@ -217,7 +209,7 @@ def search_city(
             gdf = ox.features_from_address(city, tags=osm_tags, dist=radius_m)
     except Exception as exc:
         if "no data elements" in str(exc).lower() or "InsufficientResponseError" in type(exc).__name__:
-            logger.info("Aucun établissement trouvé pour %s avec ces catégories.", city)
+            logger.info("Aucun établissement trouvé pour %s avec ces activités.", city)
             return []
         logger.error("Échec de la récupération OSM pour %s: %s", city, exc)
         raise ValueError(f"Impossible de récupérer les données pour '{city}': {exc}")
@@ -227,14 +219,7 @@ def search_city(
 
     results = []
     for idx, row in gdf.iterrows():
-        category = None
-        for tag_key in osm_tags:
-            if tag_key in row and _clean(row.get(tag_key)):
-                raw_cat = _clean(row.get(tag_key))
-                if raw_cat in CATEGORY_LABELS:
-                    category = CATEGORY_LABELS[raw_cat]
-                    break
-
+        category = _resolve_category(row, osm_tags)
         name = _clean(row.get("name"))
         if not name or not category:
             continue

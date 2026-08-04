@@ -3,33 +3,49 @@ import { Company } from "./types";
 export interface CategoryOption {
   key: string;
   label: string;
+  group?: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/backend";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/backend";
 
-export async function fetchCategories(): Promise<CategoryOption[]> {
-  const res = await fetch(`${API_BASE}/api/categories`);
+/**
+ * Autocomplétion universelle des activités.
+ * `q` est le texte tapé par l'utilisateur ("avo", "cine", "boîte de prod"...).
+ * Renvoie des libellés français ; les tags OpenStreetMap ne sont jamais exposés.
+ */
+export async function searchCategories(
+  q: string,
+  limit = 12,
+  signal?: AbortSignal
+): Promise<CategoryOption[]> {
+  const query = q.trim();
+  if (!query) return [];
+  const params = new URLSearchParams({ q: query, limit: String(limit) });
+  const res = await fetch(`${API_BASE}/api/categories?${params.toString()}`, {
+    signal,
+  });
   if (!res.ok) {
     throw new Error(`Erreur ${res.status}`);
   }
   return res.json();
 }
 
+/**
+ * Recherche les entreprises pour les activités sélectionnées autour d'un point.
+ * `categories` : clés d'activités renvoyées par searchCategories (obligatoire).
+ */
 export async function searchCompanies(
   city: string,
-  scrapeEmails = false,
-  categories: string[] = [],
+  categories: string[],
   location?: { lat: number; lon: number },
   radiusKm = 5
 ): Promise<Company[]> {
   const params = new URLSearchParams({
     city,
-    scrape_emails: String(scrapeEmails),
+    categories: categories.join(","),
     radius_km: String(radiusKm),
   });
-  if (categories.length > 0) {
-    params.set("categories", categories.join(","));
-  }
   if (location) {
     params.set("lat", String(location.lat));
     params.set("lon", String(location.lon));
@@ -42,4 +58,25 @@ export async function searchCompanies(
   }
 
   return res.json();
+}
+
+/**
+ * Récupère les emails publics pour un lot d'établissements (via leur site web).
+ * Renvoie un dictionnaire { id -> email | null }.
+ */
+export async function enrichEmails(
+  items: { id: string; website: string | null }[]
+): Promise<Record<string, string | null>> {
+  const candidates = items.filter((i) => i.website);
+  if (candidates.length === 0) return {};
+  const res = await fetch(`${API_BASE}/api/enrich-emails`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(candidates),
+  });
+  if (!res.ok) {
+    throw new Error(`Erreur ${res.status}`);
+  }
+  const data: { emails: Record<string, string | null> } = await res.json();
+  return data.emails;
 }

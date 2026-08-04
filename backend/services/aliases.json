@@ -1,0 +1,16 @@
+{
+  "_comment": "Synonymes FR supplémentaires -> preset OSM existant. SEUL fichier à éditer à la main pour enrichir le vocabulaire de recherche. Clé = id 'cle=valeur', valeur = liste de synonymes. Relancer scripts/build_catalog.py après modification.",
+  "amenity=studio": ["studio de cinéma", "studio de production", "boîte de production", "société de production", "maison de production", "production audiovisuelle", "société audiovisuelle", "post-production", "studio d'enregistrement", "studio vidéo"],
+  "office=company": ["boîte de production", "société de production", "société audiovisuelle", "entreprise", "société", "siège social"],
+  "craft=photographer": ["vidéaste", "cameraman", "captation vidéo", "production vidéo", "reportage photo"],
+  "office=advertising_agency": ["agence de communication", "agence de pub", "agence de publicité", "agence marketing", "communication", "régie publicitaire"],
+  "office=estate_agent": ["agence immobilière", "immobilier", "négociateur immobilier"],
+  "office=lawyer": ["cabinet d'avocats", "juriste"],
+  "office=accountant": ["expert-comptable", "comptable", "cabinet comptable"],
+  "shop=car": ["concessionnaire", "concession automobile", "vendeur de voitures"],
+  "shop=car_repair": ["garagiste", "garage automobile", "mécanicien auto"],
+  "leisure=fitness_centre": ["salle de sport", "salle de musculation", "coach sportif", "fitness"],
+  "amenity=events_venue": ["salle de spectacle", "salle de concert", "salle événementielle", "événementiel"],
+  "craft=electrician": ["électricien", "électricité générale"],
+  "craft=plumber": ["plombier", "plomberie", "plombier chauffagiste"]
+}

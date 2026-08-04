@@ -1,0 +1,5893 @@
+[
+ {
+  "id": "craft=beekeeper",
+  "label": "Apiculteur",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "beekeeper",
+  "terms": [
+   "miellerie"
+  ]
+ },
+ {
+  "id": "craft=handicraft",
+  "label": "Artisanat fait-main",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "handicraft",
+  "terms": [
+   "artisanat manuel",
+   "artisanat fait-main",
+   "artisanat fait à la main"
+  ]
+ },
+ {
+  "id": "craft=brewery",
+  "label": "Brasserie artisanale",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "brewery",
+  "terms": [
+   "usine",
+   "brasserie",
+   "industriel",
+   "brasserie industrielle",
+   "bière",
+   "alcool",
+   "cidre"
+  ]
+ },
+ {
+  "id": "craft=tiler",
+  "label": "Carreleur",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "tiler",
+  "terms": [
+   "paveur",
+   "dalleur"
+  ]
+ },
+ {
+  "id": "craft=winery",
+  "label": "Chai",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "winery",
+  "terms": [
+   "cellier",
+   "cave à vins"
+  ]
+ },
+ {
+  "id": "craft=hvac",
+  "label": "Chauffagiste",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "hvac",
+  "terms": [
+   "artisan chauffagiste",
+   "artisan ventilation",
+   "artisan climatisation"
+  ]
+ },
+ {
+  "id": "craft=confectionery",
+  "label": "Confiseur",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "confectionery",
+  "terms": [
+   "confiserie",
+   "confiseur",
+   "bonbons",
+   "fabricant de bonbons",
+   "biscuits",
+   "biscuiterie"
+  ]
+ },
+ {
+  "id": "craft=boatbuilder",
+  "label": "Constructeur de bateaux",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "boatbuilder",
+  "terms": [
+   "constructeur de bâteaux"
+  ]
+ },
+ {
+  "id": "craft=window_construction",
+  "label": "Construction de fenêtres",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "window_construction",
+  "terms": [
+   "fabrication de fenêtres"
+  ]
+ },
+ {
+  "id": "craft=metal_construction",
+  "label": "Constructions métalliques",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "metal_construction",
+  "terms": [
+   "constructions métalliques",
+   "constructions metalliques"
+  ]
+ },
+ {
+  "id": "craft=shoemaker",
+  "label": "Cordonnier",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "shoemaker",
+  "terms": [
+   "bottier",
+   "cordonnier"
+  ]
+ },
+ {
+  "id": "craft=dressmaker",
+  "label": "Couturier",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "dressmaker",
+  "terms": [
+   "couturier",
+   "tailleur",
+   "designer textile"
+  ]
+ },
+ {
+  "id": "craft=roofer",
+  "label": "Couvreur",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "roofer",
+  "terms": [
+   "couvreur"
+  ]
+ },
+ {
+  "id": "craft=distillery",
+  "label": "Distillerie",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "distillery",
+  "terms": [
+   "distillerie",
+   "alcool",
+   "boisson",
+   "bière",
+   "bourbon",
+   "brandy",
+   "gin",
+   "liqueur"
+  ]
+ },
+ {
+  "id": "craft=signmaker",
+  "label": "Fabriquant d'enseignes",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "signmaker",
+  "terms": [
+   "enseignes",
+   "signalétique"
+  ]
+ },
+ {
+  "id": "craft=tinsmith",
+  "label": "Ferblantier",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "tinsmith",
+  "terms": [
+   "étameur",
+   "rétameur"
+  ]
+ },
+ {
+  "id": "craft=blacksmith",
+  "label": "Forgeron",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "blacksmith",
+  "terms": [
+   "forgeron"
+  ]
+ },
+ {
+  "id": "craft=rigger",
+  "label": "Gréeur",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "rigger",
+  "terms": [
+   "gréeur"
+  ]
+ },
+ {
+  "id": "craft=clockmaker",
+  "label": "Horloger",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "clockmaker",
+  "terms": [
+   "horloger",
+   "horlogerie"
+  ]
+ },
+ {
+  "id": "craft=watchmaker",
+  "label": "Horloger (montres)",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "watchmaker",
+  "terms": [
+   "horloger"
+  ]
+ },
+ {
+  "id": "craft=gardener",
+  "label": "Jardinier",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "gardener",
+  "terms": [
+   "concepteur de jardins",
+   "paysagiste"
+  ]
+ },
+ {
+  "id": "craft=photographic_laboratory",
+  "label": "Laboratoire photographique",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "photographic_laboratory",
+  "terms": [
+   "laboratoire photographique",
+   "laboratoire de développement"
+  ]
+ },
+ {
+  "id": "craft=joiner",
+  "label": "Menuisier",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "joiner",
+  "terms": [
+   "menuisier",
+   "meubles"
+  ]
+ },
+ {
+  "id": "craft=carpenter",
+  "label": "Menuisier / Charpentier",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "carpenter",
+  "terms": [
+   "charpentier",
+   "menuisier",
+   "ébéniste"
+  ]
+ },
+ {
+  "id": "craft=scaffolder",
+  "label": "Monteur d'échafaudages",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "scaffolder",
+  "terms": [
+   "échafaudages"
+  ]
+ },
+ {
+  "id": "craft=painter",
+  "label": "Peintre",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "painter",
+  "terms": [
+   "peintre"
+  ]
+ },
+ {
+  "id": "craft=photographer",
+  "label": "Photographe",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "photographer",
+  "terms": [
+   "photographe",
+   "vidéaste",
+   "cameraman",
+   "captation vidéo",
+   "production vidéo",
+   "reportage photo"
+  ]
+ },
+ {
+  "id": "craft=plumber",
+  "label": "Plombier",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "plumber",
+  "terms": [
+   "plombier",
+   "plomberie",
+   "plombier chauffagiste"
+  ]
+ },
+ {
+  "id": "craft=plasterer",
+  "label": "Plâtrier",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "plasterer",
+  "terms": [
+   "gâcheur",
+   "plafonneur"
+  ]
+ },
+ {
+  "id": "craft=carpet_layer",
+  "label": "Pose de moquette et revêtements",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "carpet_layer",
+  "terms": [
+   "pose de tapis"
+  ]
+ },
+ {
+  "id": "craft=parquet_layer",
+  "label": "Poseur de parquet",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "parquet_layer",
+  "terms": [
+   "poseur de parquet",
+   "parquet",
+   "pose de parquet"
+  ]
+ },
+ {
+  "id": "craft=floorer",
+  "label": "Poseur de sol",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "floorer",
+  "terms": [
+   "poseur de sol",
+   "parquet",
+   "sol"
+  ]
+ },
+ {
+  "id": "craft=pottery",
+  "label": "Potier",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "pottery",
+  "terms": [
+   "potier",
+   "céramiste",
+   "ceramiste",
+   "faïencier",
+   "faiencier"
+  ]
+ },
+ {
+  "id": "craft=chimney_sweeper",
+  "label": "Ramoneur",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "chimney_sweeper",
+  "terms": [
+   "ramoneur",
+   "cheminée"
+  ]
+ },
+ {
+  "id": "craft=bookbinder",
+  "label": "Relieur",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "bookbinder",
+  "terms": [
+   "relieur"
+  ]
+ },
+ {
+  "id": "craft=key_cutter",
+  "label": "Reproduction de clés",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "key_cutter",
+  "terms": [
+   "reproduction de clés"
+  ]
+ },
+ {
+  "id": "craft=agricultural_engines",
+  "label": "Réparation de matériel agricole",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "agricultural_engines",
+  "terms": [
+   "matériel agricole",
+   "materiel agricole",
+   "réparation",
+   "reparation",
+   "garage",
+   "tracteur",
+   "engins agricoles",
+   "engin agricole",
+   "mécanicien",
+   "mecanicien"
+  ]
+ },
+ {
+  "id": "craft=sawmill",
+  "label": "Scierie",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "sawmill",
+  "terms": [
+   "scierie"
+  ]
+ },
+ {
+  "id": "craft=sculptor",
+  "label": "Sculpteur",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "sculptor",
+  "terms": [
+   "sculpteur"
+  ]
+ },
+ {
+  "id": "craft=saddler",
+  "label": "Sellier",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "saddler",
+  "terms": [
+   "sellier harnacheur",
+   "sellier garnisseur",
+   "bourrelier"
+  ]
+ },
+ {
+  "id": "craft=locksmith",
+  "label": "Serrurier",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "locksmith",
+  "terms": []
+ },
+ {
+  "id": "craft=cleaning",
+  "label": "Service de nettoyage",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "cleaning",
+  "terms": [
+   "nettoyage",
+   "ménage"
+  ]
+ },
+ {
+  "id": "craft=electronics_repair",
+  "label": "Service de réparation électronique",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "electronics_repair",
+  "terms": [
+   "réparation électronique",
+   "maintenance électronique",
+   "réparateur électronique",
+   "magasin d'électronique",
+   "réparation de téléphone",
+   "réparation d'appareil photo",
+   "réparation de téléviseur",
+   "réparation d'électroménager",
+   "réparation d'ordinateur",
+   "réparation de caméra",
+   "craft electronics repair",
+   "electronics repair",
+   "electronics",
+   "repair"
+  ]
+ },
+ {
+  "id": "craft=tailor",
+  "label": "Tailleur",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "tailor",
+  "terms": []
+ },
+ {
+  "id": "craft=stonemason",
+  "label": "Tailleur de pierre",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "stonemason",
+  "terms": [
+   "tailleur de pierre"
+  ]
+ },
+ {
+  "id": "craft=upholsterer",
+  "label": "Tapissier",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "upholsterer",
+  "terms": [
+   "garnisseur"
+  ]
+ },
+ {
+  "id": "craft=insulation",
+  "label": "Technicien thermicien",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "insulation",
+  "terms": [
+   "isolation thermique de bâtiments"
+  ]
+ },
+ {
+  "id": "craft=caterer",
+  "label": "Traiteur",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "caterer",
+  "terms": [
+   "restaurateur"
+  ]
+ },
+ {
+  "id": "craft=basket_maker",
+  "label": "Vannier",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "basket_maker",
+  "terms": [
+   "vannier"
+  ]
+ },
+ {
+  "id": "craft=glaziery",
+  "label": "Vitrerie",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "glaziery",
+  "terms": [
+   "vitrier"
+  ]
+ },
+ {
+  "id": "craft=sailmaker",
+  "label": "Voilerie",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "sailmaker",
+  "terms": [
+   "voilier"
+  ]
+ },
+ {
+  "id": "craft=electrician",
+  "label": "Électricien",
+  "group": "Artisanat & BTP",
+  "key": "craft",
+  "value": "electrician",
+  "terms": [
+   "electricien",
+   "électricien",
+   "électricité générale"
+  ]
+ },
+ {
+  "id": "club=sport",
+  "label": "Club de sport",
+  "group": "Associations & Clubs",
+  "key": "club",
+  "value": "sport",
+  "terms": [
+   "association sportive",
+   "sport",
+   "athlétisme"
+  ]
+ },
+ {
+  "id": "club=scout",
+  "label": "Groupe de scout",
+  "group": "Associations & Clubs",
+  "key": "club",
+  "value": "scout",
+  "terms": [
+   "groupe de scout",
+   "scouts",
+   "scoutisme"
+  ]
+ },
+ {
+  "id": "office=forestry",
+  "label": "Administration forestière",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "forestry",
+  "terms": [
+   "administration forestière"
+  ]
+ },
+ {
+  "id": "office=government",
+  "label": "Administration publique",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "government",
+  "terms": [
+   "bureau du gouvernement"
+  ]
+ },
+ {
+  "id": "office=adoption_agency",
+  "label": "Agence d'adoption",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "adoption_agency",
+  "terms": [
+   "agence d'adoption"
+  ]
+ },
+ {
+  "id": "office=insurance",
+  "label": "Agence d'assurance",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "insurance",
+  "terms": [
+   "assurance",
+   "mutuelle"
+  ]
+ },
+ {
+  "id": "office=advertising_agency",
+  "label": "Agence de publicité",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "advertising_agency",
+  "terms": [
+   "agence de publicité",
+   "agence publicitaire",
+   "agence de communication.",
+   "agence de communication",
+   "agence de pub",
+   "agence marketing",
+   "communication",
+   "régie publicitaire"
+  ]
+ },
+ {
+  "id": "office=security",
+  "label": "Agence de sécurité privée",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "security",
+  "terms": [
+   "agence de sécurité privée",
+   "agence de vigiles",
+   "surveillance",
+   "gardes"
+  ]
+ },
+ {
+  "id": "office=telecommunication",
+  "label": "Agence de télécommunications",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "telecommunication",
+  "terms": [
+   "agence télécom",
+   "fai",
+   "opérateur"
+  ]
+ },
+ {
+  "id": "office=travel_agent",
+  "label": "Agence de voyage",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "travel_agent",
+  "terms": []
+ },
+ {
+  "id": "office=estate_agent",
+  "label": "Agence immobilière",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "estate_agent",
+  "terms": [
+   "agence immobilière",
+   "immobilier",
+   "négociateur immobilier"
+  ]
+ },
+ {
+  "id": "office=employment_agency",
+  "label": "Agence pour l'emploi",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "employment_agency",
+  "terms": [
+   "agence pour l'emploi",
+   "intérim",
+   "interim"
+  ]
+ },
+ {
+  "id": "office=architect",
+  "label": "Architecte",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "architect",
+  "terms": [
+   "architecte"
+  ]
+ },
+ {
+  "id": "office=quango",
+  "label": "Autorité administrative indépendante",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "quango",
+  "terms": [
+   "autorité administrative indépendante",
+   "ong quasi-autonome",
+   "aai",
+   "quango."
+  ]
+ },
+ {
+  "id": "office=administrative",
+  "label": "Bureau administratif",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "administrative",
+  "terms": []
+ },
+ {
+  "id": "office=association",
+  "label": "Bureau d'association",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "association",
+  "terms": [
+   "bureau d'association",
+   "organisation à but non lucratif"
+  ]
+ },
+ {
+  "id": "office=company",
+  "label": "Bureau d'entreprise",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "company",
+  "terms": [
+   "bureau d'entreprise",
+   "entreprise",
+   "boîte de production",
+   "société de production",
+   "société audiovisuelle",
+   "société",
+   "siège social"
+  ]
+ },
+ {
+  "id": "office=financial",
+  "label": "Bureau d'entreprise financière",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "financial",
+  "terms": [
+   "bureau financier",
+   "établissement financier"
+  ]
+ },
+ {
+  "id": "office=engineer",
+  "label": "Bureau d'études et d'ingénierie",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "engineer",
+  "terms": [
+   "ingénieur civil",
+   "ingénieur électricien",
+   "ingénieur",
+   "bureau d'études",
+   "ingénieur mécanique",
+   "ingénieur structure",
+   "ingénieur technique",
+   "cabinet d'ingénierie",
+   "société d'ingénierie"
+  ]
+ },
+ {
+  "id": "office=bail_bond_agent",
+  "label": "Bureau de cautionnement",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "bail_bond_agent",
+  "terms": [
+   "bureau",
+   "agence",
+   "caution",
+   "prison",
+   "libération"
+  ]
+ },
+ {
+  "id": "office=consulting",
+  "label": "Bureau de consultant",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "consulting",
+  "terms": [
+   "consultant"
+  ]
+ },
+ {
+  "id": "office=political_party",
+  "label": "Bureau de parti politique",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "political_party",
+  "terms": [
+   "parti politique"
+  ]
+ },
+ {
+  "id": "office=union",
+  "label": "Bureau de syndicat",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "union",
+  "terms": [
+   "syndicat",
+   "bureau"
+  ]
+ },
+ {
+  "id": "office=translator",
+  "label": "Bureau de traduction",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "translator",
+  "terms": []
+ },
+ {
+  "id": "office=guide",
+  "label": "Bureau des guides",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "guide",
+  "terms": [
+   "bureau des guides"
+  ]
+ },
+ {
+  "id": "office=religion",
+  "label": "Bureau religieux",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "religion",
+  "terms": [
+   "bureau religieux",
+   "administration religieuse",
+   "secrétariat religieux",
+   "intendance religieuse"
+  ]
+ },
+ {
+  "id": "office=diplomatic",
+  "label": "Bâtiment diplomatique",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "diplomatic",
+  "terms": [
+   "bâtiment",
+   "bureau diplomatique"
+  ]
+ },
+ {
+  "id": "office=lawyer",
+  "label": "Cabinet d'avocats",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "lawyer",
+  "terms": [
+   "cabinet",
+   "bureau",
+   "avocat",
+   "juriste",
+   "cabinet d'avocats"
+  ]
+ },
+ {
+  "id": "office=educational_institution",
+  "label": "Centre de formation",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "educational_institution",
+  "terms": [
+   "centre de formation",
+   "établissement d'enseignement"
+  ]
+ },
+ {
+  "id": "office=water_utility",
+  "label": "Compagnie des eaux",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "water_utility",
+  "terms": [
+   "compagnie des eaux",
+   "agence de l'eau"
+  ]
+ },
+ {
+  "id": "office=accountant",
+  "label": "Comptable",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "accountant",
+  "terms": [
+   "comptable",
+   "expert-comptable.",
+   "expert-comptable",
+   "cabinet comptable"
+  ]
+ },
+ {
+  "id": "office=financial_advisor",
+  "label": "Conseiller financier",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "financial_advisor",
+  "terms": [
+   "bureau financier",
+   "établissement financier",
+   "héritage",
+   "retraite",
+   "gestion de biens",
+   "finances"
+  ]
+ },
+ {
+  "id": "office=tax_advisor",
+  "label": "Conseiller fiscal",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "tax_advisor",
+  "terms": [
+   "conseiller fiscal"
+  ]
+ },
+ {
+  "id": "office=private_investigator",
+  "label": "Enquêteur privé/détective",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "private_investigator",
+  "terms": [
+   "enquêteur privé",
+   "détective"
+  ]
+ },
+ {
+  "id": "office=moving_company",
+  "label": "Entreprise de déménagement",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "moving_company",
+  "terms": [
+   "entreprise de déménagement"
+  ]
+ },
+ {
+  "id": "office=coworking",
+  "label": "Espace de coworking",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "coworking",
+  "terms": [
+   "espace de bureau partagé",
+   "espace de coworking."
+  ]
+ },
+ {
+  "id": "office=foundation",
+  "label": "Fondation",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "foundation",
+  "terms": [
+   "fondation"
+  ]
+ },
+ {
+  "id": "office=energy_supplier",
+  "label": "Fournisseur d'énergie",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "energy_supplier",
+  "terms": [
+   "fournisseur d'énergie",
+   "électricité"
+  ]
+ },
+ {
+  "id": "office=graphic_design",
+  "label": "Graphiste",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "graphic_design",
+  "terms": [
+   "bureau",
+   "cabinet",
+   "graphiste",
+   "designer",
+   "graphique"
+  ]
+ },
+ {
+  "id": "office=surveyor",
+  "label": "Géomètre",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "surveyor",
+  "terms": [
+   "géomètre",
+   "géomètre-expert",
+   "arpenteur",
+   "topographe."
+  ]
+ },
+ {
+  "id": "office=newspaper",
+  "label": "Journal",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "newspaper",
+  "terms": [
+   "journal",
+   "agence de presse"
+  ]
+ },
+ {
+  "id": "office=notary",
+  "label": "Notaire",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "notary",
+  "terms": [
+   "notaire"
+  ]
+ },
+ {
+  "id": "office=therapist",
+  "label": "Obsolète, utiliser healthcare=doctor ou alternative à la place",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "therapist",
+  "terms": [
+   "obsolète",
+   "utiliser healthcare=doctor ou alternative à la place"
+  ]
+ },
+ {
+  "id": "office=charity",
+  "label": "Organisation de bienfaisance/charité",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "charity",
+  "terms": [
+   "organisation de bienfaisance",
+   "organisation de charité"
+  ]
+ },
+ {
+  "id": "office=ngo",
+  "label": "Organisation non gouvernementale",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "ngo",
+  "terms": [
+   "ong",
+   "bureau de l'organisation non gouvernementale"
+  ]
+ },
+ {
+  "id": "office=research",
+  "label": "Organisme de recherche",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "research",
+  "terms": [
+   "centre de recherches"
+  ]
+ },
+ {
+  "id": "office=property_management",
+  "label": "Société de location immobilière",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "property_management",
+  "terms": [
+   "bureau",
+   "société",
+   "entreprise",
+   "location",
+   "louer",
+   "paiement",
+   "loyer",
+   "crédit-bail"
+  ]
+ },
+ {
+  "id": "office=it",
+  "label": "Spécialiste en informatique",
+  "group": "Bureaux & Professions",
+  "key": "office",
+  "value": "it",
+  "terms": [
+   "spécialiste en informatique",
+   "informaticien"
+  ]
+ },
+ {
+  "id": "shop=gold_buyer",
+  "label": "Acheteur d'or",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "gold_buyer",
+  "terms": [
+   "achat d'or"
+  ]
+ },
+ {
+  "id": "shop=travel_agency",
+  "label": "Agence de voyages",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "travel_agency",
+  "terms": [
+   "agence de voyage"
+  ]
+ },
+ {
+  "id": "shop=pet",
+  "label": "Animalerie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "pet",
+  "terms": [
+   "animalerie"
+  ]
+ },
+ {
+  "id": "shop=antiques",
+  "label": "Antiquaire",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "antiques",
+  "terms": [
+   "anticaire",
+   "magasin",
+   "antiquité",
+   "vieillerie",
+   "brocante"
+  ]
+ },
+ {
+  "id": "shop=weapons",
+  "label": "Armurerie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "weapons",
+  "terms": [
+   "armurerie"
+  ]
+ },
+ {
+  "id": "shop=repair",
+  "label": "Atelier de réparation",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "repair",
+  "terms": [
+   "réparation",
+   "réhabilitation",
+   "remise en état",
+   "rafistolage",
+   "retouche"
+  ]
+ },
+ {
+  "id": "shop=hearing_aids",
+  "label": "Audioprothésiste",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "hearing_aids",
+  "terms": [
+   "vente de prothèses auditives"
+  ]
+ },
+ {
+  "id": "shop=jewelry",
+  "label": "Bijouterie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "jewelry",
+  "terms": [
+   "magasin de bijoux",
+   "bijouterie",
+   "bijoux",
+   "bracelets",
+   "diamants",
+   "boucles d'oreilles",
+   "boucle d'oreille",
+   "or",
+   "joyau",
+   "gemme",
+   "pierre précieuse",
+   "collier",
+   "argent",
+   "joaillier"
+  ]
+ },
+ {
+  "id": "shop=bookmaker",
+  "label": "Bookmaker",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "bookmaker",
+  "terms": [
+   "preneur de paris",
+   "bookmaker"
+  ]
+ },
+ {
+  "id": "shop=butcher",
+  "label": "Boucherie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "butcher",
+  "terms": [
+   "boucherie",
+   "charcuterie",
+   "charcutier",
+   "boucher"
+  ]
+ },
+ {
+  "id": "shop=bakery",
+  "label": "Boulangerie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "bakery",
+  "terms": [
+   "boulangerie"
+  ]
+ },
+ {
+  "id": "shop=fashion_accessories",
+  "label": "Boutique d'accessoires de mode",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "fashion_accessories",
+  "terms": [
+   "sac à main",
+   "cologne",
+   "parfum",
+   "chapeau",
+   "bijoux",
+   "porte-monnaie",
+   "écharpe",
+   "lunettes de soleil",
+   "parapluie",
+   "montres"
+  ]
+ },
+ {
+  "id": "shop=mobile_phone_accessories",
+  "label": "Boutique d'accessoires pour téléphone",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "mobile_phone_accessories",
+  "terms": []
+ },
+ {
+  "id": "shop=gift",
+  "label": "Boutique de cadeaux",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "gift",
+  "terms": [
+   "boutique de souvenirs"
+  ]
+ },
+ {
+  "id": "shop=nutrition_supplements",
+  "label": "Boutique de compléments alimentaires",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "nutrition_supplements",
+  "terms": [
+   "compléments alimentaires;compléments nutritionnels"
+  ]
+ },
+ {
+  "id": "shop=anime",
+  "label": "Boutique de manga et anime",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "anime",
+  "terms": [
+   "manga",
+   "bd",
+   "figurine"
+  ]
+ },
+ {
+  "id": "shop=camera",
+  "label": "Boutique de matériel photographique",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "camera",
+  "terms": [
+   "appareil photo",
+   "caméra",
+   "camera",
+   "film"
+  ]
+ },
+ {
+  "id": "shop=fashion",
+  "label": "Boutique de mode",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "fashion",
+  "terms": []
+ },
+ {
+  "id": "shop=ticket",
+  "label": "Boutique de vente de billets",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "ticket",
+  "terms": [
+   "boutique de vente de billets",
+   "billetterie"
+  ]
+ },
+ {
+  "id": "shop=coffee",
+  "label": "Boutique de vente de cafés",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "coffee",
+  "terms": [
+   "magasin de café"
+  ]
+ },
+ {
+  "id": "shop=photo",
+  "label": "Boutique photo",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "photo",
+  "terms": [
+   "photographe",
+   "tirage de photos"
+  ]
+ },
+ {
+  "id": "shop=tobacco",
+  "label": "Bureau de tabac",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "tobacco",
+  "terms": [
+   "buraliste"
+  ]
+ },
+ {
+  "id": "shop=wine",
+  "label": "Caviste",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "wine",
+  "terms": [
+   "caviste",
+   "vin"
+  ]
+ },
+ {
+  "id": "shop=mall",
+  "label": "Centre commercial",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "mall",
+  "terms": [
+   "galerie marchande",
+   "centre d'achat"
+  ]
+ },
+ {
+  "id": "shop=chocolate",
+  "label": "Chocolatier",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "chocolate",
+  "terms": [
+   "chocolats",
+   "confiserie"
+  ]
+ },
+ {
+  "id": "shop=wholesale",
+  "label": "Commerce de gros",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "wholesale",
+  "terms": [
+   "commerce de gros",
+   "gros",
+   "lot",
+   "entrepôt"
+  ]
+ },
+ {
+  "id": "shop=vacant",
+  "label": "Commerce vacant",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "vacant",
+  "terms": [
+   "espace vacant",
+   "lot vacant"
+  ]
+ },
+ {
+  "id": "shop=car",
+  "label": "Concessionnaire automobile",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "car",
+  "terms": [
+   "concessionnaire",
+   "garage",
+   "garagiste",
+   "concession automobile",
+   "vendeur de voitures"
+  ]
+ },
+ {
+  "id": "shop=caravan",
+  "label": "Concessionnaire de véhicules de tourisme",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "caravan",
+  "terms": [
+   "concessionnaire",
+   "automobile",
+   "caravane",
+   "camping-car"
+  ]
+ },
+ {
+  "id": "shop=confectionery",
+  "label": "Confiserie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "confectionery",
+  "terms": [
+   "confiserie",
+   "confiseur",
+   "bonbons",
+   "fabricant de bonbons",
+   "biscuits",
+   "biscuiterie"
+  ]
+ },
+ {
+  "id": "shop=shoe_repair",
+  "label": "Cordonnier",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "shoe_repair",
+  "terms": [
+   "cordonnerie",
+   "cordonnier réparation de chaussures"
+  ]
+ },
+ {
+  "id": "shop=dairy",
+  "label": "Crèmerie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "dairy",
+  "terms": [
+   "crèmerie"
+  ]
+ },
+ {
+  "id": "shop=kitchen",
+  "label": "Cuisiniste",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "kitchen",
+  "terms": [
+   "vente de mobilier et accessoires de cuisine"
+  ]
+ },
+ {
+  "id": "shop=music",
+  "label": "Disquaire",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "music",
+  "terms": [
+   "disques",
+   "cd",
+   "cassettes",
+   "disque vinyle"
+  ]
+ },
+ {
+  "id": "shop=chemist",
+  "label": "Droguerie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "chemist",
+  "terms": [
+   "produits d'entretien",
+   "cosmétiques",
+   "hygiène",
+   "parapharmacie"
+  ]
+ },
+ {
+  "id": "shop=florist",
+  "label": "Fleuriste",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "florist",
+  "terms": [
+   "fleuriste"
+  ]
+ },
+ {
+  "id": "shop=bathroom_furnishing",
+  "label": "Fournitures pour salles de bain",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "bathroom_furnishing",
+  "terms": [
+   "fournitures pour salles de bain"
+  ]
+ },
+ {
+  "id": "shop=cheese",
+  "label": "Fromagerie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "cheese",
+  "terms": [
+   "vente de fromages",
+   "fromager"
+  ]
+ },
+ {
+  "id": "shop=car_repair",
+  "label": "Garage de réparation automobile",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "car_repair",
+  "terms": [
+   "garage",
+   "atelier de mécanique automobile",
+   "atelier de réparation automobile",
+   "garagiste",
+   "garage automobile",
+   "mécanicien auto"
+  ]
+ },
+ {
+  "id": "shop=ice_cream",
+  "label": "Glacier",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "ice_cream",
+  "terms": []
+ },
+ {
+  "id": "shop=department_store",
+  "label": "Grand magasin",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "department_store",
+  "terms": [
+   "magasin à rayon",
+   "grand magasin",
+   "magasin par départements"
+  ]
+ },
+ {
+  "id": "shop=trade",
+  "label": "Grossiste",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "trade",
+  "terms": [
+   "grossiste"
+  ]
+ },
+ {
+  "id": "shop=herbalist",
+  "label": "Herboristerie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "herbalist",
+  "terms": [
+   "herboristerie"
+  ]
+ },
+ {
+  "id": "shop=garden_centre",
+  "label": "Jardinerie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "garden_centre",
+  "terms": [
+   "jardinerie",
+   "magasin de jardinage"
+  ]
+ },
+ {
+  "id": "shop=kiosk",
+  "label": "Kiosque",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "kiosk",
+  "terms": [
+   "kiosque"
+  ]
+ },
+ {
+  "id": "shop=laundry",
+  "label": "Laverie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "laundry",
+  "terms": [
+   "laverie"
+  ]
+ },
+ {
+  "id": "shop=books",
+  "label": "Librairie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "books",
+  "terms": [
+   "librairie",
+   "papeterie"
+  ]
+ },
+ {
+  "id": "shop=tool_hire",
+  "label": "Location d'outils",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "tool_hire",
+  "terms": [
+   "outil",
+   "outillage",
+   "location"
+  ]
+ },
+ {
+  "id": "shop=storage_rental",
+  "label": "Location de stockage",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "storage_rental",
+  "terms": [
+   "location de stockage - ne pas utiliser"
+  ]
+ },
+ {
+  "id": "shop=lottery",
+  "label": "Loterie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "lottery",
+  "terms": [
+   "vente de billets de loterie"
+  ]
+ },
+ {
+  "id": "shop=agrarian",
+  "label": "Magasin d'agriculture",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "agrarian",
+  "terms": [
+   "magasin de produit de la ferme",
+   "machines",
+   "pesticides",
+   "graines",
+   "engins agricoles"
+  ]
+ },
+ {
+  "id": "shop=health_food",
+  "label": "Magasin d'alimentation diététique/bio",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "health_food",
+  "terms": [
+   "magasin",
+   "alimentation",
+   "produits",
+   "aliments",
+   "bio",
+   "biologique",
+   "diététique",
+   "naturel",
+   "végétarien",
+   "végan"
+  ]
+ },
+ {
+  "id": "shop=religion",
+  "label": "Magasin d'articles religieux",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "religion",
+  "terms": [
+   "boutique d'une église",
+   "d'un monastère"
+  ]
+ },
+ {
+  "id": "shop=craft",
+  "label": "Magasin d'arts et loisirs créatifs",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "craft",
+  "terms": [
+   "art",
+   "loisir",
+   "peinture"
+  ]
+ },
+ {
+  "id": "shop=water",
+  "label": "Magasin d'eau potable",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "water",
+  "terms": [
+   "eau potable"
+  ]
+ },
+ {
+  "id": "shop=frame",
+  "label": "Magasin d'encadrements",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "frame",
+  "terms": [
+   "vente de cadres"
+  ]
+ },
+ {
+  "id": "shop=groundskeeping",
+  "label": "Magasin d'entretien du jardin",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "groundskeeping",
+  "terms": []
+ },
+ {
+  "id": "shop=computer",
+  "label": "Magasin d'informatique",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "computer",
+  "terms": [
+   "magasin d'informatique"
+  ]
+ },
+ {
+  "id": "shop=musical_instrument",
+  "label": "Magasin d'instruments de musique",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "musical_instrument",
+  "terms": [
+   "magasin d'instruments de musique"
+  ]
+ },
+ {
+  "id": "shop=collector",
+  "label": "Magasin d'objets de collection",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "collector",
+  "terms": [
+   "magasin",
+   "collection",
+   "collectionneur",
+   "timbres",
+   "philatélie",
+   "pièces de monnaie",
+   "numismatique",
+   "poupées",
+   "figurines",
+   "cartes postales",
+   "fossiles",
+   "bd",
+   "manga",
+   "pin's"
+  ]
+ },
+ {
+  "id": "shop=charity",
+  "label": "Magasin d'organisme caritatif",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "charity",
+  "terms": [
+   "boutique caritative"
+  ]
+ },
+ {
+  "id": "shop=appliance",
+  "label": "Magasin d'électroménager",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "appliance",
+  "terms": [
+   "magasin d'électroménager",
+   "électroménager",
+   "appareil électroménager",
+   "petit électroménager",
+   "gros électroménager",
+   "shop appliance",
+   "appliances",
+   "bouilloire",
+   "centrifugeuse",
+   "cuiseur",
+   "cuit vapeur",
+   "fouet électrique",
+   "grille-pain",
+   "machine à pain",
+   "mixeur",
+   "pierrade",
+   "presse-agrumes",
+   "robot de cuisine",
+   "robot multifonctions",
+   "pèse-personne",
+   "épilateur",
+   "rasoir électrique",
+   "cafetière",
+   "moulin à café",
+   "aspirateur",
+   "cireuse",
+   "nettoyeur à vapeur",
+   "tondeuse",
+   "repassage",
+   "centrale vapeur",
+   "fer à repasser",
+   "cuisinière",
+   "four micro-ondes",
+   "four traditionnel",
+   "four à vapeur",
+   "cuisinière à gaz",
+   "hotte aspirante",
+   "plaque de cuisson",
+   "lave-linge",
+   "lave-vaisselle",
+   "sèche-linge",
+   "cave à vin",
+   "congélateur",
+   "réfrigérateur",
+   "climatiseur"
+  ]
+ },
+ {
+  "id": "shop=vacuum_cleaner",
+  "label": "Magasin d'électroménager de nettoyage",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "vacuum_cleaner",
+  "terms": [
+   "aspirateur",
+   "nettoyage"
+  ]
+ },
+ {
+  "id": "shop=electronics",
+  "label": "Magasin d'électronique et d'électroménager",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "electronics",
+  "terms": [
+   "magasin d'électronique et d'électroménager"
+  ]
+ },
+ {
+  "id": "shop=spices",
+  "label": "Magasin d'épices",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "spices",
+  "terms": [
+   "épices",
+   "chili",
+   "curry",
+   "cannelle",
+   "gingembre",
+   "poivre",
+   "safran",
+   "sel",
+   "wasabi"
+  ]
+ },
+ {
+  "id": "shop=sports",
+  "label": "Magasin d'équipement sportif",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "sports",
+  "terms": [
+   "magasin de sport"
+  ]
+ },
+ {
+  "id": "shop=electrical",
+  "label": "Magasin d'équipements électriques",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "electrical",
+  "terms": [
+   "équipements électriques",
+   "cables",
+   "câbles",
+   "électricité",
+   "ventilateurs",
+   "led",
+   "fils",
+   "éclairage",
+   "lampes"
+  ]
+ },
+ {
+  "id": "shop=boat",
+  "label": "Magasin de bateaux",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "boat",
+  "terms": [
+   "magasin de bateau",
+   "bateau de pêche",
+   "jetski",
+   "hors-bord"
+  ]
+ },
+ {
+  "id": "shop=beverages",
+  "label": "Magasin de boissons",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "beverages",
+  "terms": [
+   "magasin de vins et spiritueux"
+  ]
+ },
+ {
+  "id": "shop=candles",
+  "label": "Magasin de bougies",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "candles",
+  "terms": [
+   "vente de bougies et d'accessoires"
+  ]
+ },
+ {
+  "id": "shop=gas",
+  "label": "Magasin de bouteilles de gaz",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "gas",
+  "terms": [
+   "bouteille",
+   "gaz",
+   "butane",
+   "propane"
+  ]
+ },
+ {
+  "id": "shop=doityourself",
+  "label": "Magasin de bricolage",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "doityourself",
+  "terms": [
+   "magasin de bricolage"
+  ]
+ },
+ {
+  "id": "shop=cannabis",
+  "label": "Magasin de cannabis",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "cannabis",
+  "terms": [
+   "canabis",
+   "marijuana",
+   "herbe"
+  ]
+ },
+ {
+  "id": "shop=tiles",
+  "label": "Magasin de carrelage",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "tiles",
+  "terms": [
+   "carrelage",
+   "dalle de sol",
+   "faïence"
+  ]
+ },
+ {
+  "id": "shop=hunting",
+  "label": "Magasin de chasse",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "hunting",
+  "terms": [
+   "chasse"
+  ]
+ },
+ {
+  "id": "shop=shoes",
+  "label": "Magasin de chaussures",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "shoes",
+  "terms": [
+   "magasin de chaussures"
+  ]
+ },
+ {
+  "id": "shop=fireplace",
+  "label": "Magasin de cheminées",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "fireplace",
+  "terms": [
+   "cheminées"
+  ]
+ },
+ {
+  "id": "shop=e-cigarette",
+  "label": "Magasin de cigarettes électroniques",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "e-cigarette",
+  "terms": [
+   "boutique de cigarettes électroniques"
+  ]
+ },
+ {
+  "id": "shop=telecommunication",
+  "label": "Magasin de compagnie de télécommunication",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "telecommunication",
+  "terms": [
+   "communication",
+   "télécommunication",
+   "internet",
+   "fai",
+   "fournisseur d'accès internet",
+   "isp",
+   "téléphone",
+   "voip",
+   "voix sur ip",
+   "portable"
+  ]
+ },
+ {
+  "id": "shop=radiotechnics",
+  "label": "Magasin de composants électroniques et de radio",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "radiotechnics",
+  "terms": []
+ },
+ {
+  "id": "shop=cosmetics",
+  "label": "Magasin de cosmétiques",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "cosmetics",
+  "terms": [
+   "vente de cosmétiques",
+   "parfumerie"
+  ]
+ },
+ {
+  "id": "shop=interior_decoration",
+  "label": "Magasin de décoration d'intérieur",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "interior_decoration",
+  "terms": [
+   "magasin de décoration d'intérieur"
+  ]
+ },
+ {
+  "id": "shop=pyrotechnics",
+  "label": "Magasin de feux d'artifice",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "pyrotechnics",
+  "terms": [
+   "magasin de feux d'artifice"
+  ]
+ },
+ {
+  "id": "shop=games",
+  "label": "Magasin de jeux de plateau",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "games",
+  "terms": [
+   "jeux de plateau",
+   "jeu de plateau",
+   "jeu de cartes",
+   "jeux de cartes",
+   "game shop",
+   "jeu de rôle",
+   "miniature",
+   "stratégie",
+   "plateau",
+   "cartes",
+   "figurines"
+  ]
+ },
+ {
+  "id": "shop=toys",
+  "label": "Magasin de jouets",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "toys",
+  "terms": [
+   "magasin de jouets"
+  ]
+ },
+ {
+  "id": "shop=lighting",
+  "label": "Magasin de lampes",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "lighting",
+  "terms": [
+   "lampes",
+   "fluorescent",
+   "compact",
+   "led",
+   "del",
+   "ampoule"
+  ]
+ },
+ {
+  "id": "shop=household_linen",
+  "label": "Magasin de linge de maison",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "household_linen",
+  "terms": [
+   "magasin de linge de maison",
+   "linge",
+   "lit",
+   "toilette",
+   "ménage",
+   "table",
+   "rideaux",
+   "voilage",
+   "mouchoir",
+   "drap",
+   "couverture",
+   "taie",
+   "gants",
+   "serviette",
+   "torchon",
+   "nappe"
+  ]
+ },
+ {
+  "id": "shop=bed",
+  "label": "Magasin de literie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "bed",
+  "terms": [
+   "vente de literie",
+   "vente de matelas"
+  ]
+ },
+ {
+  "id": "shop=rental",
+  "label": "Magasin de location",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "rental",
+  "terms": [
+   "magasin",
+   "boutique",
+   "location",
+   "temporaire"
+  ]
+ },
+ {
+  "id": "shop=video_games",
+  "label": "Magasin de location et vente de jeux vidéo",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "video_games",
+  "terms": [
+   "magasin de location et vente de jeux vidéo"
+  ]
+ },
+ {
+  "id": "shop=brewing_supplies",
+  "label": "Magasin de matériel de brasserie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "brewing_supplies",
+  "terms": [
+   "brasserie",
+   "brasseur"
+  ]
+ },
+ {
+  "id": "shop=hairdresser_supply",
+  "label": "Magasin de matériel de coiffure",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "hairdresser_supply",
+  "terms": [
+   "coiffeur",
+   "shampoings",
+   "barbier"
+  ]
+ },
+ {
+  "id": "shop=party",
+  "label": "Magasin de matériel de fête",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "party",
+  "terms": [
+   "ballons",
+   "costumes",
+   "décorations",
+   "invitations",
+   "fête"
+  ]
+ },
+ {
+  "id": "shop=swimming_pool",
+  "label": "Magasin de matériel de piscine",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "swimming_pool",
+  "terms": [
+   "spa",
+   "cuve thermale",
+   "maintenance",
+   "piscine"
+  ]
+ },
+ {
+  "id": "shop=scuba_diving",
+  "label": "Magasin de matériel de plongée sous-marine",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "scuba_diving",
+  "terms": [
+   "magasin d'équipement et d'articles de plongée sous-marine"
+  ]
+ },
+ {
+  "id": "shop=outdoor",
+  "label": "Magasin de matériel de sports de plein air",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "outdoor",
+  "terms": [
+   "magasin de matériel de sports de plein air"
+  ]
+ },
+ {
+  "id": "shop=hifi",
+  "label": "Magasin de matériel hi-fi",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "hifi",
+  "terms": [
+   "magasin d'appareils audio-visuel"
+  ]
+ },
+ {
+  "id": "shop=medical_supply",
+  "label": "Magasin de matériel médical",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "medical_supply",
+  "terms": [
+   "magasin de matériel médical"
+  ]
+ },
+ {
+  "id": "shop=furniture",
+  "label": "Magasin de meubles",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "furniture",
+  "terms": [
+   "magasin de meubles"
+  ]
+ },
+ {
+  "id": "shop=honey",
+  "label": "Magasin de miel",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "honey",
+  "terms": [
+   "magasin de miel",
+   "miel",
+   "apiculture",
+   "apiculteur",
+   "apicultrice"
+  ]
+ },
+ {
+  "id": "shop=model",
+  "label": "Magasin de modélisme",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "model",
+  "terms": [
+   "modélisme",
+   "maquettes",
+   "modèles réduits"
+  ]
+ },
+ {
+  "id": "shop=watches",
+  "label": "Magasin de montres",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "watches",
+  "terms": [
+   "horloger",
+   "vente de montres"
+  ]
+ },
+ {
+  "id": "shop=nuts",
+  "label": "Magasin de noix",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "nuts",
+  "terms": [
+   "noix",
+   "fruits secs",
+   "fruit sec",
+   "cacahuète",
+   "pistache",
+   "graine",
+   "noix de coco",
+   "amande"
+  ]
+ },
+ {
+  "id": "shop=paint",
+  "label": "Magasin de peintures",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "paint",
+  "terms": [
+   "vente de peintures"
+  ]
+ },
+ {
+  "id": "shop=wigs",
+  "label": "Magasin de perruques",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "wigs",
+  "terms": [
+   "perruque",
+   "postiche",
+   "extensions de cheveux"
+  ]
+ },
+ {
+  "id": "shop=car_parts",
+  "label": "Magasin de pièces automobiles",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "car_parts",
+  "terms": [
+   "magasin de pièces automobiles"
+  ]
+ },
+ {
+  "id": "shop=tyres",
+  "label": "Magasin de pneus",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "tyres",
+  "terms": [
+   "magasin de pneus"
+  ]
+ },
+ {
+  "id": "shop=doors",
+  "label": "Magasin de portes",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "doors",
+  "terms": [
+   "porte",
+   "porte-fenêtre",
+   "porte-fenetre"
+  ]
+ },
+ {
+  "id": "shop=pottery",
+  "label": "Magasin de poterie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "pottery",
+  "terms": [
+   "poterie",
+   "céramique",
+   "ceramique",
+   "potier",
+   "céramiste",
+   "ceramiste"
+  ]
+ },
+ {
+  "id": "shop=farm",
+  "label": "Magasin de producteurs",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "farm",
+  "terms": [
+   "étal de fruits et légumes",
+   "vente à la ferme",
+   "vente producteurs"
+  ]
+ },
+ {
+  "id": "shop=second_hand",
+  "label": "Magasin de produits d'occasion",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "second_hand",
+  "terms": [
+   "magasin",
+   "dépot",
+   "friperie",
+   "seconde main",
+   "aubaine",
+   "solidaire"
+  ]
+ },
+ {
+  "id": "shop=baby_goods",
+  "label": "Magasin de produits pour bébés",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "baby_goods",
+  "terms": [
+   "magasin de puériculture"
+  ]
+ },
+ {
+  "id": "shop=frozen_food",
+  "label": "Magasin de produits surgelés",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "frozen_food",
+  "terms": [
+   "surgelés",
+   "surgeles",
+   "glaces"
+  ]
+ },
+ {
+  "id": "shop=outpost",
+  "label": "Magasin de produits vendus en ligne",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "outpost",
+  "terms": [
+   "vente en ligne",
+   "pickup",
+   "online",
+   "en ligne",
+   "commande"
+  ]
+ },
+ {
+  "id": "shop=pasta",
+  "label": "Magasin de pâtes",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "pasta",
+  "terms": [
+   "magasin de pâtes"
+  ]
+ },
+ {
+  "id": "shop=fishing",
+  "label": "Magasin de pêche",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "fishing",
+  "terms": [
+   "pêche"
+  ]
+ },
+ {
+  "id": "shop=flooring",
+  "label": "Magasin de revêtements de sol",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "flooring",
+  "terms": [
+   "magasin",
+   "boutique",
+   "revêtements de sol",
+   "carrelage",
+   "parquet",
+   "lattes",
+   "moquette",
+   "tapis",
+   "lino",
+   "vinyle",
+   "pvc"
+  ]
+ },
+ {
+  "id": "shop=curtain",
+  "label": "Magasin de rideaux",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "curtain",
+  "terms": [
+   "magasin de rideaux"
+  ]
+ },
+ {
+  "id": "shop=rice",
+  "label": "Magasin de riz",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "rice",
+  "terms": [
+   "magasin de riz"
+  ]
+ },
+ {
+  "id": "shop=bag",
+  "label": "Magasin de sacs",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "bag",
+  "terms": []
+ },
+ {
+  "id": "shop=carpet",
+  "label": "Magasin de tapis",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "carpet",
+  "terms": [
+   "magasin de tapis"
+  ]
+ },
+ {
+  "id": "shop=tea",
+  "label": "Magasin de thés",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "tea",
+  "terms": [
+   "magasin de thés"
+  ]
+ },
+ {
+  "id": "shop=fabric",
+  "label": "Magasin de tissus",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "fabric",
+  "terms": [
+   "mercerie"
+  ]
+ },
+ {
+  "id": "shop=trophy",
+  "label": "Magasin de trophées",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "trophy",
+  "terms": [
+   "trophées",
+   "médailles",
+   "coupes",
+   "récompenses"
+  ]
+ },
+ {
+  "id": "shop=mobile_phone",
+  "label": "Magasin de téléphonie mobile",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "mobile_phone",
+  "terms": [
+   "vente de téléphone portable",
+   "magasin de téléphones portables",
+   "cellulaires"
+  ]
+ },
+ {
+  "id": "shop=alcohol",
+  "label": "Magasin de vente d'alcool",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "alcohol",
+  "terms": [
+   "cave",
+   "caviste",
+   "magasin de vin",
+   "vins & spiritueux"
+  ]
+ },
+ {
+  "id": "shop=window_blind",
+  "label": "Magasin de vente de stores",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "window_blind",
+  "terms": [
+   "store",
+   "rideau",
+   "volet"
+  ]
+ },
+ {
+  "id": "shop=bicycle",
+  "label": "Magasin de vélos",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "bicycle",
+  "terms": [
+   "magasin de vélo"
+  ]
+ },
+ {
+  "id": "shop=clothes",
+  "label": "Magasin de vêtements",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "clothes",
+  "terms": [
+   "magasin de vêtements"
+  ]
+ },
+ {
+  "id": "shop=variety_store",
+  "label": "Magasin discount",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "variety_store",
+  "terms": [
+   "magasin",
+   "bas prix",
+   "prix bas",
+   "discount"
+  ]
+ },
+ {
+  "id": "shop=houseware",
+  "label": "Magasin d’articles ménagers",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "houseware",
+  "terms": [
+   "vente d'articles de cuisine"
+  ]
+ },
+ {
+  "id": "shop=general",
+  "label": "Magasin général",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "general",
+  "terms": [
+   "magasin général",
+   "magasin de village"
+  ]
+ },
+ {
+  "id": "shop=bbq",
+  "label": "Magasin pour barbecues",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "bbq",
+  "terms": []
+ },
+ {
+  "id": "shop=catalogue",
+  "label": "Magasin à catalogue",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "catalogue",
+  "terms": [
+   "catalogue"
+  ]
+ },
+ {
+  "id": "shop=psychic",
+  "label": "Magasin ésotérique psi",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "psychic",
+  "terms": [
+   "psi",
+   "esprit",
+   "astrologie",
+   "boule de cristal",
+   "diseur de bonne aventure",
+   "bonne aventure",
+   "parapsychologie",
+   "extrasensoriel",
+   "psychokinésie"
+  ]
+ },
+ {
+  "id": "shop=art",
+  "label": "Marchand d'art",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "art",
+  "terms": [
+   "galeriste",
+   "gallerie d'art",
+   "marchand d'art",
+   "magasin d'art",
+   "art",
+   "artiste",
+   "exposition"
+  ]
+ },
+ {
+  "id": "shop=newsagent",
+  "label": "Marchand de journaux",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "newsagent",
+  "terms": [
+   "kiosque",
+   "marchand",
+   "maison de la presse",
+   "journaux",
+   "magazines",
+   "presse"
+  ]
+ },
+ {
+  "id": "shop=leather",
+  "label": "Maroquinier",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "leather",
+  "terms": [
+   "boutique de vêtements en cuir"
+  ]
+ },
+ {
+  "id": "shop=sewing",
+  "label": "Mercerie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "sewing",
+  "terms": [
+   "magasin de couture",
+   "magasin de matériel de couture"
+  ]
+ },
+ {
+  "id": "shop=optician",
+  "label": "Opticien",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "optician",
+  "terms": [
+   "opticien",
+   "marchand de lunettes"
+  ]
+ },
+ {
+  "id": "shop=stationery",
+  "label": "Papeterie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "stationery",
+  "terms": [
+   "papeterie"
+  ]
+ },
+ {
+  "id": "shop=perfumery",
+  "label": "Parfumerie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "perfumery",
+  "terms": [
+   "parfumerie"
+  ]
+ },
+ {
+  "id": "shop=piercing",
+  "label": "Perceur",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "piercing",
+  "terms": []
+ },
+ {
+  "id": "shop=boutique",
+  "label": "Petit magasin de mode",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "boutique",
+  "terms": []
+ },
+ {
+  "id": "shop=copyshop",
+  "label": "Photocopie et impression",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "copyshop",
+  "terms": [
+   "photocopies",
+   "impression"
+  ]
+ },
+ {
+  "id": "shop=seafood",
+  "label": "Poissonnerie / Vente de fruits de mer",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "seafood",
+  "terms": [
+   "vendeur de poissons",
+   "fruits de mer",
+   "écailler",
+   "conserverie"
+  ]
+ },
+ {
+  "id": "shop=funeral_directors",
+  "label": "Pompes funèbres",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "funeral_directors",
+  "terms": [
+   "services d’arrangements funéraires"
+  ]
+ },
+ {
+  "id": "shop=dry_cleaning",
+  "label": "Pressing",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "dry_cleaning",
+  "terms": [
+   "teinturerie",
+   "blanchisserie"
+  ]
+ },
+ {
+  "id": "shop=greengrocer",
+  "label": "Primeur",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "greengrocer",
+  "terms": [
+   "fruiterie",
+   "marchand de fruits et légumes",
+   "maraicher",
+   "maraîcher",
+   "primeur"
+  ]
+ },
+ {
+  "id": "shop=money_lender",
+  "label": "Prêteur",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "money_lender",
+  "terms": [
+   "prêteur"
+  ]
+ },
+ {
+  "id": "shop=pawnbroker",
+  "label": "Prêteur sur gages",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "pawnbroker",
+  "terms": [
+   "prêteur",
+   "dépôt",
+   "gage",
+   "gages",
+   "occasion",
+   "mont-de-piété",
+   "crédit municipal"
+  ]
+ },
+ {
+  "id": "shop=pastry",
+  "label": "Pâtisserie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "pastry",
+  "terms": [
+   "gaufre"
+  ]
+ },
+ {
+  "id": "shop=country_store",
+  "label": "Quincaillerie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "country_store",
+  "terms": [
+   "quincaillerie rurale",
+   "épicerie rurale",
+   "épicerie de campagne",
+   "quincaillerie de campagne"
+  ]
+ },
+ {
+  "id": "shop=hardware",
+  "label": "Quincaillerie",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "hardware",
+  "terms": [
+   "quincaillerie"
+  ]
+ },
+ {
+  "id": "shop=fuel",
+  "label": "Revendeur de carburant",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "fuel",
+  "terms": [
+   "magasin",
+   "essence",
+   "station-service",
+   "pétrole",
+   "fuel",
+   "carburant",
+   "diesel"
+  ]
+ },
+ {
+  "id": "shop=motorcycle_repair",
+  "label": "Réparateur de motos",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "motorcycle_repair",
+  "terms": [
+   "réparateur de motos"
+  ]
+ },
+ {
+  "id": "shop=beauty",
+  "label": "Salon de beauté",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "beauty",
+  "terms": [
+   "salon de beauté",
+   "institut de beauté",
+   "épilation"
+  ]
+ },
+ {
+  "id": "shop=hairdresser",
+  "label": "Salon de coiffure",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "hairdresser",
+  "terms": [
+   "coiffeur",
+   "barbier"
+  ]
+ },
+ {
+  "id": "shop=massage",
+  "label": "Salon de massage",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "massage",
+  "terms": [
+   "salon de massage"
+  ]
+ },
+ {
+  "id": "shop=tattoo",
+  "label": "Salon de tatouage",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "tattoo",
+  "terms": [
+   "salon de tatouage"
+  ]
+ },
+ {
+  "id": "shop=pet_grooming",
+  "label": "Salon de toilettage",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "pet_grooming",
+  "terms": [
+   "toilettage",
+   "animal",
+   "chien",
+   "chat",
+   "salon",
+   "animalerie"
+  ]
+ },
+ {
+  "id": "shop=locksmith",
+  "label": "Serrurier",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "locksmith",
+  "terms": [
+   "serrurier"
+  ]
+ },
+ {
+  "id": "shop=erotic",
+  "label": "Sex-shop",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "erotic",
+  "terms": [
+   "sex-shop"
+  ]
+ },
+ {
+  "id": "shop=supermarket",
+  "label": "Supermarché",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "supermarket",
+  "terms": [
+   "supermarché"
+  ]
+ },
+ {
+  "id": "shop=military_surplus",
+  "label": "Surplus militaire",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "military_surplus",
+  "terms": [
+   "armée",
+   "armure",
+   "navy",
+   "magasin militaire",
+   "surplus",
+   "tactique",
+   "équipement militaire",
+   "guerre",
+   "équipement de guerre"
+  ]
+ },
+ {
+  "id": "shop=tailor",
+  "label": "Tailleur",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "tailor",
+  "terms": [
+   "habilleur",
+   "giletier"
+  ]
+ },
+ {
+  "id": "shop=printer_ink",
+  "label": "Vendeur d'encre pour imprimante",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "printer_ink",
+  "terms": [
+   "imprimante",
+   "fax",
+   "encre",
+   "cartouche",
+   "impression"
+  ]
+ },
+ {
+  "id": "shop=motorcycle",
+  "label": "Vendeur de motos",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "motorcycle",
+  "terms": [
+   "vendeur de motocyclettes"
+  ]
+ },
+ {
+  "id": "shop=water_sports",
+  "label": "Vente d'équipements et d'articles pour sports nautiques",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "water_sports",
+  "terms": []
+ },
+ {
+  "id": "shop=video",
+  "label": "Vidéo-club",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "video",
+  "terms": [
+   "club vidéo"
+  ]
+ },
+ {
+  "id": "shop=convenience",
+  "label": "Épicerie / Supérette",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "convenience",
+  "terms": [
+   "supérette",
+   "petite épicerie du coin"
+  ]
+ },
+ {
+  "id": "shop=deli",
+  "label": "Épicerie fine",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "deli",
+  "terms": [
+   "épicerie fine",
+   "traiteur",
+   "charcuterie",
+   "plat à emporter"
+  ]
+ },
+ {
+  "id": "shop=esoteric",
+  "label": "Ésotérique",
+  "group": "Commerces",
+  "key": "shop",
+  "value": "esoteric",
+  "terms": []
+ },
+ {
+  "id": "healthcare=audiologist",
+  "label": "Audiologiste",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "audiologist",
+  "terms": [
+   "audiologiste",
+   "audiologue"
+  ]
+ },
+ {
+  "id": "healthcare=counselling",
+  "label": "Centre de conseil médical",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "counselling",
+  "terms": [
+   "conseil",
+   "diététique",
+   "sexe",
+   "régime"
+  ]
+ },
+ {
+  "id": "healthcare=dialysis",
+  "label": "Centre de dialyse",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "dialysis",
+  "terms": [
+   "centre de dialyse"
+  ]
+ },
+ {
+  "id": "healthcare=blood_donation",
+  "label": "Centre de don du sang",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "blood_donation",
+  "terms": [
+   "centre de don du sang",
+   "banque du sang"
+  ]
+ },
+ {
+  "id": "healthcare=rehabilitation",
+  "label": "Centre de réadaptation",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "rehabilitation",
+  "terms": [
+   "centre de réadaptation",
+   "établissement de réadaptation"
+  ]
+ },
+ {
+  "id": "healthcare=occupational_therapist",
+  "label": "Ergothérapeute",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "occupational_therapist",
+  "terms": [
+   "ergothérapeute"
+  ]
+ },
+ {
+  "id": "healthcare=hospice",
+  "label": "Hospice",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "hospice",
+  "terms": [
+   "hôpital",
+   "clinique",
+   "établissement de santé",
+   "chr",
+   "chu",
+   "chic",
+   "ch"
+  ]
+ },
+ {
+  "id": "healthcare=laboratory",
+  "label": "Laboratoire de biologie médicale, Laboratoire d'analyses médicale",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "laboratory",
+  "terms": [
+   "laboratoire de biologie médicale",
+   "laboratoire d'analyses médicale"
+  ]
+ },
+ {
+  "id": "healthcare=sample_collection",
+  "label": "Lieu de prélèvements biologiques",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "sample_collection",
+  "terms": [
+   "lieu",
+   "centre",
+   "santé",
+   "échantillon",
+   "prélèvement",
+   "collecte",
+   "biologique"
+  ]
+ },
+ {
+  "id": "healthcare=physiotherapist",
+  "label": "Masseur-kinésithérapeute",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "physiotherapist",
+  "terms": [
+   "kinésithérapeute",
+   "kiné",
+   "masseur",
+   "physiothérapeute"
+  ]
+ },
+ {
+  "id": "healthcare=birthing_centre",
+  "label": "Maternité",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "birthing_centre",
+  "terms": [
+   "centre de maternité",
+   "clinique",
+   "établissement",
+   "accouchement",
+   "grossesse"
+  ]
+ },
+ {
+  "id": "healthcare=alternative",
+  "label": "Médecine alternative",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "alternative",
+  "terms": [
+   "techniques de bien-être alternatives"
+  ]
+ },
+ {
+  "id": "healthcare=optometrist",
+  "label": "Optométriste",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "optometrist",
+  "terms": [
+   "opticien"
+  ]
+ },
+ {
+  "id": "healthcare=speech_therapist",
+  "label": "Orthophoniste",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "speech_therapist",
+  "terms": [
+   "orthophoniste"
+  ]
+ },
+ {
+  "id": "healthcare=podiatrist",
+  "label": "Podologue",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "podiatrist",
+  "terms": [
+   "pédicure-podologue",
+   "podologue"
+  ]
+ },
+ {
+  "id": "healthcare=psychotherapist",
+  "label": "Psychothérapeute",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "psychotherapist",
+  "terms": [
+   "psychologue"
+  ]
+ },
+ {
+  "id": "healthcare=midwife",
+  "label": "Sage-femme",
+  "group": "Santé",
+  "key": "healthcare",
+  "value": "midwife",
+  "terms": [
+   "sage-femme",
+   "maïeuticienne"
+  ]
+ },
+ {
+  "id": "amenity=trolley_bay",
+  "label": "Abri à chariots",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "trolley_bay",
+  "terms": [
+   "abri à chariots"
+  ]
+ },
+ {
+  "id": "amenity=car_pooling",
+  "label": "Aire de covoiturage",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "car_pooling",
+  "terms": [
+   "covoiturage",
+   "co-voiturage",
+   "autopartage"
+  ]
+ },
+ {
+  "id": "amenity=food_court",
+  "label": "Aire de restauration, food-court",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "food_court",
+  "terms": [
+   "aire de restauration",
+   "zone de restauration",
+   "foodcourt",
+   "food-court",
+   "food court",
+   "restauration rapide",
+   "restaurants rapides",
+   "restaurant rapide",
+   "service au comptoir",
+   "vente à emporter",
+   "repas à emporter",
+   "fast food",
+   "restaurants",
+   "cuisines",
+   "cafeteria",
+   "cafétéria",
+   "repas"
+  ]
+ },
+ {
+  "id": "amenity=embassy",
+  "label": "Ambassade",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "embassy",
+  "terms": []
+ },
+ {
+  "id": "amenity=driving_school",
+  "label": "Auto-école",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "driving_school",
+  "terms": []
+ },
+ {
+  "id": "amenity=waste_disposal",
+  "label": "Bac à déchets",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "waste_disposal",
+  "terms": [
+   "bac à déchets",
+   "bac à ordures",
+   "benne à ordures",
+   "benne à déchets",
+   "container à déchets",
+   "container à ordures",
+   "déchets",
+   "ordures",
+   "poubelle",
+   "grande poubelle",
+   "tri sélectif",
+   "recyclage",
+   "waste disposal",
+   "wastedisposal",
+   "amenity waste disposal"
+  ]
+ },
+ {
+  "id": "amenity=grit_bin",
+  "label": "Bac à sel",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "grit_bin",
+  "terms": [
+   "bacs à sel de déneigement"
+  ]
+ },
+ {
+  "id": "amenity=kneipp_water_cure",
+  "label": "Bain Kneipp",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "kneipp_water_cure",
+  "terms": [
+   "bain",
+   "piscine",
+   "eau",
+   "pied",
+   "hydrothérapie",
+   "thérapie",
+   "soin",
+   "kneipp"
+  ]
+ },
+ {
+  "id": "amenity=public_bath",
+  "label": "Bain public",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "public_bath",
+  "terms": [
+   "bain public"
+  ]
+ },
+ {
+  "id": "amenity=bank",
+  "label": "Banque",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "bank",
+  "terms": [
+   "banque",
+   "caisse populaire",
+   "bank"
+  ]
+ },
+ {
+  "id": "amenity=bar",
+  "label": "Bar",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "bar",
+  "terms": [
+   "bar",
+   "brasserie",
+   "café",
+   "pub"
+  ]
+ },
+ {
+  "id": "amenity=hookah_lounge",
+  "label": "Bar à chicha",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "hookah_lounge",
+  "terms": [
+   "bar à chicha"
+  ]
+ },
+ {
+  "id": "amenity=library",
+  "label": "Bibliothèque",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "library",
+  "terms": [
+   "bibliothèque",
+   "médiathèque"
+  ]
+ },
+ {
+  "id": "amenity=biergarten",
+  "label": "Biergarten",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "biergarten",
+  "terms": [
+   "brasserie en plein air",
+   "bierre"
+  ]
+ },
+ {
+  "id": "amenity=letter_box",
+  "label": "Boîte aux lettres privée",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "letter_box",
+  "terms": [
+   "boîte aux lettres",
+   "livraison",
+   "courrier",
+   "facteur"
+  ]
+ },
+ {
+  "id": "amenity=nightclub",
+  "label": "Boîte de nuit",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "nightclub",
+  "terms": [
+   "boîte de nuit",
+   "discothèque"
+  ]
+ },
+ {
+  "id": "amenity=library_dropoff",
+  "label": "Boîte de retour de livres",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "library_dropoff",
+  "terms": [
+   "boîtes de retour des prêtes",
+   "bibliothèque",
+   "médiathèque"
+  ]
+ },
+ {
+  "id": "amenity=give_box",
+  "label": "Boîte à dons",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "give_box",
+  "terms": [
+   "boîte à dons",
+   "chaussures",
+   "vêtements",
+   "électroménager",
+   "livres",
+   "disques",
+   "cd",
+   "vaisselle",
+   "jouets",
+   "jeux"
+  ]
+ },
+ {
+  "id": "amenity=public_bookcase",
+  "label": "Boîte à livres",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "public_bookcase",
+  "terms": [
+   "bibliothèque en libre service",
+   "micro-bibliothèque",
+   "boîte à livres",
+   "armoire à livres"
+  ]
+ },
+ {
+  "id": "amenity=bureau_de_change",
+  "label": "Bureau de change",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "bureau_de_change",
+  "terms": [
+   "change",
+   "bureau de change",
+   "échange",
+   "devises",
+   "échange de devises",
+   "intermédiaire financier de change",
+   "banque de devises"
+  ]
+ },
+ {
+  "id": "amenity=post_office",
+  "label": "Bureau de poste",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "post_office",
+  "terms": [
+   "bureau de poste"
+  ]
+ },
+ {
+  "id": "amenity=post_depot",
+  "label": "Bureau de tri de courrier",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "post_depot",
+  "terms": [
+   "dépôt",
+   "poste",
+   "tri",
+   "courrier",
+   "colis",
+   "distribution",
+   "traitement du courrier"
+  ]
+ },
+ {
+  "id": "amenity=polling_station",
+  "label": "Bureau de vote permanent",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "polling_station",
+  "terms": [
+   "bureau de vote",
+   "vote",
+   "élections",
+   "démocratie",
+   "démocratique"
+  ]
+ },
+ {
+  "id": "amenity=cafe",
+  "label": "Café",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "cafe",
+  "terms": [
+   "café",
+   "bar",
+   "salon de thé",
+   "pub",
+   "brasserie",
+   "restaurant",
+   "cafe"
+  ]
+ },
+ {
+  "id": "amenity=refugee_site",
+  "label": "Camp de réfugiés",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "refugee_site",
+  "terms": [
+   "réfugiés",
+   "refugies",
+   "camp",
+   "migrants"
+  ]
+ },
+ {
+  "id": "amenity=fire_station",
+  "label": "Caserne de pompiers",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "fire_station",
+  "terms": [
+   "pompiers",
+   "sapeurs-pompiers",
+   "station de pompiers",
+   "caserne de pompiers",
+   "arsenal",
+   "maison des pompes",
+   "centre de secours",
+   "service de secours",
+   "services de secours",
+   "services d'urgence",
+   "services d'intervention",
+   "sécurité civile",
+   "service régional d'incendie",
+   "sri",
+   "service départemental d'incendie et de secours",
+   "sdis",
+   "service d'incendie et sauvetage",
+   "service de défense incendie et secours",
+   "feu",
+   "incendie",
+   "urgence",
+   "intervention",
+   "fire station"
+  ]
+ },
+ {
+  "id": "amenity=parcel_locker",
+  "label": "Casier à colis",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "parcel_locker",
+  "terms": [
+   "casier",
+   "boîte",
+   "colis",
+   "paquets"
+  ]
+ },
+ {
+  "id": "amenity=casino",
+  "label": "Casino",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "casino",
+  "terms": [
+   "casino",
+   "jeux d'argent",
+   "jeux de hasard",
+   "roulette",
+   "craps",
+   "poker",
+   "blackjack",
+   "machine à sous"
+  ]
+ },
+ {
+  "id": "amenity=arts_centre",
+  "label": "Centre artistique et culturel",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "arts_centre",
+  "terms": [
+   "centre artistique",
+   "centre culturel",
+   "centre des arts",
+   "établissement artistique",
+   "établissement culturel",
+   "artistique",
+   "culturel",
+   "arts center"
+  ]
+ },
+ {
+  "id": "amenity=community_centre",
+  "label": "Centre communautaire",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "community_centre",
+  "terms": [
+   "maison de quartier",
+   "maison des associations",
+   "salle des associations",
+   "centre d'animation",
+   "centre communautaire",
+   "salle polyvalente",
+   "salle des fêtes",
+   "salle festive"
+  ]
+ },
+ {
+  "id": "amenity=ranger_station",
+  "label": "Centre d'accueil du parc",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "ranger_station",
+  "terms": [
+   "centre d'accueil du parc",
+   "centre d'accueil de la réserve naturelle"
+  ]
+ },
+ {
+  "id": "amenity=exhibition_centre",
+  "label": "Centre d'expositions",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "exhibition_centre",
+  "terms": [
+   "centre d'exposition",
+   "parc des expositions",
+   "expo"
+  ]
+ },
+ {
+  "id": "amenity=conference_centre",
+  "label": "Centre de congrés",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "conference_centre",
+  "terms": [
+   "centre de congrès",
+   "congrès",
+   "conférences",
+   "auditorium",
+   "présentations",
+   "expositions"
+  ]
+ },
+ {
+  "id": "amenity=vehicle_inspection",
+  "label": "Centre de contrôle technique",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "vehicle_inspection",
+  "terms": [
+   "centre de contrôle technique",
+   "contrôle technique"
+  ]
+ },
+ {
+  "id": "amenity=payment_centre",
+  "label": "Centre de paiement",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "payment_centre",
+  "terms": [
+   "taxe",
+   "paiement",
+   "chèque",
+   "facture",
+   "finance",
+   "argent"
+  ]
+ },
+ {
+  "id": "amenity=dive_centre",
+  "label": "Centre de plongée",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "dive_centre",
+  "terms": [
+   "centre de plongée",
+   "plongée"
+  ]
+ },
+ {
+  "id": "amenity=hospital",
+  "label": "Centre hospitalier",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "hospital",
+  "terms": [
+   "hôpital"
+  ]
+ },
+ {
+  "id": "amenity=clinic",
+  "label": "Centre médical de taille moyenne, soins en ambulatoire",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "clinic",
+  "terms": [
+   "hopital",
+   "hôpital",
+   "ambulatoire",
+   "médecins",
+   "infirmières",
+   "patients",
+   "docteurs",
+   "clinique médicale",
+   "clinique",
+   "médical",
+   "soins",
+   "urgence",
+   "clinic"
+  ]
+ },
+ {
+  "id": "amenity=social_centre",
+  "label": "Centre social",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "social_centre",
+  "terms": [
+   "centre social",
+   "événement",
+   "fraternité",
+   "hall",
+   "organisation",
+   "société",
+   "union"
+  ]
+ },
+ {
+  "id": "amenity=lounger",
+  "label": "Chaise longue",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "lounger",
+  "terms": [
+   "chaise",
+   "banc",
+   "siège"
+  ]
+ },
+ {
+  "id": "amenity=cinema",
+  "label": "Cinéma",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "cinema",
+  "terms": [
+   "cinéma",
+   "cinema",
+   "écran",
+   "films",
+   "salle de cinéma",
+   "salles de cinéma",
+   "multiplexe",
+   "multiplexe cinématographique"
+  ]
+ },
+ {
+  "id": "amenity=driver_training",
+  "label": "Circuit d'essai de stages de conduite",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "driver_training",
+  "terms": [
+   "auto-école",
+   "permis de conduite",
+   "stage",
+   "test",
+   "circuit",
+   "conduire"
+  ]
+ },
+ {
+  "id": "amenity=stripclub",
+  "label": "Club de strip-tease",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "stripclub",
+  "terms": [
+   "strip club",
+   "club de strip-tease",
+   "strip-tease"
+  ]
+ },
+ {
+  "id": "amenity=swingerclub",
+  "label": "Club échangiste",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "swingerclub",
+  "terms": [
+   "club libertin",
+   "sauna",
+   "adulte",
+   "porn",
+   "sexe",
+   "strip",
+   "boîte de nuit échangiste"
+  ]
+ },
+ {
+  "id": "amenity=college",
+  "label": "Collège / Lycée",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "college",
+  "terms": []
+ },
+ {
+  "id": "amenity=ticket_validator",
+  "label": "Composteur de billet",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "ticket_validator",
+  "terms": [
+   "composteur",
+   "machine",
+   "composter",
+   "compostage",
+   "billet",
+   "tiquet",
+   "titre",
+   "transport",
+   "train",
+   "métro",
+   "bus"
+  ]
+ },
+ {
+  "id": "amenity=luggage_locker",
+  "label": "Consigne à bagages",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "luggage_locker",
+  "terms": [
+   "consigne",
+   "consigne à bagages",
+   "consignes à valises",
+   "casier à bagages",
+   "casier"
+  ]
+ },
+ {
+  "id": "amenity=childcare",
+  "label": "Crèche",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "childcare",
+  "terms": [
+   "crèche",
+   "garderie"
+  ]
+ },
+ {
+  "id": "amenity=kindergarten",
+  "label": "Crèche / École maternelle",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "kindergarten",
+  "terms": []
+ },
+ {
+  "id": "amenity=crematorium",
+  "label": "Crématorium",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "crematorium",
+  "terms": [
+   "crématorium",
+   "crematorium",
+   "crémation",
+   "incinération",
+   "incineration",
+   "four crématoire",
+   "four de crémation",
+   "funérailles",
+   "crematoria",
+   "cimetière"
+  ]
+ },
+ {
+  "id": "amenity=kitchen",
+  "label": "Cuisine partagée",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "kitchen",
+  "terms": [
+   "cuisine partagée",
+   "cuisine publique",
+   "cuisine collective"
+  ]
+ },
+ {
+  "id": "amenity=internet_cafe",
+  "label": "Cybercafé",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "internet_cafe",
+  "terms": [
+   "café internet",
+   "cybercafé",
+   "internet café"
+  ]
+ },
+ {
+  "id": "amenity=dentist",
+  "label": "Dentiste",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "dentist",
+  "terms": [
+   "dentiste",
+   "cabinet dentaire",
+   "soins dentaires",
+   "dents",
+   "clinique dentaire",
+   "médecin-dentiste",
+   "orthodontie"
+  ]
+ },
+ {
+  "id": "amenity=atm",
+  "label": "Distributeur de billets",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "atm",
+  "terms": [
+   "distributeur de billets",
+   "distributeur automatique",
+   "distributeur automatique de billets",
+   "guichet automatique",
+   "dab",
+   "gab",
+   "billets de banque",
+   "retrait d'argent",
+   "retrait de liquide",
+   "guichet de retrait",
+   "retrait automatique",
+   "atm",
+   "amenity atm",
+   "mister cash",
+   "bancontact"
+  ]
+ },
+ {
+  "id": "amenity=dojo",
+  "label": "Dojo",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "dojo",
+  "terms": [
+   "dojo",
+   "arts martiaux",
+   "art martial",
+   "tatami",
+   "judo",
+   "karate",
+   "aikido",
+   "aïkido",
+   "kendo",
+   "jujitsu",
+   "jujutsu",
+   "ju-jitsu",
+   "ju-jutsu",
+   "jūjutsu",
+   "jiu-jitsu",
+   "akhara",
+   "dojang",
+   "gelanggang",
+   "silat melayu",
+   "heya",
+   "sumo",
+   "kalari",
+   "kalaripayat",
+   "sasaran",
+   "pencak silat",
+   "wuguan",
+   "wushu",
+   "shorinji kempo",
+   "yoseikan budo",
+   "budo",
+   "aïkibudo",
+   "kenjutsu",
+   "bujutsu",
+   "katana",
+   "wakizashi",
+   "bokken",
+   "kobudo",
+   "bo-jutsu",
+   "bojustu",
+   "kendō",
+   "bō-jutsu",
+   "taijitsu",
+   "taijutsu"
+  ]
+ },
+ {
+  "id": "amenity=shower",
+  "label": "Douche",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "shower",
+  "terms": [
+   "douche"
+  ]
+ },
+ {
+  "id": "amenity=water_point",
+  "label": "Eau potable pour citerne de véhicule de loisirs",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "water_point",
+  "terms": [
+   "point d'eau potable",
+   "eau potable",
+   "citerne",
+   "camping-car",
+   "robinet",
+   "remplissage",
+   "caravane",
+   "autocaravane",
+   "véhicule récréatif",
+   "mobile-home",
+   "motor-home",
+   "véhicule de loisirs",
+   "amenity water point",
+   "water_point"
+  ]
+ },
+ {
+  "id": "amenity=coworking_space",
+  "label": "Espace de coworking",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "coworking_space",
+  "terms": []
+ },
+ {
+  "id": "amenity=baking_oven",
+  "label": "Four à bois",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "baking_oven",
+  "terms": [
+   "four à bois"
+  ]
+ },
+ {
+  "id": "amenity=bus_station",
+  "label": "Gare routière",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "bus_station",
+  "terms": []
+ },
+ {
+  "id": "amenity=animal_breeding",
+  "label": "Installation d'élevage d'animaux",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "animal_breeding",
+  "terms": [
+   "élevage",
+   "gavage",
+   "animal",
+   "porcherie",
+   "étable",
+   "vache",
+   "cheval",
+   "cochon",
+   "porc",
+   "mouton",
+   "chèvre",
+   "oiseau",
+   "poule",
+   "canard",
+   "oie",
+   "ferme",
+   "vacherie",
+   "bovin",
+   "ovin",
+   "caprin",
+   "équin",
+   "porcin",
+   "avicole",
+   "juvénile",
+   "bétail",
+   "betail",
+   "breeding"
+  ]
+ },
+ {
+  "id": "amenity=waste_transfer_station",
+  "label": "Installation de transit, regroupement ou tri de déchets",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "waste_transfer_station",
+  "terms": [
+   "transit de déchets",
+   "transfert de déchets",
+   "regroupement de déchets",
+   "tri de déchets",
+   "station de transit",
+   "station de transfert",
+   "station de regroupement",
+   "station de tri",
+   "centre de transit",
+   "centre de transfert",
+   "centre de regroupement",
+   "centre de tri",
+   "déchets",
+   "ordures",
+   "bennes à ordures ménagères",
+   "camion-poubelle",
+   "waste transfer station",
+   "amenity waste transfer station"
+  ]
+ },
+ {
+  "id": "amenity=karaoke_box",
+  "label": "Karaoke",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "karaoke_box",
+  "terms": [
+   "karaoke",
+   "karaoké"
+  ]
+ },
+ {
+  "id": "amenity=research_institute",
+  "label": "Laboratoire de recherche",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "research_institute",
+  "terms": [
+   "laboratoire de recherche",
+   "institut de recherche",
+   "centre de recherche",
+   "recherche appliquée",
+   "recherche expérimentale",
+   "recherche et développement"
+  ]
+ },
+ {
+  "id": "amenity=bicycle_wash",
+  "label": "Lavage de vélo",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "bicycle_wash",
+  "terms": [
+   "vélo",
+   "bicyclette",
+   "cycle",
+   "nettoyage vélo",
+   "nettoyage bicyclettes",
+   "rincer vélos",
+   "cyclisme"
+  ]
+ },
+ {
+  "id": "amenity=lavoir",
+  "label": "Lavoir",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "lavoir",
+  "terms": [
+   "lavoir"
+  ]
+ },
+ {
+  "id": "amenity=place_of_worship",
+  "label": "Lieu de culte",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "place_of_worship",
+  "terms": [
+   "édifice religieux"
+  ]
+ },
+ {
+  "id": "amenity=boat_rental",
+  "label": "Location de bateau",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "boat_rental",
+  "terms": [
+   "location de bateaux",
+   "boat rental"
+  ]
+ },
+ {
+  "id": "amenity=motorcycle_rental",
+  "label": "Location de motos",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "motorcycle_rental",
+  "terms": [
+   "location",
+   "moto",
+   "mobylette",
+   "motocyclette",
+   "scooter"
+  ]
+ },
+ {
+  "id": "amenity=car_rental",
+  "label": "Location de voiture",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "car_rental",
+  "terms": [
+   "location de voitures",
+   "loueur de voiture",
+   "loueur de véhicule",
+   "car rental"
+  ]
+ },
+ {
+  "id": "amenity=bicycle_rental",
+  "label": "Location de vélos",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "bicycle_rental",
+  "terms": [
+   "location de vélo",
+   "location de bicyclette",
+   "bicycle rental"
+  ]
+ },
+ {
+  "id": "amenity=binoculars",
+  "label": "Longue-vue publique",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "binoculars",
+  "terms": [
+   "longue-vue",
+   "vue",
+   "jumelles",
+   "binoculaire",
+   "monoculaire",
+   "lunette",
+   "observation",
+   "viseur",
+   "téléscope"
+  ]
+ },
+ {
+  "id": "amenity=love_hotel",
+  "label": "Love hôtel",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "love_hotel",
+  "terms": [
+   "love hôtel"
+  ]
+ },
+ {
+  "id": "amenity=toy_library",
+  "label": "Ludothèque",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "toy_library",
+  "terms": [
+   "ludothèqe",
+   "bibliothèque",
+   "jouets",
+   "jeux"
+  ]
+ },
+ {
+  "id": "amenity=ice_cream",
+  "label": "Magasin de crèmes glacées",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "ice_cream",
+  "terms": [
+   "magasin de glaces"
+  ]
+ },
+ {
+  "id": "amenity=townhall",
+  "label": "Mairie, hôtel de ville",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "townhall",
+  "terms": [
+   "mairie",
+   "hôtel de ville",
+   "maison commune"
+  ]
+ },
+ {
+  "id": "amenity=nursing_home",
+  "label": "Maison de soin, handicapé,longue durée",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "nursing_home",
+  "terms": []
+ },
+ {
+  "id": "amenity=marketplace",
+  "label": "Marché",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "marketplace",
+  "terms": [
+   "marché",
+   "place de marché"
+  ]
+ },
+ {
+  "id": "amenity=hunting_stand",
+  "label": "Mirador de chasse",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "hunting_stand",
+  "terms": [
+   "mirador"
+  ]
+ },
+ {
+  "id": "amenity=mortuary",
+  "label": "Morgue",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "mortuary",
+  "terms": [
+   "morgue",
+   "iml",
+   "mortuaire"
+  ]
+ },
+ {
+  "id": "amenity=doctors",
+  "label": "Médecin",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "doctors",
+  "terms": [
+   "docteur",
+   "médecin",
+   "medecin",
+   "cabinet médical",
+   "médecine générale",
+   "dermatologue",
+   "cardiologue",
+   "gynécologue",
+   "spécialiste",
+   "doctors",
+   "doctor"
+  ]
+ },
+ {
+  "id": "amenity=motorcycle_parking",
+  "label": "Parking pour motocyclettes",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "motorcycle_parking",
+  "terms": [
+   "parc à motos",
+   "stationnement motos"
+  ]
+ },
+ {
+  "id": "amenity=animal_boarding",
+  "label": "Pension animalière",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "animal_boarding",
+  "terms": [
+   "chargement",
+   "animaux",
+   "plateforme",
+   "cheval",
+   "vache",
+   "mouton",
+   "rampe"
+  ]
+ },
+ {
+  "id": "amenity=pharmacy",
+  "label": "Pharmacie",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "pharmacy",
+  "terms": [
+   "pharmacie"
+  ]
+ },
+ {
+  "id": "amenity=veterinary_pharmacy",
+  "label": "Pharmacie véterinaire",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "veterinary_pharmacy",
+  "terms": []
+ },
+ {
+  "id": "amenity=photo_booth",
+  "label": "Photomaton",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "photo_booth",
+  "terms": [
+   "photomaton",
+   "caméra",
+   "identité",
+   "cabine photographique"
+  ]
+ },
+ {
+  "id": "amenity=traffic_park",
+  "label": "Piste d'éducation routière",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "traffic_park",
+  "terms": []
+ },
+ {
+  "id": "amenity=planetarium",
+  "label": "Planétarium",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "planetarium",
+  "terms": [
+   "planetarium"
+  ]
+ },
+ {
+  "id": "amenity=watering_place",
+  "label": "Point d'eau pour animaux",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "watering_place",
+  "terms": [
+   "point d'eau",
+   "abreuvoir",
+   "auge",
+   "trou d'eau",
+   "eau",
+   "soif",
+   "animal",
+   "animaux",
+   "boire",
+   "fontaine",
+   "bassin",
+   "réservoir",
+   "amenity watering place",
+   "watering place"
+  ]
+ },
+ {
+  "id": "amenity=device_charging_station",
+  "label": "Point de recharge pour appareils mobiles",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "device_charging_station",
+  "terms": [
+   "point de recharge pour appareils mobiles",
+   "chargeur téléphone",
+   "recharge",
+   "prise électrique"
+  ]
+ },
+ {
+  "id": "amenity=police",
+  "label": "Poste de police",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "police",
+  "terms": [
+   "police",
+   "gendarmerie"
+  ]
+ },
+ {
+  "id": "amenity=prison",
+  "label": "Prison (terrain)",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "prison",
+  "terms": [
+   "prison",
+   "terrains carcéraux",
+   "pénitencier",
+   "maison d'arrêt",
+   "centre correctionnel",
+   "centre de détention",
+   "geôle."
+  ]
+ },
+ {
+  "id": "amenity=pub",
+  "label": "Pub",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "pub",
+  "terms": [
+   "pub"
+  ]
+ },
+ {
+  "id": "amenity=animal_shelter",
+  "label": "Refuge animalier",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "animal_shelter",
+  "terms": [
+   "refuge animalier",
+   "animal shelter"
+  ]
+ },
+ {
+  "id": "amenity=restaurant",
+  "label": "Restaurant",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "restaurant",
+  "terms": [
+   "restaurant",
+   "brasserie",
+   "auberge"
+  ]
+ },
+ {
+  "id": "amenity=fast_food",
+  "label": "Restauration rapide",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "fast_food",
+  "terms": [
+   "fast food",
+   "restauration rapide",
+   "service au comptoir",
+   "vente à emporter",
+   "à emporter",
+   "a emporter",
+   "burger",
+   "sandwich",
+   "kebab",
+   "kébab",
+   "panini",
+   "tacos"
+  ]
+ },
+ {
+  "id": "amenity=gambling",
+  "label": "Salle de jeux d'argent",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "gambling",
+  "terms": [
+   "jeux",
+   "casino",
+   "paris",
+   "machine à sous",
+   "machines à sous",
+   "poker",
+   "roulette",
+   "black jack"
+  ]
+ },
+ {
+  "id": "amenity=funeral_hall",
+  "label": "Salle de service funéraire",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "funeral_hall",
+  "terms": [
+   "funérarium",
+   "morgue",
+   "services d’arrangements funéraires",
+   "maison funéraire",
+   "croquemort"
+  ]
+ },
+ {
+  "id": "amenity=prep_school",
+  "label": "Soutien scolaire / Prépa",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "prep_school",
+  "terms": []
+ },
+ {
+  "id": "amenity=vacuum_cleaner",
+  "label": "Station d'aspirateurs pour nettoyage automobile",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "vacuum_cleaner",
+  "terms": [
+   "aspirateur",
+   "automobile",
+   "nettoyage",
+   "lavage",
+   "voiture"
+  ]
+ },
+ {
+  "id": "amenity=car_sharing",
+  "label": "Station d'auto-partage",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "car_sharing",
+  "terms": [
+   "auto-partage",
+   "autopartage",
+   "autolib"
+  ]
+ },
+ {
+  "id": "amenity=compressed_air",
+  "label": "Station de gonflage",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "compressed_air",
+  "terms": [
+   "air comprimé",
+   "station de gonflage",
+   "compressed air"
+  ]
+ },
+ {
+  "id": "amenity=car_wash",
+  "label": "Station de lavage de voiture",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "car_wash",
+  "terms": [
+   "lavage de voiture",
+   "lave auto",
+   "station lavage",
+   "station-lavage",
+   "lave-auto",
+   "car wash"
+  ]
+ },
+ {
+  "id": "amenity=bicycle_repair_station",
+  "label": "Station de réparation de vélos",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "bicycle_repair_station",
+  "terms": [
+   "magasin de vélos",
+   "atelier de réparation de vélos",
+   "bicycle repair station"
+  ]
+ },
+ {
+  "id": "amenity=taxi",
+  "label": "Station de taxi",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "taxi",
+  "terms": [
+   "station de taxi"
+  ]
+ },
+ {
+  "id": "amenity=sanitary_dump_station",
+  "label": "Station de vidange sanitaire",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "sanitary_dump_station",
+  "terms": [
+   "station de vidange",
+   "sanitaires",
+   "mobilehome",
+   "camping",
+   "toilettes chimiques"
+  ]
+ },
+ {
+  "id": "amenity=fuel",
+  "label": "Station-service",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "fuel",
+  "terms": [
+   "station-service",
+   "station service",
+   "station de carburant",
+   "station-essence",
+   "station essence",
+   "station d’essence",
+   "station à essence",
+   "essencerie",
+   "pompe à essence",
+   "pompe à carburant",
+   "carburant",
+   "essence",
+   "diesel",
+   "gpl",
+   "fuel"
+  ]
+ },
+ {
+  "id": "amenity=boat_storage",
+  "label": "Stockage de bateau (sur terre)",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "boat_storage",
+  "terms": [
+   "stockage",
+   "bateau",
+   "navire",
+   "embarcation",
+   "terre",
+   "hors d'eau",
+   "sol",
+   "au sec"
+  ]
+ },
+ {
+  "id": "amenity=social_facility",
+  "label": "Structure sociale",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "social_facility",
+  "terms": [
+   "structure sociale",
+   "etablissement de services sociaux"
+  ]
+ },
+ {
+  "id": "amenity=studio",
+  "label": "Studio",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "studio",
+  "terms": [
+   "studio",
+   "studio de télévision",
+   "plateau de télévision",
+   "studio de radio",
+   "studio d'enregistrement",
+   "studio de cinéma",
+   "studio de production",
+   "boîte de production",
+   "société de production",
+   "maison de production",
+   "production audiovisuelle",
+   "société audiovisuelle",
+   "post-production",
+   "studio vidéo"
+  ]
+ },
+ {
+  "id": "amenity=ferry_terminal",
+  "label": "Terminal de ferry",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "ferry_terminal",
+  "terms": []
+ },
+ {
+  "id": "amenity=payment_terminal",
+  "label": "Terminal de paiement",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "payment_terminal",
+  "terms": [
+   "terminal de paiement",
+   "atm",
+   "dab",
+   "finance",
+   "argent",
+   "paiement"
+  ]
+ },
+ {
+  "id": "amenity=monastery",
+  "label": "Terrain de monastère",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "monastery",
+  "terms": [
+   "monastère",
+   "abbaye",
+   "basilique",
+   "cathédrale",
+   "chapelle",
+   "église"
+  ]
+ },
+ {
+  "id": "amenity=theatre",
+  "label": "Théâtre",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "theatre",
+  "terms": [
+   "théâtre"
+  ]
+ },
+ {
+  "id": "amenity=dog_toilet",
+  "label": "Toilettes pour chien",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "dog_toilet",
+  "terms": [
+   "toilettes pour chien"
+  ]
+ },
+ {
+  "id": "amenity=money_transfer",
+  "label": "Transfert d'argent",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "money_transfer",
+  "terms": [
+   "transfert d'argent",
+   "western union",
+   "banque",
+   "argent",
+   "échange"
+  ]
+ },
+ {
+  "id": "amenity=courthouse",
+  "label": "Tribunal",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "courthouse",
+  "terms": [
+   "palais de justice",
+   "cour de justice",
+   "cour d'assises",
+   "courthouse",
+   "court house"
+  ]
+ },
+ {
+  "id": "amenity=university",
+  "label": "Université",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "university",
+  "terms": []
+ },
+ {
+  "id": "amenity=dressing_room",
+  "label": "Vestiaire",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "dressing_room",
+  "terms": [
+   "vestiaire",
+   "cabine d'essayage",
+   "cabine de plage"
+  ]
+ },
+ {
+  "id": "amenity=veterinary",
+  "label": "Vétérinaire",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "veterinary",
+  "terms": [
+   "vétérinaire"
+  ]
+ },
+ {
+  "id": "amenity=smoking_area",
+  "label": "Zone fumeur",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "smoking_area",
+  "terms": [
+   "zone fumeur",
+   "cigarette",
+   "fumer"
+  ]
+ },
+ {
+  "id": "amenity=weighbridge",
+  "label": "pont bascule",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "weighbridge",
+  "terms": [
+   "pont bascule",
+   "bascule publique",
+   "poids public",
+   "balance",
+   "poids-lourds"
+  ]
+ },
+ {
+  "id": "amenity=school",
+  "label": "École",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "school",
+  "terms": []
+ },
+ {
+  "id": "amenity=dancing_school",
+  "label": "École de danse",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "dancing_school",
+  "terms": []
+ },
+ {
+  "id": "amenity=language_school",
+  "label": "École de langues",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "language_school",
+  "terms": []
+ },
+ {
+  "id": "amenity=music_school",
+  "label": "École de musique",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "music_school",
+  "terms": []
+ },
+ {
+  "id": "amenity=events_venue",
+  "label": "Établissement accueillant des événements",
+  "group": "Services & Établissements",
+  "key": "amenity",
+  "value": "events_venue",
+  "terms": [
+   "banquet",
+   "baptême",
+   "bar mitzvah",
+   "bat mitzvah",
+   "anniversaires",
+   "célébrations",
+   "conférences",
+   "confirmation",
+   "rencontres",
+   "fêtes",
+   "mariages",
+   "salle de spectacle",
+   "salle de concert",
+   "salle événementielle",
+   "événementiel"
+  ]
+ },
+ {
+  "id": "leisure=playground",
+  "label": "Aire de jeux pour enfants",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "playground",
+  "terms": [
+   "aire de jeu",
+   "cour de récréation"
+  ]
+ },
+ {
+  "id": "leisure=outdoor_seating",
+  "label": "Aire des places en terrasse",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "outdoor_seating",
+  "terms": [
+   "places en terrase",
+   "terrasse",
+   "beer garden",
+   "biergarten",
+   "restaurant",
+   "bar"
+  ]
+ },
+ {
+  "id": "leisure=bowling_alley",
+  "label": "Bowling",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "bowling_alley",
+  "terms": [
+   "jeux de boules",
+   "jeu de quilles",
+   "quilles"
+  ]
+ },
+ {
+  "id": "leisure=summer_camp",
+  "label": "Camp d'été",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "summer_camp",
+  "terms": []
+ },
+ {
+  "id": "leisure=fitness_centre",
+  "label": "Centre de fitness / gym",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "fitness_centre",
+  "terms": [
+   "salle de sport",
+   "salle de musculation",
+   "coach sportif",
+   "fitness"
+  ]
+ },
+ {
+  "id": "leisure=resort",
+  "label": "Centre de loisir",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "resort",
+  "terms": [
+   "complexe hôtelier",
+   "complexe touristique",
+   "village de vacances",
+   "spa",
+   "détente",
+   "relaxation",
+   "station thermale",
+   "lieu de séjour",
+   "centre de loisir"
+  ]
+ },
+ {
+  "id": "leisure=sports_centre",
+  "label": "Centre sportif",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "sports_centre",
+  "terms": [
+   "complexe sportif",
+   "salle de sport"
+  ]
+ },
+ {
+  "id": "leisure=horse_riding",
+  "label": "Centre équestre",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "horse_riding",
+  "terms": [
+   "centre équestre",
+   "poney-club",
+   "centre d'équitation",
+   "centre hippique",
+   "club hippique",
+   "manège",
+   "cercle hippique"
+  ]
+ },
+ {
+  "id": "leisure=bathing_place",
+  "label": "Endroit de baignade",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "bathing_place",
+  "terms": [
+   "aire de baignade",
+   "lieu de baignade"
+  ]
+ },
+ {
+  "id": "leisure=escape_game",
+  "label": "Escape game",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "escape_game",
+  "terms": [
+   "escape game",
+   "escape room",
+   "puzzle room",
+   "quest room"
+  ]
+ },
+ {
+  "id": "leisure=bleachers",
+  "label": "Gradins",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "bleachers",
+  "terms": [
+   "gradins",
+   "bancs",
+   "sport",
+   "stand"
+  ]
+ },
+ {
+  "id": "leisure=sports_hall",
+  "label": "Gymnase",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "sports_hall",
+  "terms": [
+   "gymnase",
+   "salle de sport",
+   "centre sportif"
+  ]
+ },
+ {
+  "id": "leisure=hot_tub",
+  "label": "Jacuzzi",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "hot_tub",
+  "terms": [
+   "jacuzzi",
+   "bain chaud",
+   "bain à remous",
+   "cuve thermale",
+   "bain tourbillon"
+  ]
+ },
+ {
+  "id": "leisure=garden",
+  "label": "Jardin",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "garden",
+  "terms": [
+   "jardin"
+  ]
+ },
+ {
+  "id": "leisure=adult_gaming_centre",
+  "label": "Jeux pour adultes",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "adult_gaming_centre",
+  "terms": [
+   "jeux pour adultes"
+  ]
+ },
+ {
+  "id": "leisure=bandstand",
+  "label": "Kiosque à musique",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "bandstand",
+  "terms": [
+   "kioske à musique",
+   "kiosque à musique"
+  ]
+ },
+ {
+  "id": "leisure=swimming_area",
+  "label": "Lieu de baignade",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "swimming_area",
+  "terms": [
+   "lieu de baignade",
+   "eau",
+   "lac",
+   "aquatique",
+   "plongée"
+  ]
+ },
+ {
+  "id": "leisure=fishing",
+  "label": "Lieu de pêche",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "fishing",
+  "terms": [
+   "lieu de pêche",
+   "zone de pêche"
+  ]
+ },
+ {
+  "id": "leisure=marina",
+  "label": "Marina",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "marina",
+  "terms": [
+   "marina"
+  ]
+ },
+ {
+  "id": "leisure=miniature_golf",
+  "label": "Mini-golf",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "miniature_golf",
+  "terms": [
+   "mini golf"
+  ]
+ },
+ {
+  "id": "leisure=bird_hide",
+  "label": "Observatoire ornithologique",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "bird_hide",
+  "terms": [
+   "observatoire d'oiseaux"
+  ]
+ },
+ {
+  "id": "leisure=park",
+  "label": "Parc",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "park",
+  "terms": [
+   "parc"
+  ]
+ },
+ {
+  "id": "leisure=dog_park",
+  "label": "Parc canin",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "dog_park",
+  "terms": [
+   "parc canin",
+   "parc à chiens"
+  ]
+ },
+ {
+  "id": "leisure=water_park",
+  "label": "Parc à thème aquatique",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "water_park",
+  "terms": [
+   "parc d'attractions aquatiques"
+  ]
+ },
+ {
+  "id": "leisure=trampoline_park",
+  "label": "Parc à trampolines",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "trampoline_park",
+  "terms": [
+   "trampoline"
+  ]
+ },
+ {
+  "id": "leisure=disc_golf_course",
+  "label": "Parcours de disc golf",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "disc_golf_course",
+  "terms": [
+   "golf",
+   "terrain de golf",
+   "parcours de golf",
+   "disk golf"
+  ]
+ },
+ {
+  "id": "leisure=golf_course",
+  "label": "Parcours de golf",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "golf_course",
+  "terms": [
+   "golf",
+   "terrain de golf",
+   "parcours de golf"
+  ]
+ },
+ {
+  "id": "leisure=fitness_station",
+  "label": "Parcours de santé",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "fitness_station",
+  "terms": [
+   "équipements de fitness en extérieur",
+   "atelier",
+   "parcours de santé"
+  ]
+ },
+ {
+  "id": "leisure=ice_rink",
+  "label": "Patinoire",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "ice_rink",
+  "terms": [
+   "patinoire"
+  ]
+ },
+ {
+  "id": "leisure=swimming_pool",
+  "label": "Piscine",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "swimming_pool",
+  "terms": [
+   "piscine"
+  ]
+ },
+ {
+  "id": "leisure=track",
+  "label": "Piste de course (hors sports mécaniques)",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "track",
+  "terms": [
+   "piste hippique",
+   "piste d'athlétisme"
+  ]
+ },
+ {
+  "id": "leisure=nature_reserve",
+  "label": "Réserve naturelle",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "nature_reserve",
+  "terms": [
+   "zone protégée"
+  ]
+ },
+ {
+  "id": "leisure=dance",
+  "label": "Salle de danse",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "dance",
+  "terms": [
+   "piste de danse",
+   "salle de bal",
+   "dancing"
+  ]
+ },
+ {
+  "id": "leisure=amusement_arcade",
+  "label": "Salle de jeux",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "amusement_arcade",
+  "terms": [
+   "salle de jeux",
+   "arcade",
+   "jeux vidéos",
+   "simulateurs de course",
+   "pinball"
+  ]
+ },
+ {
+  "id": "leisure=indoor_play",
+  "label": "Salle de jeux intérieur",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "indoor_play",
+  "terms": [
+   "centre",
+   "jeux",
+   "intérieur",
+   "enfants"
+  ]
+ },
+ {
+  "id": "leisure=sauna",
+  "label": "Sauna",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "sauna",
+  "terms": [
+   "sauna"
+  ]
+ },
+ {
+  "id": "leisure=stadium",
+  "label": "Stade",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "stadium",
+  "terms": [
+   "stade"
+  ]
+ },
+ {
+  "id": "leisure=beach_resort",
+  "label": "Station balnéaire",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "beach_resort",
+  "terms": [
+   "station balnéaire",
+   "plage."
+  ]
+ },
+ {
+  "id": "leisure=common",
+  "label": "Terrain communal",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "common",
+  "terms": [
+   "terrain communal",
+   "bien communal",
+   "bois communal",
+   "pré communal"
+  ]
+ },
+ {
+  "id": "leisure=pitch",
+  "label": "Terrain de sport",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "pitch",
+  "terms": [
+   "terrain de sport"
+  ]
+ },
+ {
+  "id": "leisure=hackerspace",
+  "label": "Tiers-lieu",
+  "group": "Sport & Loisirs",
+  "key": "leisure",
+  "value": "hackerspace",
+  "terms": [
+   "hackerspace",
+   "tiers lieu"
+  ]
+ },
+ {
+  "id": "tourism=caravan_site",
+  "label": "Aire pour caravanes",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "caravan_site",
+  "terms": [
+   "aire pour caravanes"
+  ]
+ },
+ {
+  "id": "tourism=aquarium",
+  "label": "Aquarium",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "aquarium",
+  "terms": [
+   "aquarium"
+  ]
+ },
+ {
+  "id": "tourism=attraction",
+  "label": "Attraction touristique",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "attraction",
+  "terms": [
+   "attraction touristique"
+  ]
+ },
+ {
+  "id": "tourism=hostel",
+  "label": "Auberge de jeunesse",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "hostel",
+  "terms": [
+   "auberge de jeunesse"
+  ]
+ },
+ {
+  "id": "tourism=camp_site",
+  "label": "Camping",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "camp_site",
+  "terms": [
+   "terrain de camping",
+   "site de camping",
+   "aire de camping"
+  ]
+ },
+ {
+  "id": "tourism=guest_house",
+  "label": "Chambre d'hôtes",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "guest_house",
+  "terms": [
+   "chambre d'hôtes",
+   "gîte"
+  ]
+ },
+ {
+  "id": "tourism=gallery",
+  "label": "Galerie d'art",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "gallery",
+  "terms": [
+   "artothèque",
+   "pinacothèque",
+   "photothèque",
+   "glyptothèque"
+  ]
+ },
+ {
+  "id": "tourism=chalet",
+  "label": "Gîte",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "chalet",
+  "terms": [
+   "gîte",
+   "gite",
+   "chalet",
+   "vacances"
+  ]
+ },
+ {
+  "id": "tourism=hotel",
+  "label": "Hôtel",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "hotel",
+  "terms": [
+   "bâtiment d'hôtel",
+   "hotel"
+  ]
+ },
+ {
+  "id": "tourism=information",
+  "label": "Informations",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "information",
+  "terms": [
+   "informations",
+   "renseignements",
+   "office de tourisme",
+   "panneau",
+   "carte"
+  ]
+ },
+ {
+  "id": "tourism=apartment",
+  "label": "Location de vacances",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "apartment",
+  "terms": [
+   "appartement d'invité",
+   "condo",
+   "condominium"
+  ]
+ },
+ {
+  "id": "tourism=motel",
+  "label": "Motel",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "motel",
+  "terms": [
+   "motel"
+  ]
+ },
+ {
+  "id": "tourism=museum",
+  "label": "Musée",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "museum",
+  "terms": [
+   "musée"
+  ]
+ },
+ {
+  "id": "tourism=theme_park",
+  "label": "Parc d'attraction",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "theme_park",
+  "terms": [
+   "parc à thème",
+   "parc d'attractions"
+  ]
+ },
+ {
+  "id": "tourism=camp_pitch",
+  "label": "Parcelle dans un camping",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "camp_pitch",
+  "terms": [
+   "emplacement de camping",
+   "tente",
+   "caravane",
+   "camping-car",
+   "parcelle"
+  ]
+ },
+ {
+  "id": "tourism=wilderness_hut",
+  "label": "Refuge de bivouac",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "wilderness_hut",
+  "terms": [
+   "refuge de bivouac",
+   "refuge non gardé",
+   "cabane"
+  ]
+ },
+ {
+  "id": "tourism=alpine_hut",
+  "label": "Refuge de montagne",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "alpine_hut",
+  "terms": [
+   "refuge",
+   "cabane",
+   "abri"
+  ]
+ },
+ {
+  "id": "tourism=trail_riding_station",
+  "label": "Station équestre",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "trail_riding_station",
+  "terms": [
+   "station équestre",
+   "station de randonnée équestre",
+   "randonnée équestre"
+  ]
+ },
+ {
+  "id": "tourism=zoo",
+  "label": "Zoo",
+  "group": "Tourisme & Hébergement",
+  "key": "tourism",
+  "value": "zoo",
+  "terms": [
+   "zoo"
+  ]
+ }
+]

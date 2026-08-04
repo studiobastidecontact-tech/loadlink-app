@@ -5,32 +5,68 @@ import SearchCard from "./SearchCard";
 import ResultsTable from "./ResultsTable";
 import StatsCard from "./StatsCard";
 import { Company } from "../lib/types";
-import { searchCompanies } from "../lib/api";
+import { searchCompanies, enrichEmails } from "../lib/api";
 import { SelectedLocation } from "./LocationSelector";
+
+const ENRICH_BATCH_SIZE = 40;
 
 export default function Dashboard() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(false);
+  const [enriching, setEnriching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function persist(list: Company[]) {
+    setCompanies(list);
+    sessionStorage.setItem("loadlink:companies", JSON.stringify(list));
+  }
+
+  async function runEmailEnrichment(list: Company[]) {
+    const pending = list.filter((c) => !c.email && c.website);
+    if (pending.length === 0) return;
+
+    setEnriching(true);
+    // Copie de travail indexée pour appliquer les emails au fur et à mesure.
+    const byId = new Map(list.map((c) => [c.id, { ...c }]));
+    try {
+      for (let i = 0; i < pending.length; i += ENRICH_BATCH_SIZE) {
+        const batch = pending.slice(i, i + ENRICH_BATCH_SIZE);
+        const emails = await enrichEmails(
+          batch.map((c) => ({ id: c.id, website: c.website }))
+        );
+        for (const [id, email] of Object.entries(emails)) {
+          const item = byId.get(id);
+          if (item && email) item.email = email;
+        }
+        persist(Array.from(byId.values()));
+      }
+    } catch {
+      // L'enrichissement est best-effort : on garde les résultats déjà trouvés.
+    } finally {
+      setEnriching(false);
+    }
+  }
 
   async function handleSearch(
     location: SelectedLocation,
-    scrapeEmails: boolean,
     categories: string[],
-    radiusKm: number
+    radiusKm: number,
+    scrapeEmails: boolean
   ) {
     setLoading(true);
     setError(null);
     try {
       const results = await searchCompanies(
         location.nom,
-        scrapeEmails,
         categories,
         { lat: location.lat, lon: location.lon },
         radiusKm
       );
-      setCompanies(results);
-      sessionStorage.setItem("loadlink:companies", JSON.stringify(results));
+      persist(results);
+      if (scrapeEmails) {
+        // Ne bloque pas l'affichage des résultats : l'enrichissement se fait ensuite.
+        runEmailEnrichment(results);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
     } finally {
@@ -55,6 +91,12 @@ export default function Dashboard() {
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
+        </p>
+      )}
+
+      {enriching && (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          Recherche des emails en cours…
         </p>
       )}
 
