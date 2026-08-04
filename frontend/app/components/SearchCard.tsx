@@ -2,14 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { fetchCategories, CategoryOption } from "../lib/api";
+import LocationSelector, { SelectedLocation } from "./LocationSelector";
 
 interface SearchCardProps {
-  onSearch: (city: string, scrapeEmails: boolean, categories: string[]) => void;
+  onSearch: (
+    location: SelectedLocation,
+    scrapeEmails: boolean,
+    categories: string[],
+    radiusKm: number
+  ) => void;
   loading: boolean;
 }
 
+const RADIUS_OPTIONS = [3, 5, 10, 20];
+
 export default function SearchCard({ onSearch, loading }: SearchCardProps) {
-  const [city, setCity] = useState("");
+  const [location, setLocation] = useState<SelectedLocation | null>(null);
+  const [radiusKm, setRadiusKm] = useState(5);
   const [scrapeEmails, setScrapeEmails] = useState(false);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -19,7 +28,6 @@ export default function SearchCard({ onSearch, loading }: SearchCardProps) {
     fetchCategories()
       .then((cats) => {
         setCategories(cats);
-        // Tout sélectionné par défaut
         setSelected(new Set(cats.map((c) => c.key)));
       })
       .catch(() => setCategoriesError("Impossible de charger les catégories."));
@@ -45,8 +53,8 @@ export default function SearchCard({ onSearch, loading }: SearchCardProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!city.trim()) return;
-    onSearch(city.trim(), scrapeEmails, Array.from(selected));
+    if (!location) return;
+    onSearch(location, scrapeEmails, Array.from(selected), radiusKm);
   }
 
   return (
@@ -54,22 +62,29 @@ export default function SearchCard({ onSearch, loading }: SearchCardProps) {
       onSubmit={handleSubmit}
       className="rounded-xl border border-slate-200 bg-white p-6"
     >
-      <label htmlFor="city" className="text-sm font-medium text-slate-700">
-        Ville à prospecter
-      </label>
-      <div className="mt-2 flex gap-2">
-        <input
-          id="city"
-          type="text"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          placeholder="ex : Brive-la-Gaillarde"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-        />
+      <label className="text-sm font-medium text-slate-700">Zone à prospecter</label>
+      <div className="mt-2">
+        <LocationSelector onSelect={setLocation} />
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <label className="text-sm text-slate-600">Rayon de recherche :</label>
+        <select
+          value={radiusKm}
+          onChange={(e) => setRadiusKm(Number(e.target.value))}
+          className="rounded-lg border border-slate-300 px-2 py-1 text-sm"
+        >
+          {RADIUS_OPTIONS.map((km) => (
+            <option key={km} value={km}>
+              {km} km
+            </option>
+          ))}
+        </select>
+
         <button
           type="submit"
-          disabled={loading || selected.size === 0}
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+          disabled={loading || selected.size === 0 || !location}
+          className="ml-auto rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
         >
           {loading ? "Recherche..." : "Rechercher"}
         </button>
