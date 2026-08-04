@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SearchCard from "./SearchCard";
 import ResultsTable from "./ResultsTable";
+import ResultsMap from "./ResultsMap";
 import StatsCard from "./StatsCard";
 import { Company } from "../lib/types";
 import { searchCompanies, enrichContacts, enrichFoursquare, collectResults } from "../lib/api";
@@ -147,6 +148,10 @@ export default function Dashboard() {
         <StatsCard label="Avec email" value={stats.withEmail} />
         <StatsCard label="Avec téléphone" value={stats.withPhone} />
       </div>
+
+      {companies.some((c) => c.lat != null && c.lon != null) && (
+        <ResultsMap companies={companies} />
+      )}
 
       <ResultsTable companies={companies} />
     </div>
