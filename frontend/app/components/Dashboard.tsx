@@ -6,17 +6,29 @@ import ResultsTable from "./ResultsTable";
 import StatsCard from "./StatsCard";
 import { Company } from "../lib/types";
 import { searchCompanies } from "../lib/api";
+import { SelectedLocation } from "./LocationSelector";
 
 export default function Dashboard() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSearch(city: string, scrapeEmails: boolean, categories: string[]) {
+  async function handleSearch(
+    location: SelectedLocation,
+    scrapeEmails: boolean,
+    categories: string[],
+    radiusKm: number
+  ) {
     setLoading(true);
     setError(null);
     try {
-      const results = await searchCompanies(city, scrapeEmails, categories);
+      const results = await searchCompanies(
+        location.nom,
+        scrapeEmails,
+        categories,
+        { lat: location.lat, lon: location.lon },
+        radiusKm
+      );
       setCompanies(results);
       sessionStorage.setItem("loadlink:companies", JSON.stringify(results));
     } catch (err) {
