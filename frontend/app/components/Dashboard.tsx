@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SearchCard from "./SearchCard";
 import ResultsTable from "./ResultsTable";
 import StatsCard from "./StatsCard";
@@ -15,6 +15,20 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Restaure les derniers résultats au montage (ex. retour depuis « Campagnes »),
+  // pour ne pas perdre la recherche en cours en changeant de page.
+  useEffect(() => {
+    const raw = sessionStorage.getItem("loadlink:companies");
+    if (raw) {
+      try {
+        const saved: Company[] = JSON.parse(raw);
+        if (Array.isArray(saved) && saved.length > 0) setCompanies(saved);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
 
   function persist(list: Company[]) {
     setCompanies(list);
