@@ -18,11 +18,21 @@ export async function fetchCategories(): Promise<CategoryOption[]> {
 export async function searchCompanies(
   city: string,
   scrapeEmails = false,
-  categories: string[] = []
+  categories: string[] = [],
+  location?: { lat: number; lon: number },
+  radiusKm = 5
 ): Promise<Company[]> {
-  const params = new URLSearchParams({ city, scrape_emails: String(scrapeEmails) });
+  const params = new URLSearchParams({
+    city,
+    scrape_emails: String(scrapeEmails),
+    radius_km: String(radiusKm),
+  });
   if (categories.length > 0) {
     params.set("categories", categories.join(","));
+  }
+  if (location) {
+    params.set("lat", String(location.lat));
+    params.set("lon", String(location.lon));
   }
   const res = await fetch(`${API_BASE}/api/search?${params.toString()}`);
 
