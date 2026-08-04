@@ -5,11 +5,18 @@ Récupère les établissements publics via OSMnx / Overpass API selon les
 catégories choisies par l'utilisateur, dans un rayon autour d'un point
 (coordonnées GPS de préférence, ou nom de ville en repli), puis
 normalise les résultats au format attendu par le frontend.
+
+La récupération d'emails est séparée de la recherche (voir
+enrich_emails) : sur de gros volumes de résultats, scraper chaque
+site web dans le même appel dépasserait la limite de temps des
+fonctions serverless Vercel.
 """
 
 import re
+import time
 import logging
 from typing import Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import osmnx as ox
 import requests
@@ -21,9 +28,6 @@ ox.settings.cache_folder = "/tmp/osmnx_cache"
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("loadlink.search")
 
-# Catalogue des catégories disponibles. Clé = identifiant utilisé par le
-# frontend et l'API. Chaque catégorie correspond à un tag OSM précis.
-# Voir https://wiki.openstreetmap.org/wiki/Key:amenity / Key:tourism / Key:office
 CATEGORY_CATALOG: dict[str, dict] = {
     "restaurant":  {"osm_key": "amenity", "osm_value": "restaurant",  "label": "Restaurant"},
     "bar":         {"osm_key": "amenity", "osm_value": "bar",         "label": "Bar"},
@@ -44,11 +48,6 @@ EMAIL_REGEX = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 
 
 def _build_osm_tags(selected_categories: Optional[list[str]]) -> dict:
-    """
-    Construit le dict de tags OSM à interroger à partir des catégories
-    choisies. Si selected_categories est None ou vide, on prend TOUT
-    le catalogue (comportement par défaut = "tout sélectionner").
-    """
     keys = selected_categories or list(CATEGORY_CATALOG.keys())
     tags: dict[str, list[str]] = {}
     for key in keys:
@@ -69,11 +68,11 @@ def _clean(value) -> Optional[str]:
     return value
 
 
-def _extract_email_from_website(url: str, timeout: float = 4.0) -> Optional[str]:
+def _extract_email_from_website(url: str, timeout: float = 3.0) -> Optional[str]:
     """
     Tentative légère de récupération d'un email public sur la page
     d'accueil du site de l'établissement. Best-effort, ne bloque jamais
-    la recherche principale si ça échoue.
+    l'appelant si ça échoue.
     """
     if not url:
         return None
@@ -89,6 +88,51 @@ def _extract_email_from_website(url: str, timeout: float = 4.0) -> Optional[str]
         return match.group(0) if match else None
     except requests.RequestException:
         return None
+
+
+def enrich_emails(
+    items: list[dict],
+    time_budget_seconds: float = 20.0,
+    max_workers: int = 25,
+) -> dict[str, Optional[str]]:
+    """
+    Tente de récupérer un email pour chaque item {id, website}, en
+    parallèle et dans un budget de temps borné. Conçu pour être appelé
+    par petits lots (voir /api/enrich-emails) plutôt que sur un très
+    grand nombre de résultats d'un coup, afin de rester largement sous
+    la limite de durée des fonctions serverless.
+
+    Les items qui n'ont pas pu être traités dans le budget de temps
+    ressortent simplement à None (pas d'erreur).
+    """
+    deadline = time.monotonic() + time_budget_seconds
+    results: dict[str, Optional[str]] = {item["id"]: None for item in items}
+    candidates = [item for item in items if item.get("website")]
+
+    if not candidates:
+        return results
+
+    def _task(item: dict) -> tuple[str, Optional[str]]:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return item["id"], None
+        per_item_timeout = min(3.0, max(0.5, remaining))
+        return item["id"], _extract_email_from_website(item["website"], timeout=per_item_timeout)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(_task, item) for item in candidates]
+        try:
+            for future in as_completed(futures, timeout=time_budget_seconds + 5):
+                try:
+                    item_id, email = future.result()
+                    results[item_id] = email
+                except Exception:
+                    continue
+        except TimeoutError:
+            # Budget global dépassé : on renvoie ce qu'on a pu récupérer.
+            pass
+
+    return results
 
 
 def _dedupe(results: list[dict], distance_threshold: float = 0.0005) -> list[dict]:
@@ -142,7 +186,6 @@ def _dedupe_by_email(results: list[dict]) -> list[dict]:
 
 def search_city(
     city: str,
-    scrape_emails: bool = False,
     categories: Optional[list[str]] = None,
     lat: Optional[float] = None,
     lon: Optional[float] = None,
@@ -151,22 +194,14 @@ def search_city(
     """
     Recherche les établissements ciblés autour d'un point ou d'une ville.
 
-    Args:
-        city: nom de la ville, utilisé pour l'affichage et comme repli
-            si lat/lon ne sont pas fournis.
-        scrape_emails: si True, tente d'extraire un email depuis le
-            site web de chaque établissement (plus lent).
-        categories: liste de clés de CATEGORY_CATALOG à rechercher.
-            None ou liste vide = toutes les catégories.
-        lat, lon: coordonnées du centre de recherche. Si fournies,
-            évite la géocodification du nom de ville (plus précis,
-            plus rapide, pas d'ambiguïté entre communes homonymes).
-        radius_km: rayon de recherche en kilomètres autour du centre.
-            Recherche par rayon plutôt que par limites administratives
-            strictes, pour capter aussi les établissements mal rattachés.
+    lat/lon: si fournis, évite la géocodification du nom de ville
+    (plus précis, plus rapide, pas d'ambiguïté entre communes homonymes).
+    radius_km: rayon de recherche en kilomètres, plutôt que les limites
+    administratives strictes, pour capter les établissements mal rattachés.
 
-    Returns:
-        Liste de dicts au format attendu par le frontend.
+    Ne fait PAS de scraping d'email : cette étape est déléguée à
+    enrich_emails, appelée séparément par lots depuis le frontend une
+    fois les résultats de recherche affichés.
     """
     osm_tags = _build_osm_tags(categories)
     radius_m = max(500, min(radius_km, 20) * 1000)
@@ -181,9 +216,6 @@ def search_city(
         else:
             gdf = ox.features_from_address(city, tags=osm_tags, dist=radius_m)
     except Exception as exc:
-        # OSMnx lève une exception (plutôt que de renvoyer un résultat vide)
-        # quand aucune entité ne correspond aux tags demandés dans la zone.
-        # Ce n'est pas une vraie erreur : on renvoie simplement une liste vide.
         if "no data elements" in str(exc).lower() or "InsufficientResponseError" in type(exc).__name__:
             logger.info("Aucun établissement trouvé pour %s avec ces catégories.", city)
             return []
@@ -209,9 +241,6 @@ def search_city(
 
         website = _clean(row.get("website") or row.get("contact:website"))
         email = _clean(row.get("email") or row.get("contact:email"))
-
-        if not email and scrape_emails and website:
-            email = _extract_email_from_website(website)
 
         osm_id = idx[1] if isinstance(idx, tuple) else idx
         centroid = row.geometry.centroid if row.geometry is not None else None
