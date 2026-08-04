@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fetchRegions, fetchDepartements, fetchCommunes, Region, Departement, Commune } from "../lib/geo";
+import FranceMap from "./FranceMap";
 
 export interface SelectedLocation {
   nom: string;
@@ -23,6 +24,8 @@ export default function LocationSelector({ onSelect }: LocationSelectorProps) {
   const [communeCode, setCommuneCode] = useState("");
 
   const [error, setError] = useState<string | null>(null);
+
+  const departementCodes = useMemo(() => departements.map((d) => d.code), [departements]);
 
   useEffect(() => {
     fetchRegions()
@@ -63,14 +66,24 @@ export default function LocationSelector({ onSelect }: LocationSelectorProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [communeCode]);
 
+  const inputCls =
+    "rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50";
+
   return (
     <div>
+      {/* Carte de France cliquable (se synchronise avec les menus) */}
+      <div className="mb-3">
+        <FranceMap
+          regionCode={regionCode}
+          departementCode={departementCode}
+          departementCodes={departementCodes}
+          onSelectRegion={setRegionCode}
+          onSelectDepartement={setDepartementCode}
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <select
-          value={regionCode}
-          onChange={(e) => setRegionCode(e.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-        >
+        <select value={regionCode} onChange={(e) => setRegionCode(e.target.value)} className={inputCls}>
           <option value="">Région</option>
           {regions.map((r) => (
             <option key={r.code} value={r.code}>
@@ -83,7 +96,7 @@ export default function LocationSelector({ onSelect }: LocationSelectorProps) {
           value={departementCode}
           onChange={(e) => setDepartementCode(e.target.value)}
           disabled={!regionCode}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-50"
+          className={inputCls}
         >
           <option value="">Département</option>
           {departements.map((d) => (
@@ -97,7 +110,7 @@ export default function LocationSelector({ onSelect }: LocationSelectorProps) {
           value={communeCode}
           onChange={(e) => setCommuneCode(e.target.value)}
           disabled={!departementCode}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-50"
+          className={inputCls}
         >
           <option value="">Ville</option>
           {communes.map((c) => (
